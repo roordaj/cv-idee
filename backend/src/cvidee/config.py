@@ -92,6 +92,11 @@ class Settings(BaseSettings):
         """
         return self.mode is DeploymentMode.STANDALONE and self.api_token is not None
 
+    @property
+    def ha_configured(self) -> bool:
+        """Whether Home Assistant can be reached (add-on token, or ``HA_URL`` + ``HA_TOKEN``)."""
+        return self.supervisor_token is not None or bool(self.ha_url and self.ha_token)
+
     def ha_connection(self) -> HAConnection:
         """Return how to reach Home Assistant for the detected mode."""
         if self.supervisor_token is not None:

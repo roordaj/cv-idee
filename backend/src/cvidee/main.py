@@ -14,7 +14,9 @@ from cvidee.api import router as api_router
 from cvidee.api.auth import ApiTokenMiddleware
 from cvidee.api.spa import create_spa_router
 from cvidee.config import Settings, get_settings
-from cvidee.store.engine import database_url
+from cvidee.ingest.ha_client import AiohttpHAClient
+from cvidee.ingest.service import FileAliveStore, IngestService, sql_tracked_entities
+from cvidee.store.engine import create_db_engine, create_session_factory, database_url
 from cvidee.store.schema import upgrade_to_head
 
 logger = logging.getLogger(__name__)
@@ -36,11 +38,44 @@ def migrate_database(settings: Settings) -> None:
     logger.info("Database is at head")
 
 
+def _start_ingest(app: FastAPI, settings: Settings) -> IngestService | None:
+    """Build the HA client and ingest service; ``None`` (no-op) when HA is not configured."""
+    app.state.ha_client = None
+    app.state.ingest = None
+    if not settings.ha_configured:
+        logger.info("Home Assistant is not configured; ingest disabled")
+        return None
+    factory = create_session_factory(create_db_engine(database_url(settings.db_path)))
+    holder: list[IngestService] = []
+    client = AiohttpHAClient(
+        settings.ha_connection(),
+        tracked=lambda: holder[0].tracked_ids() if holder else (),
+    )
+    service = IngestService(
+        client,
+        factory,
+        lambda: sql_tracked_entities(factory),
+        alive_store=FileAliveStore(settings.db_path.parent / "ingest_alive_at"),
+    )
+    holder.append(service)
+    app.state.ha_client = client
+    app.state.ingest = service
+    return service
+
+
 @asynccontextmanager
 async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Migrate before anything (ingest, runner) touches the database.
-    migrate_database(app.state.settings)
-    yield
+    settings: Settings = app.state.settings
+    migrate_database(settings)
+    ingest = _start_ingest(app, settings)
+    if ingest is not None:
+        await ingest.start()
+    try:
+        yield
+    finally:
+        if ingest is not None:
+            await ingest.stop()
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
