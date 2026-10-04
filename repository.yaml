@@ -1,0 +1,4 @@
+# Home Assistant add-on repository definition (see addon/DOCS.md for installation).
+name: CV-idee add-ons
+url: https://github.com/roordaj/cv-idee
+maintainer: Jan Roorda

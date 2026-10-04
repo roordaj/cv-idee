@@ -1,0 +1,5 @@
+# Build settings used by the Supervisor when it builds the add-on locally.
+# The Supervisor mounts /data owned by root, so the add-on runs as root inside its
+# container (standalone images run as the non-root user `cvidee`).
+args:
+  APP_USER: root

@@ -58,3 +58,25 @@ typecheck-frontend:
 
 build: ## Build the frontend
 	cd $(FRONTEND) && npm run build
+
+ADDON_LOCAL_DIR ?= build/addon-local/cv_analyse
+
+.PHONY: docker-build addon-local dev-up dev-down
+
+docker-build: ## Build the container image (cvidee:dev)
+	docker build -t cvidee:dev .
+
+addon-local: ## Assemble a self-contained local add-on folder in build/addon-local/cv_analyse
+	rm -rf $(ADDON_LOCAL_DIR) && mkdir -p $(ADDON_LOCAL_DIR)/addon
+	rsync -a --exclude node_modules --exclude .venv --exclude dist --exclude '*cache*' \
+		--exclude .hypothesis --exclude coverage $(BACKEND) $(FRONTEND) $(ADDON_LOCAL_DIR)/
+	cp Dockerfile .dockerignore $(ADDON_LOCAL_DIR)/
+	cp -R addon/config.yaml addon/build.yaml addon/DOCS.md addon/translations $(ADDON_LOCAL_DIR)/
+	cp addon/run.sh $(ADDON_LOCAL_DIR)/addon/run.sh
+	@echo "Copy $(ADDON_LOCAL_DIR) to /addons/cv_analyse on the Home Assistant host."
+
+dev-up: ## Start Mosquitto, Home Assistant and the app (docker-compose.dev.yml)
+	docker compose -f docker-compose.dev.yml up --build -d
+
+dev-down: ## Stop the development stack
+	docker compose -f docker-compose.dev.yml down

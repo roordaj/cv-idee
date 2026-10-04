@@ -1,0 +1,10 @@
+configuration:
+  log_level:
+    name: Logniveau
+    description: Hoeveel details de add-on in het log schrijft.
+  retentie_dagen:
+    name: Bewaartermijn (dagen)
+    description: Hoe lang ruwe waarnemingen bewaard blijven. Samenvattingen en advieshistorie blijven langer bewaard.
+  notify_doel:
+    name: Meldingsdoel
+    description: Naam van de notify-service voor meldingen, bijvoorbeeld mobile_app_telefoon (zonder "notify."). Leeg laten om alleen het HA-event cv_analyse_finding te sturen.

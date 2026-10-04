@@ -1,0 +1,74 @@
+# Development stack: Mosquitto + Home Assistant (simulated boiler signals) + CV-idee app.
+#
+#   docker compose -f docker-compose.dev.yml up --build -d    (or: make dev-up)
+#
+# Home Assistant: http://localhost:8123 - complete onboarding, create a long-lived access
+# token and put it in .env as HA_TOKEN (see README). App: http://localhost:8099.
+# MQTT: localhost:1883, user dev / password dev.
+
+name: cvidee-dev
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    command:
+      - sh
+      - -c
+      - >-
+        mosquitto_passwd -b -c /mosquitto/data/passwd dev dev &&
+        chown mosquitto:mosquitto /mosquitto/data/passwd &&
+        chmod 0700 /mosquitto/data/passwd &&
+        exec mosquitto -c /mosquitto/config/mosquitto.conf
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./dev/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto-data:/mosquitto/data
+    restart: unless-stopped
+
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    # Seed /config from dev/homeassistant on first start; HA's own state stays in the volume
+    # so the committed files are never modified.
+    entrypoint:
+      - sh
+      - -c
+      - >-
+        for f in /seed/* /seed/.storage /seed/.storage/*; do
+          t="/config/$${f#/seed/}"; [ -d "$$f" ] && mkdir -p "$$t" || [ -e "$$t" ] || cp "$$f" "$$t";
+        done && exec /init
+    environment:
+      TZ: Europe/Amsterdam
+    ports:
+      - "8123:8123"
+    volumes:
+      - ./dev/homeassistant:/seed:ro
+      - homeassistant-config:/config
+    depends_on:
+      - mosquitto
+    restart: unless-stopped
+
+  app:
+    build: .
+    environment:
+      HA_URL: http://homeassistant:8123
+      HA_TOKEN: ${HA_TOKEN:-}
+      MQTT_HOST: mosquitto
+      MQTT_PORT: "1883"
+      MQTT_USER: dev
+      MQTT_PASSWORD: dev
+      CVIDEE_API_TOKEN: ${CVIDEE_API_TOKEN:-}
+      CVIDEE_LOG_LEVEL: debug
+    ports:
+      - "8099:8099"
+    volumes:
+      - app-data:/data
+    depends_on:
+      - homeassistant
+      - mosquitto
+    restart: unless-stopped
+
+volumes:
+  mosquitto-data:
+  homeassistant-config:
+  app-data:

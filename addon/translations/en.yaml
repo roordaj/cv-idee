@@ -1,0 +1,10 @@
+configuration:
+  log_level:
+    name: Log level
+    description: How much detail the add-on writes to its log.
+  retentie_dagen:
+    name: Retention (days)
+    description: How long raw observations are kept. Summaries and recommendation history are kept longer.
+  notify_doel:
+    name: Notification target
+    description: Name of the notify service for notifications, e.g. mobile_app_phone (without "notify."). Leave empty to only fire the HA event cv_analyse_finding.
