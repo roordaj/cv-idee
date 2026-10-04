@@ -1,5 +1,7 @@
 # CV-idee
 
+[![CI](https://github.com/roordaj/cv-idee/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/roordaj/cv-idee/actions/workflows/ci.yml)
+
 Alleen-lezen analyse- en adviesapp voor een cv-installatie (Remeha Calenta Ace + eTwist) op basis van Home Assistant-gegevens.
 
 - Functionele requirements: [docs/cv-idee-functionele-requirements.md](docs/cv-idee-functionele-requirements.md)

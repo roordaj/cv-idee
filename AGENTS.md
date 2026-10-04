@@ -121,6 +121,16 @@ Run `make lint typecheck test` before opening a PR. Copy `.env.example` to `.env
 6. **Blocked** issues (`status:blocked`) become `status:ready` automatically when all `Depends on #n` issues are closed. Use `status:needs-human` when you need a decision or access you don't have.
 7. **Refinement** issues deliver an ADR/document and, where needed, follow-up issues.
 
+## CI and required checks
+
+`.github/workflows/ci.yml` runs on every pull request and on pushes to `main`:
+
+- `backend` — `uv sync`, ruff check, ruff format --check, mypy --strict, pytest (via the Makefile targets).
+- `frontend` — `npm ci`, eslint, prettier --check, tsc, vitest, production build.
+- `openapi` — placeholder (no-op) until #11 adds `api/openapi.json`; it will then fail when the committed spec differs from the generated one.
+
+Branch protection advice for `main`: require a pull request, require the status checks **`backend`** and **`frontend`** to pass (add `openapi` once #11 makes it real), and require branches to be up to date before merging. Never merge with a red check.
+
 ## Definition of Done
 
 - Tests (including relevant scenarios) pass; lint and typecheck pass (`make lint typecheck test`, CI green).
