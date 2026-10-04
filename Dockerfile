@@ -51,6 +51,10 @@ RUN groupadd --system --gid 1000 cvidee \
     && mkdir -p /data && chown cvidee:cvidee /data
 
 COPY --from=backend /app/.venv /app/.venv
+# The package is installed non-editable, so ship alembic.ini + migrations/ separately; the app
+# migrates the database at startup (cvidee.store.schema, CVIDEE_MIGRATIONS_DIR).
+COPY --from=backend /src/backend/alembic.ini /app/migrations-root/alembic.ini
+COPY --from=backend /src/backend/migrations /app/migrations-root/migrations
 COPY --from=frontend /src/frontend/dist /app/static
 COPY --chmod=0755 addon/run.sh /app/run.sh
 
@@ -58,6 +62,7 @@ ENV PATH="/app/.venv/bin:${PATH}" \
     PYTHONUNBUFFERED=1 \
     CVIDEE_STATIC_DIR=/app/static \
     CVIDEE_DB_PATH=/data/cvidee.sqlite \
+    CVIDEE_MIGRATIONS_DIR=/app/migrations-root \
     CVIDEE_PORT=8099
 
 WORKDIR /app

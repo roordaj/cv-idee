@@ -2,13 +2,14 @@
 
 from collections.abc import Iterator
 from pathlib import Path
+from typing import Any
 
 import pytest
 from alembic import command
 from alembic.autogenerate import compare_metadata
 from alembic.migration import MigrationContext
 from alembic.script import ScriptDirectory
-from sqlalchemy import CheckConstraint, Engine, inspect, select, text
+from sqlalchemy import CheckConstraint, Engine, func, inspect, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -17,6 +18,7 @@ from cvidee.store.enums import (
     Certainty,
     ChangeActor,
     CircuitKind,
+    ConnectionSource,
     EmitterType,
     EvaluationVerdict,
     EvidenceKind,
@@ -45,6 +47,7 @@ from cvidee.store.models import (
     Change,
     ChangeEvaluation,
     ChangeItem,
+    ConnectionEvent,
     Finding,
     FindingEvidence,
     FindingHypothesis,
@@ -512,3 +515,56 @@ def test_notification_policy_defaults_and_override(session: Session) -> None:
     repo.set(Severity.HIGH, NotificationChannel.NONE, T0 + 1)
     assert repo.get_all()[Severity.HIGH] is NotificationChannel.NONE
     assert repo.get_all()[Severity.INFO] is NotificationChannel.NONE
+
+
+def _quality(session: Session, **kw: Any) -> None:
+    values: dict[str, Any] = {
+        "kind": QualityEventKind.CONNECTION_LOST,
+        "signal": "",
+        "start_ts": T0,
+        "end_ts": T0 + 1000,
+        "final": True,
+    }
+    session.add(QualityEvent(**{**values, **kw}))
+    session.flush()
+
+
+def test_quality_event_key_allows_sources_and_other_signals(session: Session) -> None:
+    _quality(session, source=ConnectionSource.WS)
+    _quality(session, source=ConnectionSource.CAN_GATEWAY)
+    for other in ("return_temperature@boiler", "outdoor_temperature"):
+        _quality(
+            session,
+            kind=QualityEventKind.MISALIGNED,
+            signal="flow_temperature@boiler",
+            other_signal=other,
+        )
+    session.commit()
+    assert session.scalar(select(func.count()).select_from(QualityEvent)) == 4
+    # Same key (incl. NULL source) is still unique.
+    _quality(session, kind=QualityEventKind.STALE, signal="x")
+    with pytest.raises(IntegrityError):
+        _quality(session, kind=QualityEventKind.STALE, signal="x")
+
+
+def test_history_connection_source_and_mode_device_code(session: Session) -> None:
+    session.add(ConnectionEvent(source=ConnectionSource.HISTORY, ts=T0, up=True))
+    session.add(
+        ModeSegment(
+            start_ts=T0,
+            end_ts=T0 + 3_600_000,
+            mode=Mode.FAULT_BLOCKING,
+            certainty=ModeCertainty.DIRECT,
+            final=True,
+            device_code="E:04",
+        )
+    )
+    session.commit()
+    assert session.scalars(select(ModeSegment.device_code)).one() == "E:04"
+
+
+def test_migration_0003_down_and_up(db_url: str) -> None:
+    cfg = alembic_config(db_url)
+    command.upgrade(cfg, "head")
+    command.downgrade(cfg, "0002")
+    command.upgrade(cfg, "head")
