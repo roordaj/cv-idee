@@ -168,6 +168,12 @@ def test_same_ts_different_state_is_not_a_duplicate(repo: SqlObservationReposito
     assert result.inserted == 2
 
 
+def test_adr003_t13_duplicates_keep_one_change(repo: SqlObservationRepository) -> None:
+    result = repo.add_observations([rec(T0, "off"), rec(T0, "off"), rec(T0, "off", POLL)])
+    assert (result.inserted, result.duplicates_skipped) == (1, 2)
+    assert kinds(repo) == [(0, "off", "change")]
+
+
 def test_duplicate_merge_keeps_strongest_evidence(repo: SqlObservationRepository) -> None:
     repo.add_observations(
         [rec(T0, "on", POLL, origin=IMPORT, received=T0 + 900, last_reported=T0 + 50)]
@@ -277,16 +283,9 @@ def test_duplicate_quality_events() -> None:
     events = duplicate_quality_events(
         counts, lambda entity, _ts: boiler_flame if entity == FLAME else None
     )
-    assert [(e.kind, e.signal, e.start, e.end, e.detail, e.final) for e in events] == [
-        (QualityEventKind.DUPLICATE, boiler_flame, T0, T0 + HOUR_MS, "duplicates_skipped=5", True),
-        (
-            QualityEventKind.DUPLICATE,
-            boiler_flame,
-            T0 + HOUR_MS,
-            T0 + 2 * HOUR_MS,
-            "duplicates_skipped=1",
-            True,
-        ),
+    assert [(e.kind, e.signal, e.start, e.end, e.count, e.final) for e in events] == [
+        (QualityEventKind.DUPLICATE, boiler_flame, T0, T0 + HOUR_MS, 5, True),
+        (QualityEventKind.DUPLICATE, boiler_flame, T0 + HOUR_MS, T0 + 2 * HOUR_MS, 1, True),
     ]
 
 
@@ -307,6 +306,8 @@ def test_to_analysis_observation() -> None:
     obs = to_analysis_observation(rec(T0, "on", CONFIRM, last_reported=T0 + 9), flame)
     assert (obs.signal, obs.ts, obs.kind, obs.last_reported) == (flame, T0, CONFIRM, T0 + 9)
     assert to_analysis_observation(rec(T0, "on", last_reported=T0 - 1), flame).last_reported is None
+    poll = rec(T0, "on", POLL, last_reported=T0 - 500)  # ADR-003 §4.3: older evidence
+    assert to_analysis_observation(poll, flame).last_reported == T0 - 500
 
 
 # ----------------------------------------------------------------------------- retention

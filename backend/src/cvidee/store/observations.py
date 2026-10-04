@@ -2,10 +2,11 @@
 
 Semantics (ADR-001 §3/§7, ADR-002 §3.1, FR-06/FR-08):
 
-* **Dedupe** on ``(entity, ts, state)``. A duplicate is merged into the stored row instead
-  of being inserted: reported kind ``change > confirm > poll``, origin ``live > import``,
-  earliest ``received_at_ts``, latest ``last_reported_ts``. The merge is commutative, so
-  the stored result does not depend on the order in which (batches of) records arrive.
+* **Dedupe** on ``(entity, ts, state)`` (ADR-003 §4.2). A duplicate is merged into the
+  stored row instead of being inserted: the strongest reported kind stays
+  (``change > confirm > poll``), origin ``live > import``, earliest ``received_at_ts``,
+  latest ``last_reported_ts``. The merge is commutative, so the stored result does not
+  depend on the order in which (batches of) records arrive.
 * **Classification**: a reported ``change`` whose state equals the previous stored state
   of the entity (order ``(ts, state)``) is stored as ``confirm``: an identical value
   repeated is never a transition. ``confirm`` and ``poll`` are kept as reported (a poll
@@ -16,7 +17,7 @@ Semantics (ADR-001 §3/§7, ADR-002 §3.1, FR-06/FR-08):
   :class:`~cvidee.store.records.InsertResult`; :func:`duplicate_quality_events` turns
   them into ``QualityEvent(kind=DUPLICATE)`` values ("ontdubbeld") once the caller knows
   the role mapping. They are not written to ``quality_events`` here: that table is owned
-  by the pipeline (ADR-001 §5); ingest records the totals in ``import_jobs`` /
+  by the pipeline (ADR-001 §5, ADR-003 §8); ingest records the totals in ``import_jobs`` /
   ``analysis_runs.stats``.
 * **Retention** deletes raw rows only (``observations``, ``connection_events``), never
   derived data.
@@ -143,7 +144,8 @@ def duplicate_quality_events(
     counts: Iterable[DuplicateCount],
     signal_for: Callable[[str, int], SignalRef | None],
 ) -> tuple[QualityEvent, ...]:
-    """'Ontdubbeld' quality events: one per signal and whole UTC hour, with the count.
+    """'Ontdubbeld' quality events (ADR-003 §8): one per signal and whole UTC hour, with
+    ``count``.
 
     ``signal_for(entity_id, hour_start_ts)`` applies the role mapping valid at that time;
     entities without a mapping are skipped (``None`` would mean "all signals").
@@ -159,7 +161,7 @@ def duplicate_quality_events(
             signal=signal,
             start=hour,
             end=hour + HOUR_MS,
-            detail=f"duplicates_skipped={n}",
+            count=n,
             final=True,
         )
         for (hour, signal), n in sorted(total.items(), key=lambda kv: (kv[0][0], str(kv[0][1])))
@@ -189,7 +191,12 @@ def to_analysis_observation(
     else:
         value = record.state
     last_reported = record.last_reported_ts
-    if last_reported is not None and last_reported < record.ts:
+    # ADR-003 §4.3: only a poll may carry evidence older than its ts.
+    if (
+        last_reported is not None
+        and last_reported < record.ts
+        and record.kind is not ObservationKind.POLL
+    ):
         last_reported = None
     return Observation(
         signal=signal,
