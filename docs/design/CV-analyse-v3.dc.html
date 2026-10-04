@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<style>body{margin:0;background:#f4f5f8;color:#1d2433;font-family:"Plus Jakarta Sans",system-ui,sans-serif;font-size:14px;line-height:1.5}*{box-sizing:border-box}h1,h2,h3,h4,h5,h6,p{margin:0}a{color:#c2531f;text-underline-offset:3px}a:hover{color:#ea6a2f}button,input,select,textarea{font:inherit}:focus-visible{outline:2px solid #ea6a2f;outline-offset:2px}</style>
+</helmet>
+<div style="min-height:100vh;display:grid;grid-template-columns:{{ lay.cols }};font-variant-numeric:tabular-nums">
+
+  <aside style="background:#fff;border-right:1px solid #e7e9ee;padding:{{ lay.asidePad }};display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh">
+    <div style="display:flex;align-items:center;gap:10px;padding:0 6px 20px">
+      <span style="width:36px;height:36px;border-radius:11px;background:#ea6a2f;color:#fff;display:grid;place-items:center">{{ I.flame }}</span>
+      <sc-if value="{{ lay.full }}" hint-placeholder-val="{{ true }}"><span style="display:flex;flex-direction:column;line-height:1.2"><span style="font-weight:800;font-size:16px">CV-analyse</span><span style="font-size:12px;color:#5b6475">Thuis · Calenta Ace</span></span></sc-if>
+    </div>
+    <sc-if value="{{ lay.full }}" hint-placeholder-val="{{ true }}"><div style="font-size:11px;font-weight:600;color:#8a92a3;padding:4px 12px 6px">Analyse</div></sc-if>
+    <sc-for list="{{ navMain }}" as="n" hint-placeholder-count="5">
+      <button onClick="{{ n.go }}" title="{{ n.label }}" style="position:relative;display:flex;align-items:center;justify-content:{{ lay.navJc }};gap:10px;width:100%;text-align:left;padding:9px 12px;border-radius:10px;border:0;cursor:pointer;font-size:14px;background:{{ n.bg }};color:{{ n.fg }};font-weight:{{ n.fw }}">
+       {{ n.icon }}<sc-if value="{{ lay.full }}" hint-placeholder-val="{{ true }}"><span style="flex:1">{{ n.label }}</span></sc-if>
+        <sc-if value="{{ n.hasCount }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;font-weight:700;padding:1px 8px;border-radius:999px;background:#fce8eb;color:#a92536;position:{{ lay.badgePos }};top:2px;right:2px">{{ n.count }}</span></sc-if>
+      </button>
+    </sc-for>
+    <sc-if value="{{ lay.full }}" hint-placeholder-val="{{ true }}"><div style="font-size:11px;font-weight:600;color:#8a92a3;padding:18px 12px 6px">Instellingen</div></sc-if><sc-if value="{{ lay.rail }}" hint-placeholder-val="{{ false }}"><div style="height:1px;background:#e7e9ee;margin:10px 6px"></div></sc-if>
+    <sc-for list="{{ navConfig }}" as="n" hint-placeholder-count="4">
+      <button onClick="{{ n.go }}" title="{{ n.label }}" style="position:relative;display:flex;align-items:center;justify-content:{{ lay.navJc }};gap:10px;width:100%;text-align:left;padding:9px 12px;border-radius:10px;border:0;cursor:pointer;font-size:14px;background:{{ n.bg }};color:{{ n.fg }};font-weight:{{ n.fw }}">
+       {{ n.icon }}<sc-if value="{{ lay.full }}" hint-placeholder-val="{{ true }}"><span style="flex:1">{{ n.label }}</span><sc-if value="{{ n.hasCount }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;font-weight:700;padding:1px 8px;border-radius:999px;background:#eef0f3;color:#3d4452">{{ n.count }}</span></sc-if></sc-if>
+      </button>
+    </sc-for>
+    <sc-if value="{{ lay.full }}" hint-placeholder-val="{{ true }}"><div style="margin-top:auto;background:#e1f4f1;color:#0f6b61;border-radius:14px;padding:14px;display:flex;gap:10px;font-size:12px;line-height:1.45">
+      <span style="padding-top:1px">{{ I.shield }}</span>
+      <span>Alleen-lezen: deze app stuurt niets aan. Wijzigingen aan ketel of thermostaat voer je zelf uit.</span>
+    </div></sc-if>
+  </aside>
+
+  <div style="min-width:0;display:flex;flex-direction:column">
+    <header style="display:flex;align-items:center;gap:12px;padding:16px {{ lay.pad }};flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:#fff;border:1px solid #e7e9ee;font-size:13px">
+        <span style="width:8px;height:8px;border-radius:50%;background:#2f9e5b;box-shadow:0 0 0 3px #e4f4ea"></span>Live · bijgewerkt 12:00
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:#fff;border:1px solid #e7e9ee;font-size:13px;color:#5b6475">{{ I.plug }}CAN-bus via Home Assistant</div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:8px;font-size:13px;color:#5b6475">{{ I.calendar }}Zondag 4 oktober 2026</div>
+    </header>
+
+    <main ref="{{ mainRef }}" style="padding:4px {{ lay.pad }} 56px;min-width:0">
+
+      <!-- OVERZICHT -->
+      <sc-if value="{{ is.overzicht }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:18px">
+          <div>
+            <h1 style="font-size:28px;font-weight:800;letter-spacing:-.02em">Overzicht</h1>
+            <p style="color:#5b6475;font-size:15px;margin-top:2px">Status van je installatie · zondag 4 okt, 06:00–12:00.<sc-if value="{{ showFR }}"> FR-36</sc-if></p>
+          </div>
+
+          <div style="display:flex;flex-wrap:wrap;gap:18px">
+            <div style="flex:2 1 440px;background:#fff;border:1px solid #e7e9ee;border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:16px">
+              <div style="display:flex;gap:16px;align-items:flex-start">
+                <span style="width:52px;height:52px;border-radius:16px;background:#eef0f3;color:#5b6475;display:grid;place-items:center;flex:none">{{ I.pause }}</span>
+                <div style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                  <div style="font-size:12px;font-weight:600;color:#5b6475">Status ketel</div>
+                  <div style="font-size:22px;font-weight:800;line-height:1.2">Standby — geen warmtevraag sinds 11:20</div>
+                  <div style="font-size:14px;color:#5b6475;text-wrap:pretty">Vanochtend stopte de brander vaak binnen 3 minuten terwijl er nog warmte gevraagd werd. Dat heet <strong>pendelen</strong> en is meestal ongunstig voor rendement en slijtage.</div>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+                    <span style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;background:#fce8eb;color:#a92536">2 vragen om actie</span>
+                    <span style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;background:#fcf3dc;color:#8a6206">Datakwaliteit: beperkt</span>
+                  </div>
+                </div>
+              </div>
+              <div style="background:#f8f9fb;border-radius:14px;padding:12px 14px 6px">
+                <div style="display:flex;justify-content:space-between;font-size:12px;color:#5b6475;margin-bottom:4px"><span style="font-weight:600;color:#1d2433">Vandaag 06:00–12:00</span><span>{{ stats.cvN }}&#160;cycli ·&#160;{{ stats.shortN }}&#160;kort tijdens warmtevraag</span></div>
+               &#160;{{ miniChart }}
+              </div>
+            </div>
+
+            <div style="flex:1 1 260px;background:#fdeee6;border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:10px">
+              <span style="width:44px;height:44px;border-radius:14px;background:#ea6a2f;color:#fff;display:grid;place-items:center">{{ I.bulb }}</span>
+              <div style="font-size:12px;font-weight:700;color:#a2421a">Aanbevolen actie</div>
+              <div style="font-size:20px;font-weight:800;line-height:1.25">Max. aanvoertemperatuur terug naar 70 °C</div>
+              <div style="font-size:14px;color:#6b3a20;line-height:1.5;text-wrap:pretty">Sinds de verlaging naar 60 °C (21 sep) zat de slaapkamer 5,8 u/week meer dan 0,5 °C onder het setpoint. Je ingestelde grens was 4 u/week, dus het terugdraaicriterium is bereikt.</div>
+              <button onClick="{{ openB011 }}" style="margin-top:auto;align-self:flex-start;display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:12px;border:0;background:#ea6a2f;color:#fff;font-weight:700;cursor:pointer" style-hover="background:#d65a20">Open advies&#160;{{ I.arrow }}</button>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px">
+            <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="6">
+              <div style="background:#fff;border:1px solid #e7e9ee;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px">
+                <span style="width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:{{ k.bg }};color:{{ k.fg }}">{{ k.icon }}</span>
+                <div>
+                  <div style="font-size:12px;color:#5b6475">{{ k.label }}</div>
+                  <div style="font-size:22px;font-weight:800;line-height:1.2">{{ k.value }}</div>
+                  <div style="font-size:12px;color:#8a92a3">{{ k.sub }}</div><sc-if value="{{ showExplain }}" hint-placeholder-val="{{ true }}"><div style="font-size:12px;color:#5b6475;margin-top:8px;padding-top:8px;border-top:1px dashed #e7e9ee;line-height:1.4">{{ k.explain }}</div></sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start">
+            <div style="flex:2 1 440px;background:#fff;border:1px solid #e7e9ee;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                <h3 style="font-size:16px;font-weight:700">Bevindingen</h3>
+                <button onClick="{{ goBevindingen }}" style="border:0;background:transparent;color:#c2531f;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px">Alles bekijken&#160;{{ I.chevron }}</button>
+              </div>
+              <sc-for list="{{ findings }}" as="f" hint-placeholder-count="4">
+                <button onClick="{{ f.open }}" style="display:flex;gap:14px;align-items:center;width:100%;text-align:left;border:0;background:transparent;padding:10px;border-radius:14px;cursor:pointer;color:inherit" style-hover="background:#f8f9fb">
+                  <span style="width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none;background:{{ f.iBg }};color:{{ f.iFg }}">{{ f.icon }}</span>
+                  <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+                    <span style="font-weight:700;font-size:14px;line-height:1.35">{{ f.title }}</span>
+                    <span style="font-size:12px;color:#5b6475">{{ f.cat }}&#160;·&#160;{{ f.when }}</span>
+                  </span>
+                  <span style="display:inline-flex;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;background:{{ f.eBg }};color:{{ f.eFg }}">{{ f.ernst }}</span>
+                </button>
+              </sc-for>
+            </div>
+
+            <div style="flex:1 1 260px;background:#fff;border:1px solid #e7e9ee;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:14px">
+              <h3 style="font-size:16px;font-weight:700">Datakwaliteit</h3>
+              <div style="display:flex;align-items:center;gap:16px">
+                <svg width="84" height="84" viewBox="0 0 84 84" style="flex:none"><circle cx="42" cy="42" r="34" fill="none" stroke="#fcf3dc" stroke-width="10"></circle><circle cx="42" cy="42" r="34" fill="none" stroke="#d99a12" stroke-width="10" stroke-linecap="round" stroke-dasharray="195.9 213.6" transform="rotate(-90 42 42)"></circle><text x="42" y="47" text-anchor="middle" font-size="16" font-weight="800" fill="#1d2433">92%</text></svg>
+                <div style="font-size:13px;color:#5b6475;line-height:1.5"><strong style="color:#8a6206">Beperkt.</strong> 92 % dekking vandaag: 30 min CAN-uitval en 6 signalen nog niet gekoppeld. Conclusies over dat tijdvak worden als onvolledig gemarkeerd.</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px;font-size:13px">
+                <div style="display:flex;gap:10px;align-items:center"><span style="color:#e0475b">{{ I.wifioff }}</span><span style="flex:1">CAN-uitval</span><strong>10:10–10:40</strong></div>
+                <div style="display:flex;gap:10px;align-items:center"><span style="color:#d99a12">{{ I.clock }}</span><span style="flex:1">Slaapkamersensor verouderd</span><strong>14 min</strong></div>
+                <div style="display:flex;gap:10px;align-items:center"><span style="color:#8a92a3">{{ I.plug }}</span><span style="flex:1">Signalen niet gekoppeld</span><strong>6</strong></div>
+              </div>
+              <button onClick="{{ goKwaliteit }}" style="align-self:flex-start;border:0;background:transparent;color:#c2531f;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;padding:0">Details&#160;{{ I.chevron }}</button>
+            </div>
+          </div>
+
+          <div style="background:#fff;border:1px solid #e7e9ee;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
+              <h3 style="font-size:16px;font-weight:700">Beschikbare analyses<sc-if value="{{ showFR }}"><span style="font-size:12px;font-weight:500;color:#8a92a3"> · FR-04</span></sc-if></h3>
+              <span style="font-size:13px;color:#5b6475">Een ontbrekend signaal blokkeert alleen de analyses die ervan afhangen</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">
+              <sc-for list="{{ analyses }}" as="a" hint-placeholder-count="8">
+                <div style="border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px;background:{{ a.cardBg }}">
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <span style="width:32px;height:32px;border-radius:10px;display:grid;place-items:center;background:{{ a.iBg }};color:{{ a.iFg }}">{{ a.icon }}</span>
+                    <span style="font-weight:700;flex:1">{{ a.name }}</span>
+                  </div>
+                  <span style="align-self:flex-start;display:inline-flex;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700;background:{{ a.sBg }};color:{{ a.sFg }}">{{ a.status }}</span>
+                  <span style="font-size:12px;color:#5b6475;line-height:1.45">{{ a.note }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- BEVINDINGEN -->
+      <sc-if value="{{ is.bevindingen }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;grid-template-columns:{{ bv.grid }};gap:18px;align-items:start">
+
+          <sc-if value="{{ bv.sideList }}" hint-placeholder-val="{{ true }}">
+            <div style="background:#fff;border:1px solid #e7e9ee;border-radius:20px;padding:12px;display:flex;flex-direction:column;gap:4px;position:sticky;top:16px">
+              <div style="padding:6px 8px 8px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-weight:700">Bevindingen</span><span style="font-size:12px;color:#8a92a3">op prioriteit</span></div>
+              <sc-for list="{{ findings }}" as="f" hint-placeholder-count="5">
+                <button onClick="{{ f.open }}" style="display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left;border:0;padding:10px;border-radius:12px;cursor:pointer;color:inherit;background:{{ f.bg }};box-shadow:{{ f.ring }}">
+                  <span style="width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex:none;background:{{ f.iBg }};color:{{ f.iFg }}">{{ f.icon }}</span>
+                  <span style="display:flex;flex-direction:column;gap:4px;min-width:0">
+                    <span style="font-size:13px;font-weight:700;line-height:1.35">{{ f.title }}</span>
+                    <span style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><span style="padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700;background:{{ f.eBg }};color:{{ f.eFg }}">{{ f.ernst }}</span><span style="font-size:11px;color:#5b6475">{{ f.statusLabel }}</span></span>
+                  </span>
+                </button>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <div style="min-width:0;display:flex;flex-direction:column;gap:16px">
+            <sc-if value="{{ bv.chips }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 2px 6px;margin:0 -2px">
+                <sc-for list="{{ findings }}" as="f" hint-placeholder-count="5">
+                  <button onClick="{{ f.open }}" style="flex:none;width:220px;scroll-snap-align:start;display:flex;gap:10px;align-items:flex-start;text-align:left;border:1px solid #e7e9ee;padding:10px;border-radius:14px;cursor:pointer;color:inherit;background:{{ f.chipBg }};box-shadow:{{ f.ring }}">
+                    <span style="width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:none;background:{{ f.iBg }};color:{{ f.iFg }}">{{ f.icon }}</span>
+                    <span style="display:flex;flex-direction:column;gap:4px;min-width:0">
+                      <span style="font-size:12px;font-weight:700;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">{{ f.title }}</span>
+                      <span style="align-self:flex-start;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700;background:{{ f.eBg }};color:{{ f.eFg }}">{{ f.ernst }}</span>
+                    </span>
+                  </button>
+                </sc-for>
+              </div>
+            </sc-if>
+
+            <div style="background:#fff;border:1px solid #e7e9ee;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:14px">
+              <div style="display:flex;gap:14px;align-items:flex-start">
+                <span style="width:46px;height:46px;border-radius:14px;display:grid;place-items:center;flex:none;background:{{ sel.iBg }};color:{{ sel.iFg }}">{{ sel.iconLg }}</span>
+                <div style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                  <div style="font-size:12px;color:#5b6475;font-weight:600">{{ sel.metaLine }}</div>
+                  <h2 style="font-size:{{ bv.h2 }};font-weight:800;line-height:1.25;text-wrap:pretty">{{ sel.title }}</h2>
+                </div>
+              </div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <span style="padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;background:{{ sel.eBg }};color:{{ sel.eFg }}">{{ sel.ernstLabel }}</span>
+                <span style="padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;background:#efeafb;color:#563ba8">{{ sel.zekerLabel }}</span>
+                <span style="padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;background:{{ sel.sBg }};color:{{ sel.sFg }}">{{ sel.statusLabel }}</span>
+                <span style="padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;background:#eef0f3;color:#3d4452">{{ sel.relLabel }}</span>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1px;background:#eef0f3;border-radius:14px;overflow:hidden">
+                <sc-for list="{{ sel.proof }}" as="p" hint-placeholder-count="4">
+                  <div style="background:#f8f9fb;padding:10px 12px;display:flex;gap:8px;align-items:flex-start">
+                    <span style="color:{{ p.fg }};padding-top:2px">{{ p.icon }}</span>
+                    <div style="min-width:0"><div style="font-size:11px;color:#5b6475">{{ p.k }}</div><div style="font-weight:700;font-size:13px;line-height:1.35">{{ p.v }}</div></div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:{{ bv.cols }};gap:16px;align-items:start">
+              <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+                <div style="background:#fff;border:1px solid #e7e9ee;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:12px">
+                  <div style="display:flex;align-items:center;gap:10px"><span style="width:30px;height:30px;border-radius:9px;background:#e7effb;color:#2659a8;display:grid;place-items:center;flex:none">{{ I.eye }}</span><h4 style="font-size:15px;font-weight:700;flex:1">Observatie</h4><span style="font-size:11px;color:#8a92a3">1/3</span></div>
+                  <p style="font-size:14px;line-height:1.6;text-wrap:pretty">{{ sel.observatie }}</p>
+                  <div style="font-size:12px;background:#f8f9fb;border-radius:12px;padding:10px 12px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px">
+                    <span style="color:#5b6475">Tijdvak</span><span>{{ sel.periode }}</span>
+                    <span style="color:#5b6475">Signalen</span><span>{{ sel.signalen }}</span>
+                  </div>
+                  <sc-if value="{{ sel.hasCycli }}" hint-placeholder-val="{{ true }}">
+                    <button onClick="{{ goCycli }}" style="display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;border:1px solid #dfe2e8;background:#fff;color:#1d2433;font-weight:600;cursor:pointer;align-self:flex-start;padding:8px 14px" style-hover="background:#f4f5f8">{{ I.activity }}Toon in tijdlijn</button>
+                  </sc-if>
+                </div>
+
+                <div style="background:#fff;border:1px solid #e7e9ee;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:12px">
+                  <div style="display:flex;align-items:center;gap:10px"><span style="width:30px;height:30px;border-radius:9px;background:#efeafb;color:#563ba8;display:grid;place-items:center;flex:none">{{ I.help }}</span><h4 style="font-size:15px;font-weight:700;flex:1">Mogelijke verklaringen</h4><span style="font-size:11px;color:#8a92a3">2/3</span></div>
+                  <p style="font-size:14px;line-height:1.6;text-wrap:pretty">{{ sel.interpretatie }}</p>
+                  <sc-for list="{{ sel.hyps }}" as="h" hint-placeholder-count="0">
+                    <div style="border:1px solid #eef0f3;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px;font-size:13px;line-height:1.5">
+                      <div style="display:flex;gap:8px;align-items:center"><span style="width:22px;height:22px;border-radius:7px;background:#7c5cd6;color:#fff;font-size:12px;font-weight:700;display:grid;place-items:center;flex:none">{{ h.n }}</span><strong>{{ h.naam }}</strong></div>
+                      <div style="display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px">
+                        <span style="color:#1d6b3c;font-weight:600">Aanwijzing</span><span>{{ h.voor }}</span>
+                        <span style="color:#5b6475;font-weight:600">Ontbreekt</span><span>{{ h.tegen }}</span>
+                        <span style="color:#563ba8;font-weight:600">Test</span><span>{{ h.meting }}</span>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:16px;min-width:0;position:{{ bv.sticky }};top:16px">
+                <div style="background:#fff;border:1px solid #e7e9ee;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:12px">
+                  <div style="display:flex;align-items:center;gap:10px"><span style="width:30px;height:30px;border-radius:9px;background:#fdeee6;color:#a2421a;display:grid;place-items:center;flex:none">{{ I.wrench }}</span><h4 style="font-size:15px;font-weight:700;flex:1">Advies</h4><span style="font-size:11px;color:#8a92a3">3/3</span></div>
+                  <sc-if value="{{ sel.hasAdvice }}" hint-placeholder-val="{{ true }}">
+                    <div style="background:#fdeee6;border-radius:14px;padding:14px;font-size:15px;font-weight:800;line-height:1.4;color:#6b3a20">{{ sel.actie }}</div>
+                    <div style="display:flex;flex-direction:column;font-size:13px;line-height:1.5">
+                      <sc-for list="{{ sel.adviceRows }}" as="r" hint-placeholder-count="8">
+                        <div style="display:flex;flex-wrap:wrap;gap:2px 10px;padding:7px 0;border-bottom:1px solid #eef0f3"><span style="color:#5b6475;flex:0 0 104px">{{ r.k }}</span><span style="flex:1 1 160px;min-width:0">{{ r.v }}</span></div>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ sel.noAdvice }}" hint-placeholder-val="{{ false }}">
+                    <div style="background:#f8f9fb;border-radius:14px;padding:14px;font-size:14px;line-height:1.55">{{ sel.noAdviceText }}</div>
+                  </sc-if>
+                </div>
+
+                <div style="background:#fff;border:1px solid #e7e9ee;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:12px">
+                  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h4 style="font-size:15px;font-weight:700">Opvolging<sc-if value="{{ showFR }}"><span style="font-size:12px;font-weight:500;color:#8a92a3"> · FR-27</span></sc-if></h4><span style="padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;background:{{ sel.sBg }};color:{{ sel.sFg }}">{{ sel.statusLabel }}</span></div>
+                  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px">
+                    <button onClick="{{ act.accept }}" style="display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;border:0;background:#ea6a2f;color:#fff;font-weight:700;cursor:pointer" style-hover="background:#d65a20">{{ I.check }}Accepteren</button>
+                    <button onClick="{{ act.done }}" style="display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;border:1px solid #dfe2e8;background:#fff;color:#1d2433;font-weight:600;cursor:pointer" style-hover="background:#f4f5f8">{{ I.checkCircle }}Uitgevoerd</button>
+                    <button onClick="{{ act.later }}" style="display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;border:1px solid #dfe2e8;background:#fff;color:#1d2433;font-weight:600;cursor:pointer" style-hover="background:#f4f5f8">{{ I.clock }}Uitstellen 7 d</button>
+                    <button onClick="{{ act.reject }}" style="display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;border:1px solid #dfe2e8;background:#fff;color:#1d2433;font-weight:600;cursor:pointer" style-hover="background:#f4f5f8">{{ I.x }}Afwijzen</button>
+                  </div>
+                  <sc-if value="{{ sel.isLater }}" hint-placeholder-val="{{ false }}">
+                    <div style="font-size:13px;background:#e7effb;color:#2659a8;border-radius:12px;padding:10px 12px">Komt terug op 11 okt, of eerder bij verslechtering (meer korte cycli of comfortverlies).</div>
+                  </sc-if>
+                  <sc-if value="{{ sel.isDone }}" hint-placeholder-val="{{ false }}">
+                    <div style="font-size:13px;background:#e4f4ea;color:#1d6b3c;border-radius:12px;padding:10px 12px">Leg de wijziging vast (parameter, oude en nieuwe waarde), dan wordt het effect voor/na gemeten. <a href="#" onClick="{{ goWijzigingen }}" style="color:#1d6b3c;font-weight:700">Wijziging vastleggen →</a></div>
+                  </sc-if>
+                  <textarea value="{{ noteText }}" onChange="{{ onNote }}" placeholder="Notitie, bijv.: groepen 3 en 4 van de verdeler stonden dicht." style="width:100%;min-height:72px;padding:10px 12px;border:1px solid #dfe2e8;border-radius:12px;background:#fff;color:#1d2433;resize:vertical"></textarea>
+                  <div style="font-size:12px;color:#8a92a3">{{ sel.saveLine }}</div>
+                </div>
+              </div>
+            </div>
+
+            <sc-if value="{{ sel.showTerms }}" hint-placeholder-val="{{ true }}">
+              <div style="background:#f3effc;border-radius:20px;padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+                <div style="display:flex;align-items:center;gap:8px;font-weight:700;color:#3f2a85">{{ I.book }}Begrippen in deze bevinding</div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">
+                  <sc-for list="{{ sel.terms }}" as="t" hint-placeholder-count="3"><div style="background:#fff;border-radius:12px;padding:10px 12px;font-size:13px;line-height:1.5"><div style="font-weight:700">{{ t.k }}</div><div style="color:#5b6475">{{ t.v }}</div></div></sc-for>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ sel.hasBundle }}" hint-placeholder-val="{{ true }}">
+              <div style="background:#fff;border:1px solid #e7e9ee;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:12px">
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="color:#5b6475">{{ I.layers }}</span><h4 style="font-size:15px;font-weight:700">Samengevoegd tot één punt</h4><span style="font-size:12px;color:#8a92a3">Deze meldingen horen bij hetzelfde patroon<sc-if value="{{ showFR }}"> · FR-26</sc-if></span></div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px">
+                  <sc-for list="{{ sel.bundle }}" as="b" hint-placeholder-count="3">
+                    <div style="background:#f8f9fb;border-radius:12px;padding:10px 12px;font-size:13px;display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">{{ b.t }}</span><span style="font-size:11px;color:#8a92a3">{{ b.src }}</span></div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- CYCLI -->
+      <sc-if value="{{ is.cycli }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap">
+            <div style="display:flex;gap:14px;align-items:center">
+              <span style="width:44px;height:44px;border-radius:14px;background:#fdeee6;color:#ea6a2f;display:grid;place-items:center">{{ I.activity }}</span>
+              <div><h1 style="font-size:24px;font-weight:800">Cycli</h1><p style="color:#5b6475">Zondag 4 oktober, 06:00–12:00<sc-if value="{{ showFR }}"> · FR-12 – FR-16, FR-37</sc-if></p></div>
+            </div>
+            <div style="display:flex;background:#fff;border:1px solid #e7e9ee;border-radius:12px;padding:4px;gap:4px">
+              <sc-for list="{{ ranges }}" as="r" hint-placeholder-count="3"><button onClick="{{ r.pick }}" style="border:0;border-radius:9px;padding:6px 14px;cursor:pointer;font-weight:600;font-size:13px;background:{{ r.bg }};color:{{ r.fg }}">{{ r.label }}</button></sc-for>
+            </div>
+          </div>
+
+          <sc-if value="{{ showExplain }}" hint-placeholder-val="{{ true }}"><div style="background:#f3effc;color:#3f2a85;border-radius:16px;padding:14px 16px;font-size:13px;line-height:1.55;display:flex;gap:10px"><span style="padding-top:1px">{{ I.book }}</span><span><strong>Cyclus</strong> = één brandperiode, van start tot stop. Stopt de brander binnen enkele minuten terwijl de thermostaat nog warmte vraagt, dan is dat een <strong>korte cyclus</strong>. Vaak levert de ketel dan zelfs op minimumvermogen meer warmte dan de installatie op dat moment afneemt, maar ook doorstroming of dichte groepen kunnen meespelen.</span></div></sc-if>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px">
+            <sc-for list="{{ cycleKpis }}" as="k" hint-placeholder-count="6">
+              <div style="background:#fff;border:1px solid #e7e9ee;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:8px">
+                <span style="width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:{{ k.bg }};color:{{ k.fg }}">{{ k.icon }}</span>
+                <div><div style="font-size:12px;color:#5b6475;line-height:1.3">{{ k.label }}</div><div style="font-size:22px;font-weight:800;color:{{ k.vc }}">{{ k.value }}</div><div style="font-size:11px;color:#8a92a3">{{ k.sub }}</div></div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="background:#fff;border:1px solid #e7e9ee;border-radius:20px;padding:18px 18px 10px;display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:#3d4452">
+              <span style="display:flex;gap:6px;align-items:center"><span style="width:12px;height:12px;border-radius:4px;background:#ea6a2f"></span>Branden (CV)</span>
+              <span style="display:flex;gap:6px;align-items:center"><span style="width:12px;height:12px;border-radius:4px;background:#e0475b"></span>Kort branden tijdens vraag</span>
+              <span style="display:flex;gap:6px;align-items:center"><span style="width:12px;height:12px;border-radius:4px;background:#3b7ddd"></span>Tapwater</span>
+              <span style="display:flex;gap:6px;align-items:center"><span style="width:12px;height:12px;border-radius:4px;background:repeating-linear-gradient(45deg,#c3c8d2 0 2px,#f4f5f8 2px 5px)"></span>Geen gegevens</span>
+              <span style="display:flex;gap:6px;align-items:center"><span style="width:16px;height:3px;border-radius:2px;background:#ea6a2f"></span>Aanvoer</span>
+              <span style="display:flex;gap:6px;align-items:center"><span style="width:16px;height:0;border-top:2px dashed #8a92a3"></span>Gewenst</span>
+              <span style="display:flex;gap:6px;align-items:center"><span style="width:16px;height:3px;border-radius:2px;background:#3b7ddd"></span>Retour</span>
+              <span style="display:flex;gap:6px;align-items:center"><span style="width:16px;height:3px;border-radius:2px;background:#7c5cd6"></span>Modulatie</span>
+            </div>
+           &#160;{{ chart }}
+          </div>
+
+          <div style="background:#fff;border:1px solid #e7e9ee;border-radius:20px;padding:8px 8px 4px;overflow-x:auto">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;padding:10px 12px;gap:12px;flex-wrap:wrap"><h3 style="font-size:16px;font-weight:700">Alle cycli</h3><span style="font-size:12px;color:#8a92a3">Klik op een rij of balk om de cyclus te markeren</span></div>
+            <table style="width:100%;border-collapse:collapse;font-size:13px">
+              <thead><tr style="background:#f8f9fb;color:#5b6475;font-size:12px"><th style="text-align:left;padding:9px 12px;font-weight:600">#</th><th style="text-align:left;padding:9px 12px;font-weight:600">Start</th><th style="text-align:left;padding:9px 12px;font-weight:600">Einde</th><th style="text-align:left;padding:9px 12px;font-weight:600">Duur</th><th style="text-align:left;padding:9px 12px;font-weight:600">Modus</th><th style="text-align:left;padding:9px 12px;font-weight:600">Gestopt door</th><th style="text-align:left;padding:9px 12px;font-weight:600">Max. aanvoer</th><th style="text-align:left;padding:9px 12px;font-weight:600">Modulatie</th><th style="text-align:left;padding:9px 12px;font-weight:600">Beoordeling</th></tr></thead>
+              <tbody>
+                <sc-for list="{{ cycles }}" as="c" hint-placeholder-count="10">
+                  <tr onClick="{{ c.pick }}" style="cursor:pointer;border-top:1px solid #eef0f3;background:{{ c.bg }}">
+                    <td style="padding:9px 12px;color:#8a92a3">{{ c.n }}</td><td style="padding:9px 12px;font-weight:600">{{ c.start }}</td><td style="padding:9px 12px">{{ c.eind }}</td><td style="padding:9px 12px">{{ c.duur }}</td><td style="padding:9px 12px">{{ c.modus }}</td><td style="padding:9px 12px">{{ c.einde }}</td><td style="padding:9px 12px">{{ c.maxT }}</td><td style="padding:9px 12px">{{ c.mod }}</td>
+                    <td style="padding:9px 12px"><span style="padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap;background:{{ c.pBg }};color:{{ c.pFg }}">{{ c.label }}</span></td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- WIJZIGINGEN -->
+      <sc-if value="{{ is.wijzigingen }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start">
+          <div style="flex:1 1 220px;min-width:0;display:flex;flex-direction:column;gap:16px">
+            <div style="background:#fff;border:1px solid #e7e9ee;border-radius:20px;padding:12px;display:flex;flex-direction:column;gap:4px">
+              <div style="padding:6px 8px 8px;font-weight:700">Logboek<sc-if value="{{ showFR }}"><span style="font-weight:500;font-size:12px;color:#8a92a3"> · FR-29</span></sc-if></div>
+              <sc-for list="{{ changes }}" as="w" hint-placeholder-count="3">
+                <button onClick="{{ w.open }}" style="display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left;border:0;padding:10px;border-radius:12px;cursor:pointer;color:inherit;background:{{ w.bg }};box-shadow:{{ w.ring }}">
+                  <span style="width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex:none;background:{{ w.iBg }};color:{{ w.iFg }}">{{ w.icon }}</span>
+                  <span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-size:11px;color:#8a92a3">{{ w.date }}</span><span style="font-size:13px;font-weight:700;line-height:1.35">{{ w.param }}</span><span style="font-size:12px;font-weight:600;color:{{ w.iFg }}">{{ w.verdict }}</span></span>
+                </button>
+              </sc-for>
+            </div>
+            <div style="background:#fff;border:1px solid #e7e9ee;border-radius:20px;padding:18px;display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;align-items:center;gap:8px;font-weight:700">{{ I.plus }}Wijziging vastleggen</div>
+              <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:#5b6475">Parameter<select style="padding:9px 12px;border:1px solid #dfe2e8;border-radius:10px;background:#fff;color:#1d2433;font-size:14px"><option>Maximale CV-aanvoer</option><option>Pompstand</option><option>Stooklijn eTwist</option><option>Thermostaatprogramma</option><option>Verdeler: lusdebiet</option></select></label>
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px">
+                <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:#5b6475">Oude waarde<input value="60 °C" style="padding:9px 12px;border:1px solid #dfe2e8;border-radius:10px;color:#1d2433;font-size:14px;min-width:0"></label>
+                <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:#5b6475">Nieuwe waarde<input placeholder="70 °C" style="padding:9px 12px;border:1px solid #dfe2e8;border-radius:10px;color:#1d2433;font-size:14px;min-width:0"></label>
+              </div>
+              <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:#5b6475">Gekoppeld advies<select style="padding:9px 12px;border:1px solid #dfe2e8;border-radius:10px;background:#fff;color:#1d2433;font-size:14px"><option>B-011 · aanvoer terugzetten</option><option>Geen</option></select></label>
+              <button style="display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:12px;border:0;background:#ea6a2f;color:#fff;font-weight:700;cursor:pointer;margin-top:4px" style-hover="background:#d65a20">{{ I.check }}Vastleggen</button>
+            </div>
+          </div>
+
+          <div style="flex:3 1 380px;min-width:0;display:flex;flex-direction:column;gap:16px">
+            <div style="background:#fff;border:1px solid #e7e9ee;border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:8px">
+              <div style="font-size:12px;color:#5b6475;font-weight:600">{{ ch.id }}&#160;·&#160;{{ ch.date }}&#160;·&#160;{{ ch.doorLabel }}</div>
+              <h2 style="font-size:22px;font-weight:800;line-height:1.25">{{ ch.title }}</h2>
+              <div style="font-size:14px;color:#5b6475">{{ ch.redenLabel }}</div>
+            </div>
+            <div style="border-radius:20px;padding:20px;display:flex;gap:14px;align-items:flex-start;background:{{ ch.vBg }};color:{{ ch.vFg }}">
+              <span style="width:40px;height:40px;border-radius:12px;background:#fff;display:grid;place-items:center;flex:none">{{ ch.icon }}</span>
+              <div style="display:flex;flex-direction:column;gap:4px"><div style="font-size:12px;font-weight:700">Resultaat voor/na<sc-if value="{{ showFR }}"> · FR-30, FR-32</sc-if></div><div style="font-size:20px;font-weight:800;line-height:1.25">{{ ch.verdict }}</div><div style="font-size:14px;line-height:1.55;max-width:760px">{{ ch.verdictText }}</div></div>
+            </div>
+
+            <sc-if value="{{ ch.hasMetrics }}" hint-placeholder-val="{{ true }}">
+              <div style="background:#fff;border:1px solid #e7e9ee;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:4px">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:6px"><h3 style="font-size:16px;font-weight:700">Voor en na</h3><span style="display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:#5b6475"><span style="display:flex;gap:6px;align-items:center;white-space:nowrap"><span style="width:10px;height:10px;border-radius:3px;background:#c3c8d2"></span>Voor ·&#160;{{ ch.voor }}</span><span style="display:flex;gap:6px;align-items:center;white-space:nowrap"><span style="width:10px;height:10px;border-radius:3px;background:#7c5cd6"></span>Na ·&#160;{{ ch.na }}</span></span></div>
+                <sc-for list="{{ ch.metrics }}" as="m" hint-placeholder-count="6">
+                  <div style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;padding:10px 0;border-top:1px solid #eef0f3">
+                    <div style="flex:1 1 160px;min-width:0"><div style="font-size:14px;font-weight:700">{{ m.k }}</div><div style="font-size:12px;color:#8a92a3">{{ m.note }}</div></div>
+                    <div style="flex:2 1 220px;min-width:0;display:flex;flex-direction:column;gap:5px">
+                      <div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="height:10px;border-radius:5px;background:#c3c8d2;width:{{ m.wv }};max-width:75%"></span><span style="color:#5b6475;white-space:nowrap">{{ m.voor }}</span></div>
+                      <div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="height:10px;border-radius:5px;background:#7c5cd6;width:{{ m.wn }};max-width:75%"></span><span style="font-weight:700;white-space:nowrap">{{ m.na }}</span></div>
+                    </div>
+                    <span style="padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap;background:{{ m.pBg }};color:{{ m.pFg }}">{{ m.effect }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+
+            <div style="background:#fff;border:1px solid #e7e9ee;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:10px">
+              <h3 style="font-size:16px;font-weight:700">Vergelijkbaarheid</h3>
+              <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">
+                <sc-for list="{{ ch.cond }}" as="c" hint-placeholder-count="4">
+                  <div style="background:#f8f9fb;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:6px">
+                    <div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><span style="font-size:12px;color:#5b6475">{{ c.k }}</span><span style="padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700;background:{{ c.pBg }};color:{{ c.pFg }}">{{ c.ok }}</span></div>
+                    <div style="font-size:13px"><strong>{{ c.voor }}</strong> → <strong>{{ c.na }}</strong></div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- HISTORIE -->
+      <sc-if value="{{ is.historie }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;gap:14px;align-items:center">
+            <span style="width:44px;height:44px;border-radius:14px;background:#efeafb;color:#7c5cd6;display:grid;place-items:center">{{ I.history }}</span>
+            <div><h1 style="font-size:24px;font-weight:800">Advieshistorie</h1><p style="color:#5b6475">Elk advies met de meetperiode, instellingen en regelversie van dat moment<sc-if value="{{ showFR }}"> · FR-41</sc-if></p></div>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start">
+            <div style="flex:2 1 420px;display:flex;flex-direction:column;gap:10px">
+              <sc-for list="{{ history }}" as="h" hint-placeholder-count="4">
+                <button onClick="{{ h.pick }}" style="display:flex;gap:14px;align-items:center;width:100%;text-align:left;background:#fff;border:1px solid #e7e9ee;border-radius:16px;padding:14px;cursor:pointer;color:inherit;box-shadow:{{ h.ring }}">
+                  <span style="width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none;background:{{ h.iBg }};color:{{ h.iFg }}">{{ h.icon }}</span>
+                  <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-weight:700">{{ h.advies }}</span><span style="font-size:12px;color:#5b6475">{{ h.date }}&#160;·&#160;{{ h.bev }}&#160;· meetperiode&#160;{{ h.periode }}</span></span>
+                  <span style="padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;background:{{ h.iBg }};color:{{ h.iFg }}">{{ h.status }}</span>
+                </button>
+              </sc-for>
+            </div>
+            <div style="flex:1 1 300px;background:#fff;border:1px solid #e7e9ee;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:12px">
+              <div style="font-size:12px;font-weight:700;color:#563ba8">Toen vastgelegd</div>
+              <div style="font-size:18px;font-weight:800;line-height:1.3">{{ hs.advies }}</div>
+              <p style="font-size:14px;line-height:1.6">{{ hs.waarom }}</p>
+              <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:13px;background:#f8f9fb;border-radius:12px;padding:12px">
+                <span style="color:#5b6475">Instellingen</span><span>{{ hs.inst }}</span>
+                <span style="color:#5b6475">Regelversie</span><span>{{ hs.regel }}</span>
+                <span style="color:#5b6475">Notitie</span><span>{{ hs.note }}</span>
+              </div>
+              <div style="background:#efeafb;color:#3f2a85;border-radius:12px;padding:12px;font-size:13px;line-height:1.55;display:flex;gap:10px"><span style="padding-top:1px">{{ I.info }}</span><span><strong>Sindsdien: </strong>{{ hs.regelNu }}</span></div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- SIGNALEN -->
+      <sc-if value="{{ is.signalen }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;gap:14px;align-items:center">
+            <span style="width:44px;height:44px;border-radius:14px;background:#e1f4f1;color:#1a9e8f;display:grid;place-items:center">{{ I.plug }}</span>
+            <div><h1 style="font-size:24px;font-weight:800">Signaalkoppeling</h1><p style="color:#5b6475">{{ sigStats.linked }}&#160;van&#160;{{ sigStats.total }}&#160;signalen gekoppeld<sc-if value="{{ showFR }}"> · FR-01, FR-04</sc-if></p></div>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start">
+            <div style="flex:2 1 460px;min-width:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px">
+              <sc-for list="{{ signals }}" as="s" hint-placeholder-count="12">
+                <button onClick="{{ s.pick }}" style="text-align:left;background:#fff;border:1px solid #e7e9ee;border-radius:16px;padding:14px;cursor:pointer;color:inherit;display:flex;flex-direction:column;gap:8px;box-shadow:{{ s.ring }}">
+                  <span style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+                    <span style="width:32px;height:32px;border-radius:10px;display:grid;place-items:center;background:{{ s.iBg }};color:{{ s.iFg }}">{{ s.icon }}</span>
+                    <span style="padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700;background:{{ s.pBg }};color:{{ s.pFg }}">{{ s.age }}</span>
+                  </span>
+                  <span style="font-weight:700;line-height:1.3">{{ s.naam }}</span>
+                  <span style="font-size:12px;color:{{ s.entColor }};word-break:break-all">{{ s.ent }}</span>
+                  <span style="font-size:12px;color:#5b6475">Nodig voor&#160;{{ s.nodig }}</span>
+                </button>
+              </sc-for>
+            </div>
+            <div style="flex:1 1 280px;position:sticky;top:16px;background:#fff;border:1px solid #e7e9ee;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:12px">
+              <div style="font-size:12px;font-weight:700;color:#0f6b61">Signaal instellen</div>
+              <div style="font-size:18px;font-weight:800">{{ sig.naam }}</div>
+              <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:#5b6475">Home Assistant-entiteit<input value="{{ sig.entInput }}" placeholder="Kies een entiteit…" readOnly="{{ true }}" style="padding:9px 12px;border:1px solid #dfe2e8;border-radius:10px;color:#1d2433;font-size:14px"></label>
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px">
+                <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:#5b6475">Eenheid<input value="{{ sig.unit }}" readOnly="{{ true }}" style="padding:9px 12px;border:1px solid #dfe2e8;border-radius:10px;color:#1d2433;font-size:14px;min-width:0"></label>
+                <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:#5b6475">Max. leeftijd<input value="{{ sig.maxAge }}" readOnly="{{ true }}" style="padding:9px 12px;border:1px solid #dfe2e8;border-radius:10px;color:#1d2433;font-size:14px;min-width:0"></label>
+              </div>
+              <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:#5b6475">Sensorlocatie<input value="{{ sig.loc }}" readOnly="{{ true }}" style="padding:9px 12px;border:1px solid #dfe2e8;border-radius:10px;color:#1d2433;font-size:14px"></label>
+              <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:#5b6475">Soort waarde
+                <div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ sig.kinds }}" as="k" hint-placeholder-count="4"><span style="padding:5px 10px;border-radius:999px;font-size:12px;font-weight:600;background:{{ k.bg }};color:{{ k.fg }}">{{ k.label }}</span></sc-for></div>
+              </div>
+              <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:#5b6475">Betekenis<textarea value="{{ sig.betekenis }}" readOnly="{{ true }}" style="padding:9px 12px;border:1px solid #dfe2e8;border-radius:10px;color:#1d2433;font-size:14px;min-height:70px;resize:vertical"></textarea></label>
+              <button style="display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:12px;border:0;background:#1a9e8f;color:#fff;font-weight:700;cursor:pointer;align-self:flex-start" style-hover="background:#13877a">{{ I.check }}Koppeling opslaan</button>
+            </div>
+          </div>
+          <div style="background:#fcf3dc;color:#6b4c05;border-radius:16px;padding:14px 16px;font-size:13px;line-height:1.55;display:flex;gap:10px"><span style="padding-top:1px">{{ I.info }}</span><span>Let op bij interpretatie: een klepcommando bewijst niet dat de klep fysiek open is; een gasmeter telt ook koken en tapwater mee; en de ΔT (aanvoer min retour) van de ketel is niet de ΔT per vloerverwarmingsgroep.</span></div>
+        </div>
+      </sc-if>
+
+      <!-- INSTALLATIE -->
+      <sc-if value="{{ is.installatie }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;gap:14px;align-items:center">
+            <span style="width:44px;height:44px;border-radius:14px;background:#e7effb;color:#3b7ddd;display:grid;place-items:center">{{ I.home }}</span>
+            <div><h1 style="font-size:24px;font-weight:800">Installatieprofiel</h1><p style="color:#5b6475">Radiatoren beneden, vloerverwarming boven<sc-if value="{{ showFR }}"> · FR-02, FR-03, FR-05</sc-if></p></div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px">
+            <div style="background:#fff;border:1px solid #e7e9ee;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:12px">
+              <span style="width:40px;height:40px;border-radius:12px;background:#fdeee6;color:#ea6a2f;display:grid;place-items:center">{{ I.flame }}</span>
+              <div><div style="font-size:12px;color:#5b6475">Ketel</div><div style="font-size:18px;font-weight:800">Remeha Calenta Ace</div></div>
+              <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:13px"><span style="color:#5b6475">Regeling</span><span>eTwist, modulerend</span><span style="color:#5b6475">Gegevens</span><span>CAN-bus → Home Assistant</span><span style="color:#5b6475">Warmtevraag</span><span>eTwist in de woonkamer</span></div>
+            </div>
+            <div style="background:#fff;border:1px solid #e7e9ee;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:12px">
+              <div style="display:flex;justify-content:space-between;align-items:center"><span style="width:40px;height:40px;border-radius:12px;background:#fce8eb;color:#e0475b;display:grid;place-items:center">{{ I.thermo }}</span><span style="padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;background:#eef0f3;color:#3d4452">Direct op ketel</span></div>
+              <div><div style="font-size:12px;color:#5b6475">Beneden</div><div style="font-size:18px;font-weight:800">Radiatoren</div></div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap"><span style="padding:4px 10px;border-radius:999px;font-size:12px;background:#f4f5f8">Woonkamer · thermostaat</span><span style="padding:4px 10px;border-radius:999px;font-size:12px;background:#f4f5f8">Keuken</span><span style="padding:4px 10px;border-radius:999px;font-size:12px;background:#f4f5f8">Hal</span></div>
+              <div style="font-size:12px;color:#5b6475">Radiatoren hangen direct aan de ketel, dus ketelaanvoer en -retour zijn hier representatief.</div>
+            </div>
+            <div style="background:#fff;border:1px solid #e7e9ee;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:12px">
+              <div style="display:flex;justify-content:space-between;align-items:center"><span style="width:40px;height:40px;border-radius:12px;background:#e7effb;color:#3b7ddd;display:grid;place-items:center">{{ I.waves }}</span><span style="padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;background:#e7effb;color:#2659a8">Via mengverdeler</span></div>
+              <div><div style="font-size:12px;color:#5b6475">Boven</div><div style="font-size:18px;font-weight:800">Vloerverwarming · 5 groepen</div></div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap"><span style="padding:4px 10px;border-radius:999px;font-size:12px;background:#f4f5f8">Slaapkamer · sensor</span><span style="padding:4px 10px;border-radius:999px;font-size:12px;background:#f4f5f8">Kinderkamer</span><span style="padding:4px 10px;border-radius:999px;font-size:12px;background:#f4f5f8">Badkamer</span></div>
+              <div style="font-size:12px;color:#5b6475">De mengverdeler mengt heet ketelwater met retourwater tot een lagere vloertemperatuur. Ketelmetingen zeggen daarom weinig over de vloer; zonder verdelersensoren geen advies per groep.</div>
+            </div>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start">
+            <div style="flex:1 1 340px;background:#fff;border:1px solid #e7e9ee;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:6px">
+              <h3 style="font-size:16px;font-weight:700;margin-bottom:6px">Instellingen en specificaties</h3>
+              <sc-for list="{{ specs }}" as="s" hint-placeholder-count="6">
+                <div style="display:flex;gap:12px;align-items:center;padding:8px 0;border-top:1px solid #eef0f3">
+                  <span style="flex:1;font-size:14px">{{ s.k }}</span>
+                  <span style="display:flex;flex-direction:column;align-items:flex-end"><span style="font-weight:700;color:{{ s.color }}">{{ s.v }}</span><span style="font-size:11px;color:#8a92a3">{{ s.note }}</span></span>
+                </div>
+              </sc-for>
+              <div style="font-size:12px;color:#5b6475;margin-top:6px">Onbekende waarden blijven onbekend. Modulatie (%) wordt niet naar kW omgerekend zonder gevalideerde omrekening.</div>
+            </div>
+            <div style="flex:1 1 340px;background:#fff;border:1px solid #e7e9ee;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;justify-content:space-between;align-items:center"><h3 style="font-size:16px;font-weight:700">Comfort per ruimte</h3><span style="padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;background:#efeafb;color:#563ba8">Binnenkort</span></div>
+              <sc-for list="{{ rooms }}" as="r" hint-placeholder-count="4">
+                <div style="display:flex;gap:12px;align-items:center;background:#f8f9fb;border-radius:14px;padding:10px 12px">
+                  <span style="width:32px;height:32px;border-radius:10px;display:grid;place-items:center;background:{{ r.iBg }};color:{{ r.iFg }}">{{ r.icon }}</span>
+                  <span style="flex:1;display:flex;flex-direction:column"><span style="font-weight:700">{{ r.naam }}</span><span style="font-size:12px;color:#5b6475">{{ r.tijd }}&#160;· nacht&#160;{{ r.nacht }}</span></span>
+                  <span style="font-size:18px;font-weight:800">{{ r.temp }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- KWALITEIT -->
+      <sc-if value="{{ is.kwaliteit }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;gap:14px;align-items:center">
+            <span style="width:44px;height:44px;border-radius:14px;background:#fcf3dc;color:#d99a12;display:grid;place-items:center">{{ I.shield }}</span>
+            <div><h1 style="font-size:24px;font-weight:800">Gegevenskwaliteit</h1><p style="color:#5b6475">Afgelopen 7 dagen · 96,8 % dekking op ketelsignalen<sc-if value="{{ showFR }}"> · FR-06 – FR-11</sc-if></p></div>
+          </div>
+          <div style="background:#fff;border:1px solid #e7e9ee;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap"><h3 style="font-size:16px;font-weight:700">Dekking per signaal</h3><span style="font-size:12px;color:#8a92a3">28 sep 12:00 → 4 okt 12:00</span></div>
+            <sc-for list="{{ coverage }}" as="r" hint-placeholder-count="8">
+              <div style="display:grid;grid-template-columns:minmax(120px,190px) minmax(0,1fr) 60px;gap:14px;align-items:center">
+                <span style="font-size:13px">{{ r.naam }}</span>
+                <div style="position:relative;height:12px;border-radius:6px;overflow:hidden;background:#1a9e8f">
+                  <sc-for list="{{ r.segs }}" as="g" hint-placeholder-count="0"><span style="position:absolute;top:0;bottom:0;left:{{ g.l }};width:{{ g.w }};background:{{ g.bg }}"></span></sc-for>
+                </div>
+                <span style="font-size:13px;text-align:right;font-weight:700">{{ r.pct }}</span>
+              </div>
+            </sc-for>
+            <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:#3d4452;margin-top:4px">
+              <span style="display:flex;gap:6px;align-items:center"><span style="width:12px;height:12px;border-radius:4px;background:#1a9e8f"></span>Compleet</span>
+              <span style="display:flex;gap:6px;align-items:center"><span style="width:12px;height:12px;border-radius:4px;background:#e0475b"></span>Verbinding weg</span>
+              <span style="display:flex;gap:6px;align-items:center"><span style="width:12px;height:12px;border-radius:4px;background:#f2c14e"></span>Te oud</span>
+              <span style="display:flex;gap:6px;align-items:center"><span style="width:12px;height:12px;border-radius:4px;background:repeating-linear-gradient(45deg,#c3c8d2 0 2px,#f4f5f8 2px 5px)"></span>Niet gekoppeld</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start">
+            <div style="flex:1 1 360px;background:#fff;border:1px solid #e7e9ee;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:8px">
+              <h3 style="font-size:16px;font-weight:700;margin-bottom:4px">Gedetecteerde gebeurtenissen</h3>
+              <sc-for list="{{ events }}" as="e" hint-placeholder-count="5">
+                <div style="display:flex;gap:12px;align-items:flex-start;padding:8px 0;border-top:1px solid #eef0f3">
+                  <span style="width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:none;background:{{ e.iBg }};color:{{ e.iFg }}">{{ e.icon }}</span>
+                  <span style="display:flex;flex-direction:column;gap:1px;font-size:13px"><span style="font-weight:700">{{ e.t }}</span><span style="color:#5b6475">{{ e.a }}</span><span style="font-size:11px;color:#8a92a3">{{ e.when }}</span></span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="flex:1 1 300px;display:flex;flex-direction:column;gap:16px">
+              <div style="background:#fff;border:1px solid #e7e9ee;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:10px">
+                <h3 style="font-size:16px;font-weight:700">Bedrijfsmodi vandaag</h3>
+                <div style="display:flex;height:14px;border-radius:7px;overflow:hidden;gap:2px">
+                  <sc-for list="{{ modeShare }}" as="m" hint-placeholder-count="5"><span style="width:{{ m.w }};background:{{ m.bg }}"></span></sc-for>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                  <sc-for list="{{ modeShare }}" as="m" hint-placeholder-count="5"><div style="display:flex;gap:8px;align-items:center;font-size:13px"><span style="width:10px;height:10px;border-radius:3px;background:{{ m.bg }}"></span><span style="flex:1">{{ m.label }}</span><span style="color:#5b6475">{{ m.pct }}</span></div></sc-for>
+                </div>
+              </div>
+              <div style="background:#e1f4f1;color:#0f4f48;border-radius:20px;padding:18px;display:flex;gap:10px;font-size:13px;line-height:1.55"><span style="padding-top:1px">{{ I.checkCircle }}</span><span>Resolutie vlamstatus: <strong>4 s</strong>. Ruim voldoende om cycli korter dan 3 min betrouwbaar te detecteren.</span></div>
+            </div>
+          </div>
+          <div style="background:#fff;border:1px solid #e7e9ee;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h3 style="font-size:16px;font-weight:700">Bijzondere perioden</h3><button style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;border:1px solid #dfe2e8;background:#fff;color:#1d2433;font-weight:600;cursor:pointer" style-hover="background:#f4f5f8">{{ I.plus }}Periode markeren</button></div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">
+              <div style="background:#fdeee6;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:4px"><span style="font-size:12px;font-weight:700;color:#a2421a">Opstookprotocol</span><span style="font-weight:700">14 – 27 aug</span><span style="font-size:12px;color:#6b3a20">Nieuwe dekvloer boven · telt niet mee voor normaal gedrag</span></div>
+              <div style="background:#eef0f3;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:4px"><span style="font-size:12px;font-weight:700;color:#3d4452">Onderhoud</span><span style="font-weight:700">2 sep 09:00–11:30</span><span style="font-size:12px;color:#5b6475">Jaarlijks onderhoud · telt niet mee in vergelijkingen</span></div>
+              <div style="background:#e7effb;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:4px"><span style="font-size:12px;font-weight:700;color:#2659a8">Vakantie</span><span style="font-weight:700">17 – 19 sep</span><span style="font-size:12px;color:#2b4a7a">Thermostaat op 15 °C · telt niet mee in vergelijkingen</span></div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- MELDINGEN -->
+      <sc-if value="{{ is.meldingen }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;gap:14px;align-items:center">
+            <span style="width:44px;height:44px;border-radius:14px;background:#fce8eb;color:#e0475b;display:grid;place-items:center">{{ I.bell }}</span>
+            <div><h1 style="font-size:24px;font-weight:800">Meldingen</h1><p style="color:#5b6475">Eén melding per probleem, niet per cyclus<sc-if value="{{ showFR }}"> · FR-38, FR-39</sc-if></p></div>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start">
+            <div style="flex:1 1 360px;display:flex;flex-direction:column;gap:16px">
+              <div style="background:#fff;border:1px solid #e7e9ee;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:12px">
+                <h3 style="font-size:16px;font-weight:700">Kanaal per ernst</h3>
+                <sc-for list="{{ notifyRows }}" as="r" hint-placeholder-count="4">
+                  <div style="display:flex;flex-direction:column;gap:6px">
+                    <span style="align-self:flex-start;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700;background:{{ r.pBg }};color:{{ r.pFg }}">{{ r.ernst }}</span>
+                    <div style="display:flex;background:#f4f5f8;border-radius:12px;padding:4px;gap:4px">
+                      <sc-for list="{{ r.opts }}" as="o" hint-placeholder-count="4"><button onClick="{{ o.pick }}" style="flex:1;border:0;border-radius:9px;padding:7px 8px;cursor:pointer;font-weight:600;font-size:13px;background:{{ o.bg }};color:{{ o.fg }};box-shadow:{{ o.sh }}">{{ o.label }}</button></sc-for>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="background:#fff;border:1px solid #e7e9ee;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:12px;font-size:14px">
+                <h3 style="font-size:16px;font-weight:700">Ruisonderdrukking</h3>
+                <sc-for list="{{ toggles }}" as="t" hint-placeholder-count="2">
+                  <button onClick="{{ t.flip }}" style="display:flex;gap:12px;align-items:center;border:0;background:transparent;padding:0;cursor:pointer;text-align:left;color:inherit">
+                    <span style="width:40px;height:24px;border-radius:12px;padding:3px;display:flex;flex:none;background:{{ t.bg }};justify-content:{{ t.jc }}"><span style="width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2)"></span></span>
+                    <span>{{ t.label }}</span>
+                  </button>
+                </sc-for>
+                <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:#5b6475">Herstelcriterium (melding sluit pas daarna)<input value="3 dagen zonder patroon, bij vergelijkbaar weer en ≥ 90 % gegevens" style="padding:9px 12px;border:1px solid #dfe2e8;border-radius:10px;color:#1d2433;font-size:14px"></label>
+              </div>
+            </div>
+            <div style="flex:1 1 360px;display:flex;flex-direction:column;gap:16px">
+              <div style="background:#fff;border:1px solid #e7e9ee;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px"><span style="width:32px;height:32px;border-radius:10px;background:#e1f4f1;color:#1a9e8f;display:grid;place-items:center">{{ I.home }}</span><div><h3 style="font-size:16px;font-weight:700">Geëxporteerd naar Home Assistant</h3><div style="font-size:12px;color:#5b6475">Te gebruiken in dashboards en automations</div></div></div>
+                <sc-for list="{{ haEntities }}" as="e" hint-placeholder-count="7">
+                  <div style="display:flex;gap:12px;align-items:center;padding:8px 0;border-top:1px solid #eef0f3;font-size:13px"><span style="flex:1;color:#3d4452;word-break:break-all">{{ e.k }}</span><span style="font-weight:700;padding:2px 9px;border-radius:8px;background:#f4f5f8;white-space:nowrap">{{ e.v }}</span></div>
+                </sc-for>
+              </div>
+              <div style="background:#fff;border:1px solid #e7e9ee;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:8px">
+                <h3 style="font-size:16px;font-weight:700;margin-bottom:4px">Recent verstuurd</h3>
+                <div style="display:flex;gap:12px;align-items:center;font-size:13px"><span style="width:30px;height:30px;border-radius:9px;background:#fdeee6;color:#ea6a2f;display:grid;place-items:center">{{ I.repeat }}</span><span style="flex:1"><strong>Korte cycli</strong> · één melding voor&#160;{{ stats.shortN }}&#160;cycli</span><span style="color:#8a92a3">09:15</span></div>
+                <div style="display:flex;gap:12px;align-items:center;font-size:13px"><span style="width:30px;height:30px;border-radius:9px;background:#fce8eb;color:#e0475b;display:grid;place-items:center">{{ I.wifioff }}</span><span style="flex:1"><strong>CAN-uitval</strong> · 30 minuten</span><span style="color:#8a92a3">10:41</span></div>
+                <div style="display:flex;gap:12px;align-items:center;font-size:13px"><span style="width:30px;height:30px;border-radius:9px;background:#efeafb;color:#7c5cd6;display:grid;place-items:center">{{ I.sliders }}</span><span style="flex:1"><strong>Terugzetten aanbevolen</strong> · aanvoer</span><span style="color:#8a92a3">29 sep</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;startScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;overzicht&quot;,&quot;bevindingen&quot;,&quot;cycli&quot;,&quot;wijzigingen&quot;,&quot;historie&quot;,&quot;signalen&quot;,&quot;installatie&quot;,&quot;kwaliteit&quot;,&quot;meldingen&quot;],&quot;default&quot;:&quot;overzicht&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;showExplain&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;showRequirementIds&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+
+const H = m => { const t = 360 + Math.round(m); return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); };
+const D = d => Math.floor(d) + ':' + String(Math.round((d % 1) * 60)).padStart(2, '0');
+const med = a => { if (!a.length) return 0; const s = [...a].sort((x, y) => x - y); const k = Math.floor(s.length / 2); return s.length % 2 ? s[k] : (s[k - 1] + s[k]) / 2; };
+const nl = (v, d = 1) => v.toFixed(d).replace('.', ',');
+
+function buildSim() {
+  const iv = []; const pat = [2.5, 2, 3.5, 2.5, 1.5, 2, 4, 2.5, 3, 2]; let i = 0, t = 5;
+  while (t < 64) { const d = pat[i % 10]; iv.push({ s: t, e: t + d, mode: 'cv', end: 'stop' }); t += d + 5.5 + (i % 3); i++; }
+  iv.push({ s: 72, e: 82, mode: 'tw', end: 'tapwater' });
+  t = 87; while (t < 204) { const d = pat[i % 10]; iv.push({ s: t, e: t + d, mode: 'cv', end: 'stop' }); t += d + 5.5 + (i % 3); i++; }
+  t = Math.max(t, 208); while (t < 230) { const d = 7 + (i % 3); iv.push({ s: t, e: t + d, mode: 'cv', end: 'stop' }); t += d + 5; i++; }
+  iv.push({ s: 245, e: 250, mode: 'cv', end: 'onvolledig' });
+  iv.push({ s: 282, e: 320, mode: 'cv', end: 'vraag' });
+  const modes = [{ s: 0, e: 72, m: 'cv' }, { s: 72, e: 82, m: 'tw' }, { s: 82, e: 86, m: 'naloop' }, { s: 86, e: 250, m: 'cv' }, { s: 250, e: 280, m: 'onbekend' }, { s: 280, e: 320, m: 'cv' }, { s: 320, e: 360, m: 'standby' }];
+  const modeAt = m => (modes.find(x => m >= x.s && m < x.e) || { m: 'standby' }).m;
+  let T = 46, R = 39; const pts = [];
+  for (let m = 0; m <= 360; m += 0.5) {
+    if (m >= 250 && m < 280) { pts.push(null); T = 36; R = 33; continue; }
+    const on = iv.find(c => m >= c.s && m < c.e); const mode = modeAt(m);
+    const gew = mode === 'tw' ? 70 : (mode === 'cv' || mode === 'naloop') ? 55 : null;
+    if (on) { const tgt = on.mode === 'tw' ? 72 : (on.e - on.s > 20 ? 55.5 : 59.5); T += (tgt - T) * (on.mode === 'tw' ? 0.35 : 0.5) * 0.5; }
+    else T += (34 - T) * 0.05 * 0.5;
+    R += ((T - (on ? 10 : 3)) - R) * 0.15 * 0.5;
+    const mod = on ? (m - on.s < 1 ? 45 : (on.mode === 'tw' ? 62 : (on.e - on.s > 20 ? 24 : 19))) : 0;
+    pts.push({ m, T, R, gew, mod });
+  }
+  iv.forEach((c, k) => {
+    c.n = k + 1; c.d = c.e - c.s;
+    const inPts = pts.filter(p => p && p.m >= c.s && p.m <= c.e);
+    c.maxT = Math.max(...inPts.map(p => p.T)); c.gew = inPts[0] && inPts[0].gew;
+    const mods = inPts.filter(p => p.mod > 0).map(p => p.mod); c.mod = mods.length ? mods.reduce((a, b) => a + b, 0) / mods.length : 0;
+    c.kort = c.mode === 'cv' && c.end === 'stop' && c.d < 3;
+  });
+  const cv = iv.filter(c => c.mode === 'cv' && c.end !== 'onvolledig');
+  const pauses = []; for (let k = 1; k < iv.length; k++) { const a = iv[k - 1], b = iv[k]; if (a.mode === 'cv' && b.mode === 'cv' && b.s < 250 && a.end === 'stop') pauses.push(b.s - a.e); }
+  const cvW = cv.filter(c => c.s < 250);
+  const stats = {
+    obs: '5,5', perUur: nl(iv.filter(c => c.mode === 'cv').length / 5.5),
+    cvN: iv.filter(c => c.mode === 'cv').length, twN: iv.filter(c => c.mode === 'tw').length,
+    shortN: iv.filter(c => c.kort).length, cvWN: cvW.length,
+    medDur: D(med(cv.map(c => c.d))), avgDur: D(cv.reduce((a, c) => a + c.d, 0) / cv.length),
+    medPause: D(med(pauses)), total: Math.round(iv.filter(c => c.mode === 'cv').reduce((a, c) => a + c.d, 0)) + ' min'
+  };
+  return { iv, modes, pts, stats };
+}
+
+const FINDINGS = (st) => [
+  { id: 'B-014', cat: 'Cycli', when: 'vandaag 06:00–10:10', ernst: 'Hoog', ernstClass: 'tag tag-accent', zekerheid: 'Matig', relevantie: 'bedrijfsstabiliteit, energie', regel: 'kort-branden v1.3',
+    title: 'Herhaald kort branden tijdens aanhoudende warmtevraag',
+    dekking: '93 % · 30 min onbekend', cycli: `${st.shortN} van ${st.cvWN} cv-cycli`, herhaling: '3 van laatste 7 dagen', ontbreekt: 'Zoneklep, verdeler, pomp',
+    observatie: `In ${st.shortN} van ${st.cvWN} cv-cycli stopt de brander binnen 3 minuten terwijl de warmtevraag blijft bestaan. De werkelijke aanvoer overschrijdt de gewenste aanvoer (55 °C) vaak vlak vóór de stop; modulatie staat dan op het minimum (19 %).`,
+    periode: 'Zo 4 okt 06:00–10:10 · 1 tapwatercyclus uitgesloten', signalen: 'Vlamstatus, CV-modus, warmtevraag, gewenste en werkelijke aanvoer, modulatie', hasCycli: true,
+    interpretatie: 'Dit past bij onvoldoende warmteafgifte ten opzichte van het geleverde vermogen, maar bewijst de oorzaak niet. Drie verklaringen zijn mogelijk:',
+    hyps: [
+      { n: 1, naam: 'Te weinig open afgifte', voor: 'aanvoer stijgt binnen 2–3 min boven gewenst; modulatie al op minimum bij stop.', tegen: 'zone- en klepstatus niet gekoppeld.', meting: 'aantal open vloerverwarmingsgroepen en radiatorkranen tijdens de cycli.' },
+      { n: 2, naam: 'Beperkte doorstroming ketelcircuit', voor: 'ketel-ΔT loopt tijdens branden snel op naar 9–11 K.', tegen: 'pompstatus en debiet onbekend.', meting: 'pompstatus of debiet; verdeleraanvoer en -retour.' },
+      { n: 3, naam: 'Minimumvermogen boven actuele warmtevraag', voor: 'patroon sterker bij buitentemperatuur boven 9 °C.', tegen: 'minimumvermogen in kW niet vastgelegd.', meting: 'vergelijk cycli bij lagere buitentemperatuur; leg minimumvermogen vast.' }
+    ],
+    hasAdvice: true, actie: 'Controleer welke circuits werkelijk open staan en of doorstroming beschikbaar is.',
+    adviceRows: [
+      { k: 'Reden', v: 'Onderscheidt hypothese 1 en 2 voordat een instelling wordt gewijzigd.' },
+      { k: 'Verwacht effect', v: 'Geen direct energie-effect. Maakt een gerichte vervolgstap mogelijk.' },
+      { k: 'Comfort', v: 'Geen invloed.' },
+      { k: 'Omvang', v: 'Niet te onderbouwen met huidige gegevens — geen getal genoemd.' },
+      { k: 'Voorwaarden', v: 'Buitentemperatuur ±2 °C van referentie; geen gemarkeerde periode; zelfde thermostaatprogramma.' },
+      { k: 'Evaluatie', v: 'Vergelijk korte cycli en comfort 7 dagen na koppelen van zonestatus.' },
+      { k: 'Succes', v: 'Eén hypothese wordt door de nieuwe meting ondersteund of uitgesloten.' },
+      { k: 'Terugdraaien', v: 'N.v.t. — controle zonder instellingswijziging.' }
+    ],
+    bundle: [
+      { t: `${st.shortN}× brander stopt tijdens warmtevraag`, src: 'Stop tijdens vraag · v1.1' },
+      { t: 'Aanvoer overschrijdt gewenst met 1–4 K vóór stop', src: 'Temperatuurverloop · v1.0' },
+      { t: `Mediaan pauze ${st.medPause} tijdens vraag`, src: 'Pauzeduur · v1.0' }
+    ] },
+  { id: 'B-011', cat: 'Effectmeting', when: 'sinds 21 sep', ernst: 'Middel', ernstClass: 'tag tag-accent', zekerheid: 'Redelijk', relevantie: 'comfort, bedrijfsstabiliteit', regel: 'voor-na v1.2', init: 'terug',
+    title: 'Aanvoerverlaging gaf minder korte cycli, maar slechter comfort boven',
+    dekking: '97 % · beide perioden', cycli: '412 voor · 268 na', herhaling: '7 dagen aaneengesloten', ontbreekt: 'Verdeleraanvoer',
+    observatie: 'Na verlaging van de maximale aanvoer van 70 naar 60 °C daalden de cv-starts per uur van 4,1 naar 2,6. De slaapkamer (vloerverwarming) stond 5,8 u per week meer dan 0,5 °C onder setpoint, tegen 1,2 u ervoor.',
+    periode: '14–20 sep vs. 22–28 sep · buiten 11,2 vs. 10,6 °C', signalen: 'Vlamstatus, aanvoer, kamertemperatuur woonkamer en slaapkamer, buitentemperatuur', hasCycli: false,
+    interpretatie: 'Minder starts is hier geen onverdeelde verbetering. Voldoende temperatuur in de woonkamer bewijst niet dat boven genoeg warmte beschikbaar is. Het ingestelde terugdraaicriterium (4 u/week) is overschreden.',
+    hyps: [],
+    hasAdvice: true, actie: 'Draai de maximale aanvoer terug naar 70 °C.',
+    adviceRows: [
+      { k: 'Reden', v: 'Terugdraaicriterium W-07 bereikt: comfortverlies slaapkamer > 4 u/week.' },
+      { k: 'Verwacht effect', v: 'Comfort boven herstelt; korte cycli nemen naar verwachting weer toe.' },
+      { k: 'Comfort', v: 'Positief voor slaapkamer en kinderkamer.' },
+      { k: 'Omvang', v: 'Terug naar vorige waarde 70 °C.' },
+      { k: 'Voorwaarden', v: 'Leg de wijziging vast; markeer geen andere wijziging in dezelfde week.' },
+      { k: 'Evaluatie', v: '7 dagen, vergelijken met 14–20 sep.' },
+      { k: 'Daarna', v: 'Overweeg een begeleide proef met 65 °C, met comfortgrens per ruimte.' },
+      { k: 'Terugdraaien', v: 'N.v.t. — dit is het terugdraaien.' }
+    ],
+    bundle: [] },
+  { id: 'B-015', cat: 'Gegevenskwaliteit', when: 'vandaag 10:10–10:40', ernst: 'Middel', ernstClass: 'tag tag-neutral', zekerheid: 'Hoog (gemeten)', relevantie: 'betrouwbaarheid analyses', regel: 'dataverlies v1.0',
+    title: 'CAN-data 30 minuten onderbroken',
+    dekking: '0 % in tijdvak', cycli: '1 onvolledig', herhaling: 'Eerste keer in 7 dagen', ontbreekt: '9 CAN-entiteiten',
+    observatie: 'Tussen 10:10 en 10:40 ontving Home Assistant geen updates van de 9 CAN-entiteiten. Home Assistant zelf bleef bereikbaar.',
+    periode: 'Zo 4 okt 10:10–10:40', signalen: 'Alle CAN-signalen', hasCycli: true,
+    interpretatie: 'De cyclus die om 10:05 begon heeft geen bekend einde; de brandduur is onvolledig. De 30 minuten tellen als onbekend, niet als uit-tijd. Na de reconnect is geen kunstmatige branderstart geregistreerd. Het korte-cycli-patroon wordt hierdoor niet als opgelost beschouwd.',
+    hyps: [], hasAdvice: false, noAdviceText: 'Geen optimalisatieadvies. Als de onderbreking terugkeert: controleer de CAN-gateway en de verbinding met Home Assistant.', bundle: [] },
+  { id: 'B-012', cat: 'Hydraulisch', when: 'doorlopend', ernst: 'Laag', ernstClass: 'tag tag-neutral', zekerheid: 'Onvoldoende bewijs', relevantie: 'comfort boven, energie', regel: 'hydraulisch v0.9',
+    title: 'Mengverdeler: onvoldoende gegevens voor een hydraulische conclusie',
+    dekking: 'Verdeler: geen data', cycli: '—', herhaling: '—', ontbreekt: 'Verdeleraanvoer, -retour, debiet',
+    observatie: 'De ketel-ΔT tijdens stabiel cv-bedrijf ligt tussen 4 en 6 K. Meetwaarden van de mengverdeler zijn niet gekoppeld.',
+    periode: '28 sep – 4 okt', signalen: 'Ketelaanvoer, ketelretour', hasCycli: false,
+    interpretatie: 'Ketel-ΔT zegt niets over de ΔT per vloerverwarmingslus. Zonder verdelerdata wordt geen wijziging aan lusdebiet of mengtemperatuur aanbevolen.',
+    hyps: [], hasAdvice: true, actie: 'Aanvullende meting: plaats temperatuursensoren op verdeleraanvoer en -retour (boven).',
+    adviceRows: [
+      { k: 'Reden', v: 'Maakt het afgiftecircuit boven los van het ketelcircuit te beoordelen.' },
+      { k: 'Verwacht effect', v: 'Hydraulische analyse wordt beschikbaar; ondersteunt ook B-014.' },
+      { k: 'Omvang', v: 'Geen — er is nog geen instellingsadvies.' },
+      { k: 'Evaluatie', v: 'Na 3 dagen data met cv-bedrijf.' }
+    ], bundle: [] },
+  { id: 'B-016', cat: 'Bedrijfscontext', when: 'vandaag 07:12', ernst: 'Info', ernstClass: 'tag tag-neutral', zekerheid: 'Hoog', relevantie: '—', regel: 'modus v1.1',
+    title: 'Tapwatercyclus uitgesloten van cv-conclusies',
+    dekking: '100 %', cycli: '1 tapwatercyclus', herhaling: '—', ontbreekt: '—',
+    observatie: 'Om 07:12 brandde de ketel 10 minuten in tapwatermodus met een aanvoer tot 71 °C.',
+    periode: 'Zo 4 okt 07:12–07:22 + 4 min naloop', signalen: 'CV-/tapwatermodus, vlamstatus, aanvoer', hasCycli: true,
+    interpretatie: 'Deze cyclus telt niet mee in de korte-cycli-melding en wordt niet gerapporteerd als te hoge cv-aanvoer.',
+    hyps: [], hasAdvice: false, noAdviceText: 'Geen advies nodig. Ter informatie zichtbaar gehouden.', bundle: [] }
+];
+
+const STATUS = { open: 'Open', accept: 'Geaccepteerd', done: 'Uitgevoerd · evaluatie loopt', later: 'Uitgesteld tot 11 okt', reject: 'Afgewezen', terug: 'Terugdraaicriterium geactiveerd' };
+
+const CHANGES = [
+  { id: 'W-07', date: '21 sep 2026 08:30', door: 'gebruiker', param: 'Maximale CV-aanvoer', oud: '70 °C', nieuw: '60 °C', reden: 'Aanbeveling B-009 — korte cycli bij lage last', verdict: 'Afweging · terugdraaien', tone: 'accent',
+    verdictText: 'Minder starts en langere brandduur, maar comfort boven verslechterde. Het ingestelde terugdraaicriterium (slaapkamer > 4 u/week meer dan 0,5 °C onder setpoint) is overschreden. Dit wordt niet als verbetering beoordeeld.',
+    voor: '14–20 sep', na: '22–28 sep',
+    cond: [{ k: 'Buitentemperatuur gem.', voor: '11,2 °C', na: '10,6 °C', ok: 'Ja' }, { k: 'Setpoint woonkamer', voor: '20,5 °C', na: '20,5 °C', ok: 'Ja' }, { k: 'Andere wijzigingen', voor: '—', na: '—', ok: 'Ja' }, { k: 'Gemarkeerde perioden', voor: 'vakantie 17–19 sep', na: '—', ok: 'Uitgesloten' }],
+    metrics: [
+      { k: 'CV-starts per uur', note: 'per waargenomen uur', voor: '4,1', na: '2,6', wv: '82%', wn: '52%', effect: 'Beter', good: true },
+      { k: 'Mediaan brandduur', note: 'cv-cycli', voor: '3:12', na: '6:48', wv: '32%', wn: '68%', effect: 'Beter', good: true },
+      { k: 'Aandeel korte cycli', note: '< 3 min tijdens vraag', voor: '61 %', na: '34 %', wv: '61%', wn: '34%', effect: 'Beter', good: true },
+      { k: 'Gem. aanvoer stabiel bedrijf', note: 'ketel', voor: '58,3 °C', na: '52,1 °C', wv: '78%', wn: '70%', effect: 'Lager', good: null },
+      { k: 'Woonkamer onder setpoint', note: '> 0,5 °C, u/week', voor: '0,4 u', na: '0,6 u', wv: '7%', wn: '10%', effect: 'Gelijk', good: null },
+      { k: 'Slaapkamer onder setpoint', note: '> 0,5 °C, u/week · grens 4 u', voor: '1,2 u', na: '5,8 u', wv: '20%', wn: '97%', effect: 'Slechter', good: false }
+    ] },
+  { id: 'W-06', date: '12 sep 2026 10:00', door: 'installateur', param: 'Pompstand + maximale aanvoer', oud: 'stand 3 · 75 °C', nieuw: 'stand 2 · 70 °C', reden: 'Onderhoudsbezoek', verdict: 'Niet toe te schrijven', tone: 'neutral',
+    verdictText: 'Pompstand en maximale aanvoer zijn op hetzelfde moment gewijzigd. De afname in starts wordt aan geen van beide afzonderlijk toegeschreven. Gebruik een begeleid experiment met één wijziging om dit te onderscheiden.',
+    voor: '5–11 sep', na: '13–19 sep',
+    cond: [{ k: 'Buitentemperatuur gem.', voor: '14,9 °C', na: '12,7 °C', ok: 'Beperkt' }, { k: 'Andere wijzigingen', voor: '—', na: '2 tegelijk', ok: 'Nee' }, { k: 'Gemarkeerde perioden', voor: '—', na: 'vakantie 17–19 sep', ok: 'Uitgesloten' }],
+    metrics: [
+      { k: 'CV-starts per uur', note: 'gecombineerd effect', voor: '5,0', na: '4,1', wv: '100%', wn: '82%', effect: 'Niet toe te schrijven', good: null },
+      { k: 'Mediaan brandduur', note: 'gecombineerd effect', voor: '2:40', na: '3:12', wv: '27%', wn: '32%', effect: 'Niet toe te schrijven', good: null }
+    ] },
+  { id: 'W-05', date: '1 sep 2026 21:00', door: 'gebruiker', param: 'Nachtverlaging eTwist', oud: '18,0 °C', nieuw: '17,0 °C', reden: 'Eigen initiatief', verdict: 'Onvoldoende bewijs', tone: 'neutral',
+    verdictText: 'De buitentemperatuur na de wijziging lag gemiddeld 4,6 °C hoger. De perioden zijn niet vergelijkbaar genoeg; er wordt geen effect gerapporteerd. Evaluatie wordt hervat bij vergelijkbaar weer.',
+    voor: '25–31 aug', na: '2–8 sep',
+    cond: [{ k: 'Buitentemperatuur gem.', voor: '13,1 °C', na: '17,7 °C', ok: 'Nee' }, { k: 'Opstookprotocol', voor: 'tot 27 aug', na: '—', ok: 'Uitgesloten' }],
+    metrics: [] }
+];
+
+const HISTORY = [
+  { date: '29 sep 2026', advies: 'Max. aanvoer terug naar 70 °C', bev: 'B-011', periode: '22–28 sep', inst: 'Max aanvoer 60 °C · pomp 2', regel: 'voor-na v1.2', status: 'Open', cls: 'tag tag-accent', waarom: 'Comfortverlies slaapkamer 5,8 u/week overschreed het terugdraaicriterium van 4 u/week bij vergelijkbaar weer (11,2 vs 10,6 °C).', note: '—', regelNu: 'Ongewijzigd sinds vastleggen.' },
+  { date: '13 sep 2026', advies: 'Verlaag max. aanvoer naar 60 °C', bev: 'B-009', periode: '5–11 sep', inst: 'Max aanvoer 70 °C · pomp 2', regel: 'kort-branden v1.2', status: 'Uitgevoerd · ongunstig', cls: 'tag tag-neutral', waarom: '61 % korte cycli tijdens vraag bij buitentemperatuur 12–16 °C. Hypothese minimumvermogen; comfortgegevens boven waren toen beschikbaar maar niet als voorwaarde opgenomen.', note: 'Uitgevoerd 21 sep na vakantie.', regelNu: 'Regel kort-branden is sinds v1.3 (24 sep) aangescherpt: kortecyclusgrens 4 → 3 min, en een aanvoerverlaging wordt alleen nog voorgesteld met een comfortgrens per ruimte.' },
+  { date: '2 sep 2026', advies: 'Koppel slaapkamersensor', bev: 'B-007', periode: '28 aug – 1 sep', inst: '—', regel: 'dekking v1.0', status: 'Uitgevoerd · geslaagd', cls: 'tag tag-neutral', waarom: 'Comfortanalyse boven was niet beschikbaar; vloerverwarmingsruimtes hadden geen eigen temperatuurmeting.', note: 'Zigbee-sensor geplaatst.', regelNu: 'Ongewijzigd.' },
+  { date: '28 aug 2026', advies: 'Pompstand verlagen', bev: 'B-005', periode: '—', inst: 'pomp 3', regel: 'hydraulisch v0.8', status: 'Afgewezen', cls: 'tag tag-neutral', waarom: 'Lage ketel-ΔT tijdens opstookprotocol.', note: 'Opstookprotocol liep nog; advies niet relevant.', regelNu: 'Sinds v0.9 worden gemarkeerde opstookperioden uitgesloten; dit advies zou nu niet meer verschijnen.' }
+];
+
+const SIGNALS = [
+  { naam: 'Brander/vlam actief', ent: 'binary_sensor.remeha_flame', loc: 'Ketel', soort: 'Gerapporteerd', age: '4 s', st: 'ok', nodig: 'Cycli-analyse', unit: '—', max: '30 s', bet: 'Werkelijke vlam, niet het startcommando.' },
+  { naam: 'CV-/tapwatermodus', ent: 'sensor.remeha_status', loc: 'Ketel', soort: 'Gerapporteerd', age: '4 s', st: 'ok', nodig: 'Verwarmingsanalyse', unit: '—', max: '30 s', bet: 'Statuscode ketel; 1 = CV, 2 = tapwater.' },
+  { naam: 'Gewenste ketelaanvoer', ent: 'sensor.remeha_flow_setpoint', loc: 'Ketel', soort: 'Gerapporteerd', age: '4 s', st: 'ok', nodig: 'Diagnose korte cycli', unit: '°C', max: '30 s', bet: 'Door eTwist gevraagde aanvoertemperatuur.' },
+  { naam: 'Ketelaanvoer', ent: 'sensor.remeha_flow_temp', loc: 'Ketel uitgang', soort: 'Gemeten', age: '4 s', st: 'ok', nodig: 'Temperatuuranalyse', unit: '°C', max: '30 s', bet: 'Interne aanvoersensor van de ketel.' },
+  { naam: 'Ketelretour', ent: 'sensor.remeha_return_temp', loc: 'Ketel ingang', soort: 'Gemeten', age: '4 s', st: 'ok', nodig: 'Temperatuuranalyse', unit: '°C', max: '30 s', bet: 'Interne retoursensor van de ketel.' },
+  { naam: 'Brander-modulatie', ent: 'sensor.remeha_modulation', loc: 'Ketel', soort: 'Gerapporteerd', age: '4 s', st: 'ok', nodig: 'Minimumlastgedrag', unit: '%', max: '30 s', bet: 'Percentage van maximaal vermogen. Niet omgezet naar kW.' },
+  { naam: 'Kamertemp. woonkamer', ent: 'sensor.etwist_woonkamer', loc: 'Woonkamer', soort: 'Gemeten', age: '2 min', st: 'ok', nodig: 'Comfortanalyse', unit: '°C', max: '10 min', bet: 'Sensor in eTwist-thermostaat.' },
+  { naam: 'Kamertemp. slaapkamer', ent: 'sensor.slaapkamer_temp', loc: 'Slaapkamer boven', soort: 'Gemeten', age: '14 min', st: 'stale', nodig: 'Comfortanalyse boven', unit: '°C', max: '10 min', bet: 'Zigbee-sensor, ophanghoogte 1,5 m.' },
+  { naam: 'Buitentemperatuur', ent: 'sensor.buiten_temp', loc: 'Noordgevel', soort: 'Gemeten', age: '5 min', st: 'ok', nodig: 'Weerscorrectie', unit: '°C', max: '15 min', bet: 'Buitenvoeler, niet in de zon.' },
+  { naam: 'Verdeleraanvoer boven', ent: '', loc: '—', soort: '—', age: 'Niet gekoppeld', st: 'none', nodig: 'Hydraulische analyse', unit: '°C', max: '1 min', bet: '' },
+  { naam: 'Verdelerretour boven', ent: '', loc: '—', soort: '—', age: 'Niet gekoppeld', st: 'none', nodig: 'Hydraulische analyse', unit: '°C', max: '1 min', bet: '' },
+  { naam: 'Zonevraag / klepstatus', ent: '', loc: '—', soort: '—', age: 'Niet gekoppeld', st: 'none', nodig: 'Zoneanalyse, B-014', unit: '—', max: '1 min', bet: '' },
+  { naam: 'Pompstatus / debiet', ent: '', loc: '—', soort: '—', age: 'Niet gekoppeld', st: 'none', nodig: 'Hydraulische analyse, B-014', unit: '—', max: '1 min', bet: '' },
+  { naam: 'Cumulatief gasverbruik', ent: '', loc: '—', soort: '—', age: 'Niet gekoppeld', st: 'none', nodig: 'Verbruiksanalyse', unit: 'm³', max: '1 u', bet: '' },
+  { naam: 'Warmtemeter', ent: '', loc: '—', soort: '—', age: 'Niet gekoppeld', st: 'none', nodig: 'Rendementsanalyse', unit: 'kWh', max: '1 u', bet: '' }
+];
+
+const ANALYSES = [
+  { name: 'Cycli', status: 'Beschikbaar', cls: 'tag tag-neutral', note: 'Vlamstatus 4 s resolutie. Zonder gasmeter blijft dit werken.' },
+  { name: 'Temperatuur', status: 'Beschikbaar', cls: 'tag tag-neutral', note: 'Aanvoer, retour en gewenste aanvoer gekoppeld.' },
+  { name: 'Bedrijfsmodus', status: 'Beschikbaar', cls: 'tag tag-neutral', note: 'CV, tapwater, naloop en standby te scheiden.' },
+  { name: 'Comfort', status: 'Beperkt', cls: 'tag tag-accent', note: 'Slaapkamersensor 14 min oud; kinderkamer en badkamer zonder sensor.' },
+  { name: 'Zones', status: 'Niet beschikbaar', cls: 'tag tag-outline', note: 'Ontbreekt: zonevraag of klepstatus.' },
+  { name: 'Hydraulisch', status: 'Niet beschikbaar', cls: 'tag tag-outline', note: 'Ontbreekt: verdeleraanvoer, -retour, debiet.' },
+  { name: 'Verbruik', status: 'Niet beschikbaar', cls: 'tag tag-outline', note: 'Ontbreekt: cumulatief gasverbruik.' },
+  { name: 'Rendement', status: 'Niet beschikbaar', cls: 'tag tag-outline', note: 'Ontbreekt: gasverbruik én warmtemeter.' }
+];
+
+const NOTIFY_OPTS = ['Direct', 'Dagbundel', 'Weekrapport', 'Geen'];
+
+
+const C = { orange: ['#ea6a2f', '#fdeee6', '#a2421a'], teal: ['#1a9e8f', '#e1f4f1', '#0f6b61'], violet: ['#7c5cd6', '#efeafb', '#563ba8'], blue: ['#3b7ddd', '#e7effb', '#2659a8'], amber: ['#d99a12', '#fcf3dc', '#8a6206'], rose: ['#e0475b', '#fce8eb', '#a92536'], green: ['#2f9e5b', '#e4f4ea', '#1d6b3c'], slate: ['#5b6475', '#eef0f3', '#3d4452'] };
+const P = {
+  dashboard: '<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',
+  bulb: '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>',
+  activity: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+  history: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>',
+  sliders: '<line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/>',
+  plug: '<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/>',
+  home: '<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/>',
+  shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
+  bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+  flame: '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
+  droplet: '<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>',
+  gauge: '<path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
+  thermo: '<path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/>',
+  repeat: '<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
+  alert: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+  info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+  help: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
+  wrench: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  checkCircle: '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+  clock: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+  x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  arrow: '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+  chevron: '<path d="m9 18 6-6-6-6"/>',
+  wifioff: '<path d="M12 20h.01"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/><path d="M5 12.859a10 10 0 0 1 5.17-2.69"/><path d="M19 12.859a10 10 0 0 0-2.007-1.523"/><path d="M2 8.82a15 15 0 0 1 4.177-2.643"/><path d="M22 8.82a15 15 0 0 0-11.288-3.764"/><path d="m2 2 20 20"/>',
+  waves: '<path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/>',
+  layers: '<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>',
+  calendar: '<rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/>',
+  plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
+  bed: '<path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v9"/>',
+  eye: '<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/>',
+  pause: '<rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/>',
+  undo: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
+  book: '<path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>',
+  database: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/>'
+};
+const ic = (n, s = 18) => React.createElement('svg', { width: s, height: s, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', style: { display: 'block', flex: 'none' }, dangerouslySetInnerHTML: { __html: P[n] } });
+const I = Object.fromEntries(Object.keys(P).map(k => [k, ic(k)]));
+const ERNST = { Hoog: 'rose', Middel: 'amber', Laag: 'blue', Info: 'slate' };
+const CAT = { Cycli: ['repeat', 'orange'], Effectmeting: ['sliders', 'violet'], Gegevenskwaliteit: ['wifioff', 'rose'], Hydraulisch: ['droplet', 'blue'], Bedrijfscontext: ['info', 'slate'] };
+const STC = { open: 'blue', accept: 'teal', done: 'green', later: 'slate', reject: 'slate', terug: 'rose' };
+const AN_ICON = { Cycli: 'repeat', Temperatuur: 'thermo', Bedrijfsmodus: 'gauge', Comfort: 'home', Zones: 'layers', Hydraulisch: 'droplet', Verbruik: 'flame', Rendement: 'activity' };
+const AN_ST = { 'Beschikbaar': 'green', 'Beperkt': 'amber', 'Niet beschikbaar': 'slate' };
+const SIG_ICON = n => /vlam/i.test(n) ? 'flame' : /modus/i.test(n) ? 'gauge' : /modulatie/i.test(n) ? 'activity' : /buiten/i.test(n) ? 'sun' : /kamer/i.test(n) ? 'home' : /verdeler|pomp|debiet/i.test(n) ? 'droplet' : /zone/i.test(n) ? 'layers' : /gas/i.test(n) ? 'flame' : /warmtemeter/i.test(n) ? 'gauge' : 'thermo';
+
+const GLOSS = {
+  'Pendelen': 'De brander gaat herhaaldelijk kort aan en uit terwijl de thermostaat nog warmte vraagt. Meer starts betekent meestal meer slijtage en een lager rendement.',
+  'Warmtevraag': 'Het signaal van de thermostaat (eTwist) dat de ketel moet verwarmen.',
+  'Gewenste aanvoer': 'De aanvoertemperatuur die de thermostaat op dit moment aan de ketel vraagt.',
+  'Modulatie': 'Brandervermogen als % van het maximum. Onder het minimum kan de ketel niet verder terugregelen; dan schakelt hij aan en uit.',
+  'Minimumvermogen': 'Het laagste vermogen waarop de brander stabiel kan branden. Vraagt het huis minder, dan ontstaan korte cycli.',
+  'ΔT': 'Verschil tussen aanvoer- en retourtemperatuur: hoeveel het water onderweg is afgekoeld, dus hoeveel warmte is afgegeven.',
+  'Max. aanvoer': 'De hoogste temperatuur die de ketel voor verwarming mag leveren. Lager is vaak zuiniger, maar kan te weinig warmte geven.',
+  'Setpoint': 'De ingestelde doeltemperatuur van een ruimte.',
+  'Terugdraaicriterium': 'Een grens die je vooraf vastlegt. Wordt die overschreden, dan zet je de wijziging terug.',
+  'Vloerverwarming': 'Reageert traag en krijgt via de mengverdeler al een lagere temperatuur. Een lagere ketelaanvoer merk je daar vaak als eerste.',
+  'CAN-bus': 'De datalijn waarover de ketel zijn meetwaarden aan Home Assistant doorgeeft.',
+  'Onbekende tijd': 'Tijd zonder gegevens. Telt niet als "brander uit", zodat statistieken niet vertekenen.',
+  'Mengverdeler': 'Mengt heet ketelwater met koeler retourwater tot een geschikte temperatuur voor de vloer. Dat circuit gedraagt zich daardoor anders dan de ketel.',
+  'Tapwater': 'Warm water voor kraan en douche. De ketel stookt dan heter; die cycli tellen niet mee in de cv-analyse.',
+  'Naloop': 'Na het branden draait de pomp nog even door om restwarmte uit de ketel af te voeren.'
+};
+const TERMS = { 'B-014': ['Pendelen', 'Warmtevraag', 'Gewenste aanvoer', 'Modulatie', 'Minimumvermogen', 'ΔT'], 'B-011': ['Max. aanvoer', 'Setpoint', 'Terugdraaicriterium', 'Vloerverwarming'], 'B-015': ['CAN-bus', 'Onbekende tijd'], 'B-012': ['Mengverdeler', 'ΔT'], 'B-016': ['Tapwater', 'Naloop'] };
+const KEX = { Aanvoer: 'Temperatuur van het water van de ketel naar radiatoren en vloer.', Retour: 'Temperatuur van het water terug naar de ketel. Lager = meer warmte afgegeven.', Modulatie: 'Brandervermogen als % van het maximum.', Woonkamer: 'Gemeten door de eTwist; deze bepaalt de warmtevraag.', Slaapkamer: 'Losse sensor; stuurt de ketel niet aan.', Buiten: 'Gebruikt om perioden met vergelijkbaar weer te vergelijken.' };
+const withExplain = a => a.map(k => ({ ...k, explain: KEX[k.label] || '' }));
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.sim = buildSim(); this.mainRef = React.createRef();
+    this.state = {
+      mw: 900, ww: (typeof window !== 'undefined' ? window.innerWidth : 1200), screen: props.startScreen ?? 'overzicht', fid: 'B-014', cid: 'W-07', sid: 7, hid: 1, cyc: null, range: '6 uur',
+      status: { 'B-014': 'open', 'B-011': 'terug', 'B-015': 'open', 'B-012': 'open', 'B-016': 'open' }, notes: {},
+      notify: { Hoog: 'Direct', Middel: 'Dagbundel', Laag: 'Weekrapport', Info: 'Geen' }, tg: [true, true]
+    };
+  }
+  componentDidMount() {
+    const upd = () => { const el = this.mainRef.current; const mw = el ? el.clientWidth : this.state.mw; const ww = window.innerWidth; if (Math.abs(mw - this.state.mw) > 4 || ww !== this.state.ww) this.setState({ mw, ww }); };
+    this.ro = new ResizeObserver(upd); if (this.mainRef.current) this.ro.observe(this.mainRef.current); this.ro.observe(document.body); upd();
+  }
+  componentWillUnmount() { this.ro && this.ro.disconnect(); }
+  go(screen) { this.setState({ screen }); window.scrollTo(0, 0); }
+
+  miniChart() {
+    const h = React.createElement; const { iv, pts } = this.sim; const W = 600, x = m => m / 360 * W; const ty = v => 78 - (v - 30) / 45 * 44;
+    let d = '', pen = false; pts.forEach(p => { if (!p) { pen = false; return; } d += (pen ? 'L' : 'M') + x(p.m).toFixed(1) + ' ' + ty(p.T).toFixed(1); pen = true; });
+    const kids = [h('defs', { key: 'd' }, h('pattern', { id: 'mh', width: 6, height: 6, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' }, h('rect', { width: 2, height: 6, fill: '#c3c8d2' })))];
+    kids.push(h('rect', { key: 'g', x: x(250), y: 0, width: x(30), height: 82, rx: 6, fill: 'url(#mh)' }));
+    iv.forEach(c => kids.push(h('rect', { key: 'c' + c.n, x: x(c.s), y: 2, width: Math.max(2.5, x(c.e) - x(c.s)), height: 18, rx: 2, fill: c.kort ? '#e0475b' : c.mode === 'tw' ? '#3b7ddd' : '#ea6a2f' })));
+    kids.push(h('path', { key: 'p', d, fill: 'none', stroke: '#ea6a2f', strokeWidth: 2, strokeLinejoin: 'round' }));
+    [0, 120, 240, 360].forEach(m => kids.push(h('text', { key: 't' + m, x: x(m), y: 96, textAnchor: m === 0 ? 'start' : m === 360 ? 'end' : 'middle', fontSize: 11, fill: '#8a92a3' }, H(m))));
+    return h('svg', { viewBox: `0 0 ${W} 100`, width: '100%', style: { display: 'block', fontFamily: 'inherit' } }, kids);
+  }
+
+  chart() {
+    const h = React.createElement; const { iv, modes, pts } = this.sim; const sel = this.state.cyc;
+    const W = 1120, L = 120, R0 = W - 8; const x = m => L + m / 360 * (R0 - L);
+    const ty = v => 300 - (v - 25) / 50 * 176; const my = v => 380 - v / 100 * 46;
+    const fillMode = { cv: '#fbd5c1', tw: '#cfe0f7', naloop: '#e7e9ee', standby: '#eef0f3', onbekend: 'url(#hatch)' };
+    const lbl = (y, t) => h('text', { key: 'l' + y, x: 0, y, fontSize: 12, fontWeight: 600, fill: '#3d4452' }, t);
+    const path = key => { let d = '', pen = false; pts.forEach(p => { if (!p || p[key] == null) { pen = false; return; } d += (pen ? 'L' : 'M') + x(p.m).toFixed(1) + ' ' + (key === 'mod' ? my(p[key]) : ty(p[key])).toFixed(1); pen = true; }); return d; };
+    const kids = [h('defs', { key: 'd' }, h('pattern', { id: 'hatch', width: 6, height: 6, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' }, h('rect', { width: 2, height: 6, fill: '#c3c8d2' }))),
+      lbl(29, 'Modus'), lbl(59, 'Warmtevraag'), lbl(91, 'Brander'), lbl(140, 'Temperatuur'), lbl(352, 'Modulatie')];
+    for (let m = 0; m <= 360; m += 60) {
+      kids.push(h('line', { key: 'g' + m, x1: x(m), x2: x(m), y1: 10, y2: 384, stroke: '#eef0f3' }));
+      kids.push(h('text', { key: 'gt' + m, x: x(m), y: 402, textAnchor: m === 360 ? 'end' : m === 0 ? 'start' : 'middle', fontSize: 12, fill: '#8a92a3' }, H(m)));
+    }
+    [30, 40, 50, 60, 70].forEach(v => { kids.push(h('line', { key: 'ty' + v, x1: L, x2: R0, y1: ty(v), y2: ty(v), stroke: '#eef0f3' })); kids.push(h('text', { key: 'tyt' + v, x: L - 8, y: ty(v) + 4, textAnchor: 'end', fontSize: 11, fill: '#8a92a3' }, v + '°')); });
+    modes.forEach((s, k) => kids.push(h('rect', { key: 'm' + k, x: x(s.s) + 1, y: 16, width: x(s.e) - x(s.s) - 2, height: 18, rx: 5, fill: fillMode[s.m] })));
+    [[0, 250, '#5b6475'], [250, 280, 'url(#hatch)'], [280, 320, '#5b6475']].forEach(([a, b, f], k) => kids.push(h('rect', { key: 'v' + k, x: x(a) + 1, y: 51, width: x(b) - x(a) - 2, height: 10, rx: 5, fill: f })));
+    iv.forEach(c => kids.push(h('rect', { key: 'c' + c.n, x: x(c.s), y: 78, width: Math.max(3, x(c.e) - x(c.s)), height: 22, rx: 3, fill: c.kort ? '#e0475b' : c.mode === 'tw' ? '#3b7ddd' : '#ea6a2f', style: { cursor: 'pointer' }, onClick: () => this.setState({ cyc: c.n }) })));
+    kids.push(h('rect', { key: 'gap', x: x(250), y: 112, width: x(280) - x(250), height: 272, rx: 8, fill: 'url(#hatch)', opacity: 0.6 }));
+    kids.push(h('text', { key: 'gapt', x: x(265), y: 200, textAnchor: 'middle', fontSize: 11, fontWeight: 700, fill: '#3d4452' }, 'Geen gegevens'));
+    kids.push(h('text', { key: 'gapt2', x: x(265), y: 214, textAnchor: 'middle', fontSize: 11, fill: '#5b6475' }, 'telt als onbekend'));
+    kids.push(h('path', { key: 'mod', d: path('mod'), fill: 'none', stroke: '#7c5cd6', strokeWidth: 1.5, strokeLinejoin: 'round' }));
+    kids.push(h('path', { key: 'gew', d: path('gew'), fill: 'none', stroke: '#8a92a3', strokeWidth: 1.5, strokeDasharray: '5 4' }));
+    kids.push(h('path', { key: 'ret', d: path('R'), fill: 'none', stroke: '#3b7ddd', strokeWidth: 1.75, strokeLinejoin: 'round' }));
+    kids.push(h('path', { key: 'aan', d: path('T'), fill: 'none', stroke: '#ea6a2f', strokeWidth: 2.25, strokeLinejoin: 'round' }));
+    kids.push(h('text', { key: 'twl', x: x(77), y: ty(73) - 6, textAnchor: 'middle', fontSize: 11, fontWeight: 700, fill: '#2659a8' }, 'Tapwater · telt niet mee'));
+    kids.push(h('text', { key: 'evl', x: x(322), y: 47, fontSize: 11, fill: '#5b6475' }, 'Vraag gestopt 11:20'));
+    if (sel) { const c = iv.find(i => i.n === sel); if (c) kids.push(h('rect', { key: 'sel', x: x(c.s) - 4, y: 10, width: Math.max(8, x(c.e) - x(c.s) + 8), height: 374, rx: 6, fill: 'rgba(124,92,214,.08)', stroke: '#7c5cd6', strokeWidth: 2, pointerEvents: 'none' })); }
+    return h('svg', { viewBox: `0 0 ${W} 410`, width: '100%', style: { display: 'block', fontFamily: 'inherit' } }, kids);
+  }
+
+  renderVals() {
+    const S = this.state; const st = this.sim.stats; const { iv } = this.sim;
+    const pal = (c, sel) => ({ [sel + 'Bg']: C[c][1], [sel + 'Fg']: C[c][2] });
+    const ring = on => on ? '0 0 0 2px #ea6a2f inset' : 'none';
+    const navItem = (k, label, icon, count) => ({ label, count: count ?? '', hasCount: count != null, icon: I[icon], go: () => this.go(k),
+      bg: S.screen === k ? '#fdeee6' : 'transparent', fg: S.screen === k ? '#a2421a' : '#3d4452', fw: S.screen === k ? 700 : 500 });
+    const openCount = Object.values(S.status).filter(v => v === 'open' || v === 'terug').length;
+
+    const findings = FINDINGS(st).map(f => { const [icn, col] = CAT[f.cat]; const sc = STC[S.status[f.id]]; return { ...f,
+      statusLabel: STATUS[S.status[f.id]], icon: I[icn], iconLg: ic(icn, 24), iBg: C[col][1], iFg: C[col][0], ...pal(ERNST[f.ernst], 'e'), ...pal(sc, 's'),
+      open: () => this.setState({ fid: f.id, screen: 'bevindingen' }), chipBg: S.fid === f.id ? '#fff7f2' : '#fff', bg: S.fid === f.id ? '#fff7f2' : 'transparent', ring: ring(S.fid === f.id) }; });
+    const f = findings.find(x => x.id === S.fid);
+    const sel = { ...f, terms: (TERMS[f.id] || []).map(k => ({ k, v: GLOSS[k] })), showTerms: (this.props.showExplain ?? true) && !!TERMS[f.id], noAdvice: !f.hasAdvice, hasBundle: f.bundle.length > 0, isLater: S.status[f.id] === 'later', isDone: S.status[f.id] === 'done',
+      ernstLabel: 'Ernst: ' + f.ernst, metaLine: f.id + ' · ' + f.cat + ' · ' + f.when, saveLine: 'Opgeslagen met meetperiode, instellingen en regelversie ' + f.regel + '.', zekerLabel: 'Zekerheid: ' + f.zekerheid, relLabel: 'Impact: ' + f.relevantie,
+      proof: [{ k: 'Datadekking', v: f.dekking, icon: I.database, fg: '#1a9e8f' }, { k: 'Relevante cycli', v: f.cycli, icon: I.repeat, fg: '#ea6a2f' }, { k: 'Herhaling', v: f.herhaling, icon: I.calendar, fg: '#7c5cd6' }, { k: 'Ontbrekende signalen', v: f.ontbreekt, icon: I.plug, fg: '#d99a12' }] };
+    const setSt = v => () => this.setState(s => ({ status: { ...s.status, [s.fid]: v } }));
+
+    const cycles = iv.map(c => { const k = c.kort ? 'rose' : c.mode === 'tw' ? 'blue' : c.end === 'onvolledig' ? 'amber' : 'green'; return {
+      n: c.n, start: H(c.s), eind: c.end === 'onvolledig' ? 'onbekend' : H(c.e), duur: c.end === 'onvolledig' ? '≥ ' + D(c.d) : D(c.d),
+      modus: c.mode === 'tw' ? 'Tapwater' : 'CV', einde: { stop: 'Stop tijdens vraag', vraag: 'Einde warmtevraag', tapwater: 'Einde tapvraag', onvolledig: 'Datagat' }[c.end],
+      maxT: nl(c.maxT) + ' °C', mod: Math.round(c.mod) + ' %',
+      label: c.kort ? 'Kort' : c.mode === 'tw' ? 'Uitgesloten' : c.end === 'onvolledig' ? 'Onvolledig' : 'Normaal', ...pal(k, 'p'),
+      bg: S.cyc === c.n ? '#f3effc' : 'transparent', pick: () => this.setState({ cyc: c.n }) }; });
+
+    const tone = { accent: ['rose', 'undo'], neutral: ['slate', 'info'] };
+    const ch0 = CHANGES.find(c => c.id === S.cid); const [tc, ti] = tone[ch0.tone]; const isOverlap = ch0.id === 'W-06';
+    const tcol = isOverlap ? 'amber' : tc;
+    const ch = { ...ch0, hasMetrics: ch0.metrics.length > 0, title: ch0.param + ': ' + ch0.oud + ' → ' + ch0.nieuw, doorLabel: 'door ' + ch0.door, redenLabel: 'Reden: ' + ch0.reden,
+      vBg: C[tcol][1], vFg: C[tcol][2], icon: I[isOverlap ? 'layers' : ti],
+      cond: ch0.cond.map(c => ({ ...c, ...pal(c.ok === 'Nee' ? 'rose' : c.ok === 'Beperkt' ? 'amber' : c.ok === 'Uitgesloten' ? 'slate' : 'green', 'p') })),
+      metrics: ch0.metrics.map(m => ({ ...m, ...pal(m.good === false ? 'rose' : m.good ? 'green' : 'slate', 'p') })) };
+    const changes = CHANGES.map(c => { const col = c.id === 'W-06' ? 'amber' : tone[c.tone][0]; return { ...c, icon: I[c.id === 'W-05' ? 'clock' : 'sliders'], iBg: C[col][1], iFg: C[col][2],
+      open: () => this.setState({ cid: c.id }), bg: S.cid === c.id ? '#fff7f2' : 'transparent', ring: ring(S.cid === c.id) }; });
+
+    const hcol = s => /ongunstig|Open/.test(s) ? 'rose' : /geslaagd/.test(s) ? 'green' : 'slate';
+    const history = HISTORY.map((x, i) => ({ ...x, icon: I[/geslaagd/.test(x.status) ? 'checkCircle' : /Afgewezen/.test(x.status) ? 'x' : 'bulb'], iBg: C[hcol(x.status)][1], iFg: C[hcol(x.status)][2],
+      pick: () => this.setState({ hid: i }), ring: S.hid === i ? '0 0 0 2px #7c5cd6' : 'none' }));
+
+    const signals = SIGNALS.map((s, i) => { const icol = s.st === 'none' ? 'slate' : 'teal'; return { ...s, ent: s.ent || 'Nog niet gekoppeld', entColor: s.ent ? '#3d4452' : '#8a92a3',
+      icon: I[SIG_ICON(s.naam)], iBg: C[icol][1], iFg: C[icol][0], ...pal(s.st === 'ok' ? 'green' : s.st === 'stale' ? 'amber' : 'slate', 'p'),
+      age: s.st === 'stale' ? s.age + ' · te oud' : s.st === 'ok' ? s.age + ' oud' : 'Ontbreekt', pick: () => this.setState({ sid: i }), ring: S.sid === i ? '0 0 0 2px #1a9e8f' : 'none' }; });
+    const s0 = SIGNALS[S.sid];
+    const sig = { naam: s0.naam, entInput: s0.ent, unit: s0.unit, maxAge: s0.max, loc: s0.loc === '—' ? '' : s0.loc, betekenis: s0.bet, nodig: s0.nodig,
+      kinds: ['Gemeten', 'Gerapporteerd', 'Afgeleid', 'Geschat'].map(k => ({ label: k, bg: s0.soort === k ? '#1a9e8f' : '#f4f5f8', fg: s0.soort === k ? '#fff' : '#3d4452' })) };
+
+    const today = (6 * 24) / 168; const pc = v => (v * 100).toFixed(2) + '%';
+    const can = [{ l: pc(today + 4.17 / 168), w: pc(0.5 / 168), bg: '#e0475b' }, { l: pc(2.6 / 7), w: pc(0.4 / 168), bg: '#e0475b' }];
+    const hatch = 'repeating-linear-gradient(45deg,#c3c8d2 0 2px,#f4f5f8 2px 5px)';
+    const missing = [{ l: '0%', w: '100%', bg: hatch }];
+    const coverage = [
+      { naam: 'Vlamstatus', segs: can, pct: '99,3 %' }, { naam: 'Ketelaanvoer / -retour', segs: can, pct: '99,3 %' }, { naam: 'Modulatie', segs: can, pct: '99,3 %' },
+      { naam: 'Woonkamer', segs: [], pct: '100 %' },
+      { naam: 'Slaapkamer', segs: [{ l: pc(5.42 / 7), w: pc(0.6 / 168), bg: '#f2c14e' }, { l: pc(1.9 / 7), w: pc(2 / 168), bg: '#f2c14e' }, { l: pc(0.997), w: pc(0.003), bg: '#f2c14e' }], pct: '98,1 %' },
+      { naam: 'Buitentemperatuur', segs: [], pct: '100 %' }, { naam: 'Verdeler boven', segs: missing, pct: '—' }, { naam: 'Gasverbruik', segs: missing, pct: '—' }
+    ];
+    const modeShare = [['Verwarmen (CV)', 276, '#ea6a2f'], ['Tapwater', 10, '#3b7ddd'], ['Naloop (pomp draait na)', 4, '#c3c8d2'], ['Standby', 40, '#e7e9ee'], ['Onbekend', 30, hatch]]
+      .map(([label, min, bg]) => ({ label, bg, w: (min / 360 * 100).toFixed(1) + '%', pct: Math.round(min / 360 * 100) + ' % · ' + min + ' min' }));
+
+    const notifyRows = ['Hoog', 'Middel', 'Laag', 'Info'].map(e => ({ ernst: e, ...pal(ERNST[e], 'p'),
+      opts: NOTIFY_OPTS.map(o => ({ label: o, pick: () => this.setState(s => ({ notify: { ...s.notify, [e]: o } })), bg: S.notify[e] === o ? '#fff' : 'transparent', fg: S.notify[e] === o ? '#1d2433' : '#5b6475', sh: S.notify[e] === o ? '0 1px 3px rgba(16,24,40,.12)' : 'none' })) }));
+    const toggles = ['Bundel meldingen die bij hetzelfde patroon horen', 'Opnieuw melden als het erger wordt'].map((label, i) => ({ label, bg: S.tg[i] ? '#1a9e8f' : '#c3c8d2', jc: S.tg[i] ? 'flex-end' : 'flex-start',
+      flip: () => this.setState(s => { const tg = [...s.tg]; tg[i] = !tg[i]; return { tg }; }) }));
+
+    const last = this.sim.pts[this.sim.pts.length - 1];
+    const kp = (label, value, sub, icon, col) => ({ label, value, sub, icon: I[icon], bg: C[col][1], fg: C[col][0] });
+    return {
+      lay: (() => { const rail = S.ww < 960; return { rail, full: !rail, cols: rail ? '72px minmax(0,1fr)' : '240px minmax(0,1fr)', asidePad: rail ? '16px 10px' : '20px 14px', navJc: rail ? 'center' : 'flex-start', badgePos: rail ? 'absolute' : 'static', pad: S.ww < 640 ? '16px' : '28px' }; })(),
+      mainRef: this.mainRef,
+      bv: (() => { const side = S.mw >= 1060, two = S.mw >= 700; return { sideList: side, chips: !side, grid: side ? '272px minmax(0,1fr)' : 'minmax(0,1fr)', cols: two ? 'minmax(0,1.2fr) minmax(280px,1fr)' : 'minmax(0,1fr)', sticky: two ? 'sticky' : 'static', h2: S.mw < 560 ? '19px' : '22px' }; })(),
+      I, is: { [S.screen]: true }, showFR: this.props.showRequirementIds ?? false, showExplain: this.props.showExplain ?? true,
+      navMain: [navItem('overzicht', 'Overzicht', 'dashboard'), navItem('bevindingen', 'Bevindingen', 'bulb', openCount), navItem('cycli', 'Cycli', 'activity'), navItem('wijzigingen', 'Wijzigingen', 'sliders'), navItem('historie', 'Advieshistorie', 'history')],
+      navConfig: [navItem('signalen', 'Signalen', 'plug', '9/15'), navItem('installatie', 'Installatie', 'home'), navItem('kwaliteit', 'Gegevenskwaliteit', 'shield'), navItem('meldingen', 'Meldingen', 'bell')],
+      kpis: withExplain([kp('Aanvoer', nl(last.T) + ' °C', 'gemeten · 4 s', 'flame', 'orange'), kp('Retour', nl(last.R) + ' °C', 'gemeten · 4 s', 'droplet', 'blue'), kp('Modulatie', '0 %', 'niet omgerekend naar kW', 'gauge', 'violet'),
+        kp('Woonkamer', '20,4 °C', 'doel 20,5 °C', 'home', 'teal'), kp('Slaapkamer', '17,6 °C', 'doel 18,0 · 14 min oud', 'bed', 'amber'), kp('Buiten', '9,8 °C', 'gemeten · 5 min', 'sun', 'amber')]),
+      findings, sel, openCount,
+      analyses: ANALYSES.map(a => { const c = AN_ST[a.status]; return { ...a, icon: I[AN_ICON[a.name]], iBg: c === 'slate' ? '#eef0f3' : '#fff', iFg: C[c][0], sBg: c === 'slate' ? '#eef0f3' : '#fff', sFg: C[c][2], cardBg: c === 'slate' ? '#f8f9fb' : C[c][1] }; }),
+      act: { accept: setSt('accept'), done: setSt('done'), later: setSt('later'), reject: setSt('reject') },
+      noteText: S.notes[S.fid] ?? '', onNote: e => { const v = e.target.value; this.setState(s => ({ notes: { ...s.notes, [s.fid]: v } })); },
+      goBevindingen: () => this.go('bevindingen'), goKwaliteit: () => this.go('kwaliteit'), goCycli: () => this.go('cycli'),
+      goWijzigingen: e => { e && e.preventDefault(); this.go('wijzigingen'); }, openB011: () => this.setState({ fid: 'B-011', screen: 'bevindingen' }),
+      stats: st, miniChart: this.miniChart(), chart: this.chart(), cycles,
+      ranges: ['6 uur', '24 uur', '7 dagen'].map(r => ({ label: r, pick: () => this.setState({ range: r }), bg: S.range === r ? '#ea6a2f' : 'transparent', fg: S.range === r ? '#fff' : '#5b6475' })),
+      cycleKpis: [kp('Starts per uur (CV)', st.perUur, 'over ' + st.obs + ' u met gegevens', 'repeat', 'orange'), kp('CV-cycli', String(st.cvN), '+ ' + st.twN + ' tapwater (uitgesloten)', 'flame', 'orange'),
+        { ...kp('Kort tijdens warmtevraag', String(st.shortN), 'korter dan 3:00', 'alert', 'rose'), vc: '#a92536' }, kp('Mediaan brandduur', st.medDur, 'gemiddeld ' + st.avgDur, 'clock', 'violet'),
+        kp('Mediaan pauze', st.medPause, 'standby niet meegeteld', 'pause', 'blue'), kp('Totale brandtijd', st.total, '1 cyclus onvolledig', 'activity', 'teal')].map(k => ({ vc: '#1d2433', ...k })),
+      changes, ch, history, hs: HISTORY[S.hid],
+      signals, sig, sigStats: { linked: SIGNALS.filter(s => s.ent).length, total: SIGNALS.length },
+      specs: [
+        { k: 'Maximale CV-aanvoer', v: '60 °C', note: 'sinds 21 sep (W-07)', color: '#1d2433' }, { k: 'Maximaal CV-vermogen', v: 'Onbekend', note: 'nog niet ingevuld', color: '#8a92a3' },
+        { k: 'Minimumvermogen', v: 'Onbekend', note: 'helpt bij B-014', color: '#8a92a3' }, { k: 'Pompstand', v: 'Stand 2', note: 'sinds 12 sep (W-06)', color: '#1d2433' },
+        { k: 'Modulatie → kW', v: 'Niet omgerekend', note: 'geen gecontroleerde omrekening', color: '#8a92a3' }, { k: 'Gasprijs', v: 'Niet ingesteld', note: 'besparing in euro niet beschikbaar', color: '#8a92a3' }],
+      rooms: [{ naam: 'Woonkamer', tijd: '07:00–22:30', nacht: '17,0 °C', temp: '20,5°', icon: I.home, iBg: C.teal[1], iFg: C.teal[0] }, { naam: 'Slaapkamer', tijd: '21:00–07:30', nacht: '—', temp: '18,0°', icon: I.bed, iBg: C.violet[1], iFg: C.violet[0] },
+        { naam: 'Kinderkamer', tijd: '19:00–07:30', nacht: '—', temp: '19,0°', icon: I.bed, iBg: C.blue[1], iFg: C.blue[0] }, { naam: 'Badkamer', tijd: '06:30–08:00', nacht: '18,0 °C', temp: '21,0°', icon: I.droplet, iBg: C.orange[1], iFg: C.orange[0] }],
+      events: [
+        { t: 'CAN-verbinding verbroken (30 min)', a: 'Tijdvak als onbekend gemarkeerd; cyclus van 10:05 onvolledig', when: '4 okt 10:10', icon: I.wifioff, iBg: C.rose[1], iFg: C.rose[0] },
+        { t: 'CAN-verbinding hersteld', a: 'Geen kunstmatige branderstart geregistreerd', when: '4 okt 10:40', icon: I.checkCircle, iBg: C.green[1], iFg: C.green[0] },
+        { t: 'Slaapkamersensor 38 min te oud', a: 'Niet gecombineerd met nieuwere ketelwaarden', when: '3 okt 22:14', icon: I.clock, iBg: C.amber[1], iFg: C.amber[0] },
+        { t: '18 dubbele metingen modulatie', a: 'Ontdubbeld', when: '1 okt 03:00', icon: I.layers, iBg: C.slate[1], iFg: C.slate[0] },
+        { t: 'Retour 112 °C — onwaarschijnlijk', a: 'Waarde genegeerd', when: '30 sep 14:22', icon: I.alert, iBg: C.amber[1], iFg: C.amber[0] }],
+      haEntities: [{ k: 'sensor.cv_analyse_starts_per_uur', v: st.perUur }, { k: 'sensor.cv_analyse_korte_cycli_6u', v: String(st.shortN) }, { k: 'sensor.cv_analyse_gegevensdekking', v: '91,7 %' },
+        { k: 'sensor.cv_analyse_open_bevindingen', v: String(openCount) }, { k: 'sensor.cv_analyse_hoogste_ernst', v: 'hoog' }, { k: 'sensor.cv_analyse_volgende_actie', v: 'B-011' }, { k: 'binary_sensor.cv_analyse_onvoldoende_gegevens', v: 'aan' }],
+      coverage, modeShare, notifyRows, toggles
+    };
+  }
+}
+</script>
+</body>
+</html>
