@@ -802,14 +802,27 @@ class PairTolerance:
     tolerance_ms: DurationMs
 
 
+PROVISIONAL_MODE_MAPPING: tuple[tuple[str, Mode], ...] = (("1", Mode.CH), ("2", Mode.DHW))
+"""Provisional status-code → mode mapping for the Calenta Ace, taken from design v3
+(``sensor.remeha_status``: "1 = CV, 2 = tapwater"). To be confirmed or replaced by the CAN
+inventory (#5); unmapped codes fall back to inference (ADR-002 §3.3). Fault/blocking codes are
+only known after #5 and are added as ``(code, Mode.FAULT_BLOCKING)`` entries."""
+
+
 @dataclass(frozen=True, slots=True)
 class PipelineConfig:
     """Immutable configuration snapshot for one run. Part of the determinism contract:
     chunked == whole only holds for the same snapshot (``config_hash``)."""
 
     signals: tuple[SignalConfig, ...]
-    mode_mapping: tuple[tuple[str, Mode], ...] = ()
-    """Status/mode code → mode (Calenta Ace default after the CAN inventory, #5)."""
+    mode_mapping: tuple[tuple[str, Mode], ...] = PROVISIONAL_MODE_MAPPING
+    """Status/mode code → mode; first match wins. Codes are compared as stripped strings
+    (numeric codes as integers, ``1.0`` → ``"1"``). Default: :data:`PROVISIONAL_MODE_MAPPING`
+    until the CAN inventory (#5) confirms the Calenta Ace codes."""
+    demand_flow_setpoint_min_c: float = 20.0
+    """Without a known heat-demand value, a known flow setpoint at or above this value counts
+    as heat demand when inferring modes (requirements §2: "warmtevraag of gewenste
+    ketelaanvoer"). Provisional, like the other thresholds (ADR-002 §11.3)."""
     pair_tolerances: tuple[PairTolerance, ...] = ()
     default_pair_tolerance_ms: DurationMs = 30_000
     lookback_ms: DurationMs = 6 * HOUR_MS
