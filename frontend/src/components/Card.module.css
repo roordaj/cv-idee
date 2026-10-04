@@ -1,0 +1,43 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  min-width: 0;
+}
+
+.plain {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.tinted {
+  background: var(--tone-tint);
+}
+
+.pad-none {
+  padding: 0;
+}
+
+.pad-sm {
+  padding: var(--space-7);
+}
+
+.pad-md {
+  padding: var(--space-9);
+}
+
+.pad-lg {
+  padding: var(--space-10);
+}
+
+.radius-tile {
+  border-radius: var(--radius-xl);
+}
+
+.radius-kpi {
+  border-radius: var(--radius-2xl);
+}
+
+.radius-card {
+  border-radius: var(--radius-card);
+}

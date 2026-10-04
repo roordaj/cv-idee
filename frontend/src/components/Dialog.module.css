@@ -1,0 +1,128 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(29, 36, 51, 0.45);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+
+.panel {
+  width: min(560px, 100vw - 32px);
+  max-height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  border-radius: var(--radius-card);
+  padding: 24px;
+  gap: var(--space-7);
+  box-shadow: 0 20px 48px rgba(16, 24, 40, 0.18);
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-5);
+}
+
+.headText {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-extrabold);
+  line-height: 1.25;
+}
+
+.title:focus {
+  outline: none;
+}
+
+.subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+}
+
+.body {
+  overflow-y: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: 10px 12px;
+  border-radius: var(--radius-lg);
+  background: var(--color-rose-tint);
+  color: #7a1d2a;
+  font-size: var(--font-size-sm);
+}
+
+.confirmActions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.danger {
+  margin-right: auto;
+}
+
+.actions {
+  margin-left: auto;
+  display: flex;
+  gap: var(--space-4);
+}
+
+@media (max-width: 639.98px) {
+  .overlay {
+    place-items: end stretch;
+    padding: 0;
+  }
+
+  .panel {
+    width: 100%;
+    max-height: 92vh;
+    border-radius: 20px 20px 0 0;
+    padding-bottom: 0;
+  }
+
+  .footer {
+    position: sticky;
+    bottom: 0;
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
+    padding: 12px 0 16px;
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .danger,
+  .actions {
+    margin: 0;
+  }
+
+  .actions {
+    flex-direction: column-reverse;
+  }
+
+  .footer button {
+    width: 100%;
+  }
+}

@@ -1,0 +1,55 @@
+.badge {
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.badge svg {
+  display: block;
+  flex: none;
+}
+
+.xs {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-xs);
+}
+
+.sm {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+}
+
+.md {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-icon);
+}
+
+.lg {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-xl);
+}
+
+.xl {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-2xl);
+}
+
+.soft {
+  background: var(--tone-tint);
+  color: var(--tone-base);
+}
+
+.softDark {
+  background: var(--tone-tint);
+  color: var(--tone-dark);
+}
+
+.solid {
+  background: var(--tone-base);
+  color: var(--color-on-accent);
+}

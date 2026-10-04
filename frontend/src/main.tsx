@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { App } from './app/App.tsx';
 import { AppProviders } from './app/AppProviders.tsx';
 import { getRouterBasename } from './lib/basePath.ts';
+import './styles/global.css';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

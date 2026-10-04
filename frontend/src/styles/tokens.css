@@ -1,0 +1,120 @@
+/*
+ * Design tokens — values taken verbatim from design v3 (docs/design/CV-analyse-v3.dc.html)
+ * and technical plan §3.10. Do not use the "Modernist" design system.
+ */
+:root {
+  /* Palette: base / tint / dark */
+  --color-orange: #ea6a2f;
+  --color-orange-tint: #fdeee6;
+  --color-orange-dark: #a2421a;
+  --color-teal: #1a9e8f;
+  --color-teal-tint: #e1f4f1;
+  --color-teal-dark: #0f6b61;
+  --color-violet: #7c5cd6;
+  --color-violet-tint: #efeafb;
+  --color-violet-dark: #563ba8;
+  --color-blue: #3b7ddd;
+  --color-blue-tint: #e7effb;
+  --color-blue-dark: #2659a8;
+  --color-amber: #d99a12;
+  --color-amber-tint: #fcf3dc;
+  --color-amber-dark: #8a6206;
+  --color-rose: #e0475b;
+  --color-rose-tint: #fce8eb;
+  --color-rose-dark: #a92536;
+  --color-green: #2f9e5b;
+  --color-green-tint: #e4f4ea;
+  --color-green-dark: #1d6b3c;
+  --color-slate: #5b6475;
+  --color-slate-tint: #eef0f3;
+  --color-slate-dark: #3d4452;
+
+  /* Accent / interaction */
+  --color-accent: var(--color-orange);
+  --color-accent-hover: #d65a20;
+  --color-accent-selected-bg: #fff7f2;
+  --color-link: #c2531f;
+  --color-link-hover: var(--color-orange);
+  --color-on-accent: #fff;
+
+  /* Surfaces, text, borders */
+  --color-bg: #f4f5f8;
+  --color-surface: #fff;
+  --color-surface-subtle: #f8f9fb;
+  --color-text: #1d2433;
+  --color-text-secondary: #5b6475;
+  --color-text-muted: #8a92a3;
+  --color-text-nav: #3d4452;
+  --color-border: #e7e9ee;
+  --color-border-input: #dfe2e8;
+  --color-divider: #eef0f3;
+  --color-toggle-off: #c3c8d2;
+  --color-row-selected: #f3effc;
+
+  /* Callouts */
+  --color-callout-info-bg: #f3effc;
+  --color-callout-info-fg: #3f2a85;
+  --color-callout-warning-bg: #fcf3dc;
+  --color-callout-warning-fg: #6b4c05;
+  --color-recommendation-text: #6b3a20;
+
+  /* Typography */
+  --font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-size-2xs: 11px;
+  --font-size-xs: 12px;
+  --font-size-sm: 13px;
+  --font-size-md: 14px;
+  --font-size-lg: 15px;
+  --font-size-xl: 16px;
+  --font-size-2xl: 20px;
+  --font-size-3xl: 22px;
+  --font-size-4xl: 24px;
+  --font-size-5xl: 28px;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+  --line-height-base: 1.5;
+  --line-height-tight: 1.2;
+  --letter-spacing-tight: -0.02em;
+
+  /* Radii */
+  --radius-xs: 7px;
+  --radius-sm: 9px;
+  --radius-md: 10px;
+  --radius-icon: 11px;
+  --radius-lg: 12px;
+  --radius-xl: 14px;
+  --radius-2xl: 16px;
+  --radius-card: 20px;
+  --radius-pill: 999px;
+
+  /* Shadows */
+  --shadow-segment: 0 1px 3px rgba(16, 24, 40, 0.12);
+  --shadow-knob: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-live-dot: 0 0 0 3px var(--color-green-tint);
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 6px;
+  --space-3: 8px;
+  --space-4: 10px;
+  --space-5: 12px;
+  --space-6: 14px;
+  --space-7: 16px;
+  --space-8: 18px;
+  --space-9: 20px;
+  --space-10: 22px;
+  --space-11: 28px;
+
+  /* Layout */
+  --sidebar-width: 240px;
+  --rail-width: 72px;
+  --page-pad: 28px;
+  --page-pad-narrow: 16px;
+
+  /* Focus */
+  --focus-ring: 2px solid var(--color-orange);
+  --focus-offset: 2px;
+}

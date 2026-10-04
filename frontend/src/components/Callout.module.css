@@ -1,0 +1,53 @@
+.callout {
+  border-radius: var(--radius-2xl);
+  padding: 14px 16px;
+  font-size: var(--font-size-sm);
+  line-height: 1.55;
+  display: flex;
+  gap: var(--space-4);
+}
+
+.icon {
+  padding-top: 1px;
+  flex: none;
+}
+
+.icon svg {
+  display: block;
+}
+
+.body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.title {
+  font-weight: var(--font-weight-bold);
+}
+
+.info {
+  background: var(--color-callout-info-bg);
+  color: var(--color-callout-info-fg);
+}
+
+.warning {
+  background: var(--color-callout-warning-bg);
+  color: var(--color-callout-warning-fg);
+}
+
+.success {
+  background: var(--color-teal-tint);
+  color: #0f4f48;
+}
+
+.error {
+  background: var(--color-rose-tint);
+  color: #7a1d2a;
+}
+
+.neutral {
+  background: var(--color-slate-tint);
+  color: var(--color-slate-dark);
+}

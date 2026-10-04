@@ -1,10 +1,59 @@
-import { Route, Routes } from 'react-router-dom';
+import { lazy, Suspense, useState } from 'react';
+import { Link, Navigate, Route, Routes } from 'react-router-dom';
+import { Card } from '../components/Card.tsx';
+import { EmptyState } from '../components/EmptyState.tsx';
+import { ICON_SIZE } from '../components/icons.ts';
 import { PlaceholderScreen } from '../screens/PlaceholderScreen.tsx';
+import { AppShell } from './AppShell.tsx';
+import { SCREENS } from './navigation.ts';
+import { mockShellData, type ShellData } from './shellData.ts';
+import { CircleHelp } from 'lucide-react';
 
-export function App() {
+const ComponentGallery = lazy(() => import('./dev/ComponentGallery.tsx'));
+
+export interface AppProps {
+  /** Shell data; mocked until the API client (#11) provides it. */
+  shellData?: ShellData;
+}
+
+function NotFound() {
+  return (
+    <Card>
+      <EmptyState
+        icon={<CircleHelp size={ICON_SIZE} aria-hidden="true" />}
+        title="Pagina niet gevonden"
+        headingLevel={2}
+        action={<Link to="/overzicht">Naar het overzicht</Link>}
+      >
+        Deze pagina bestaat niet (meer).
+      </EmptyState>
+    </Card>
+  );
+}
+
+export function App({ shellData }: AppProps) {
+  const [mock] = useState(() => mockShellData());
   return (
     <Routes>
-      <Route path="*" element={<PlaceholderScreen />} />
+      <Route element={<AppShell data={shellData ?? mock} />}>
+        <Route index element={<Navigate to="overzicht" replace />} />
+        {SCREENS.map((screen) => (
+          <Route
+            key={screen.key}
+            path={screen.path}
+            element={<PlaceholderScreen screen={screen} />}
+          />
+        ))}
+        <Route
+          path="dev/components"
+          element={
+            <Suspense fallback={null}>
+              <ComponentGallery />
+            </Suspense>
+          }
+        />
+        <Route path="*" element={<NotFound />} />
+      </Route>
     </Routes>
   );
 }
