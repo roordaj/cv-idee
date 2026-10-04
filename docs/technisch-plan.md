@@ -93,13 +93,13 @@ Gekozen basis (besluit 4 okt 2026):
 
 SQLite (WAL), SQLAlchemy 2, Alembic-migraties. Tijden altijd UTC (`INTEGER` ms epoch), weergave in `Europe/Amsterdam` (zomertijd!).
 
-Hoofdtabellen (detail in refinement-ticket datamodel):
+Hoofdtabellen (definitief schema: [ADR-001](adr/001-datamodel.md); analysecontract: [ADR-002](adr/002-pipeline.md)):
 
 | Tabel | Inhoud |
 |---|---|
 | `signal_definitions` | Canonieke signaalrollen (catalogus uit requirements §2), vast in code, met eenheid en benodigd-voor. |
 | `signal_mappings` | Koppeling rol → HA-entiteit, eenheid, locatie, bron, kind, betekenis, max. leeftijd, verwachte resolutie, heartbeat. Versiebeheer via `valid_from`. |
-| `observations` | `(signal_id, ts, value_num, value_text, kind: change|confirm|poll, received_at)` — ruwe data. Index `(signal_id, ts)`. |
+| `observations` | `(source_entity_id, ts, value_num, value_text, kind: change|confirm|poll, received_at)` — ruwe data **per HA-entiteit** (niet per rol); de koppeling rol → entiteit wordt pas bij analyse toegepast, zodat hermappen nooit ruwe data ongeldig maakt. Index `(source_entity_id, ts)`. |
 | `connection_events` | Verbinding op/neer, bron (`ws`, `can_gateway`). |
 | `quality_events` | Gedetecteerde gebeurtenissen (uitval, te oud, ontdubbeld, onwaarschijnlijk, tellerreset). |
 | `installation_profile` | Ketel, circuits (direct / mengverdeler), ruimtes, zones, thermostaat→warmtevraag, specificaties met expliciet `unknown`. Versiebeheerd. |
