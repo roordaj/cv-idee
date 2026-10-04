@@ -6,7 +6,7 @@ Timelines are built by hand: stages 1-2 are not under test here.
 from __future__ import annotations
 
 import random
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from itertools import pairwise
 
@@ -108,7 +108,7 @@ def window(end: TimestampMs, start: TimestampMs = T0) -> AnalysisWindow:
 
 
 def timelines_for(
-    span: TimeRange, signals: dict[SignalRef, Sequence[Step]]
+    span: TimeRange, signals: Mapping[SignalRef, Sequence[Step]]
 ) -> list[SignalTimeline]:
     return [timeline(s, span, steps) for s, steps in signals.items()]
 
@@ -440,6 +440,22 @@ class TestUnknown:
         assert summary(segments) == [
             (0, 10, Mode.UNKNOWN, NONE),
             (10, 60, Mode.STANDBY, INFERRED),
+        ]
+
+    def test_outage_during_afterrun_is_unknown_and_afterrun_does_not_resume(self) -> None:
+        """ADR-003 §5.4: no value carries over an outage, so neither does the afterrun."""
+        segments = classify(
+            {
+                FLAME: [at(-10, True, POLL), at(10, False), at(12, None), at(15, False, POLL)],
+                DEMAND: [at(-10, True, POLL), at(10, False), at(12, None), at(15, False, POLL)],
+                PUMP: [at(-10, True, POLL), at(12, None), at(15, True, POLL)],
+            }
+        )
+        assert summary(segments) == [
+            (0, 10, Mode.CH, INFERRED),
+            (10, 12, Mode.AFTERRUN, INFERRED),
+            (12, 15, Mode.UNKNOWN, NONE),
+            (15, 60, Mode.STANDBY, INFERRED),
         ]
 
     def test_empty_window(self) -> None:

@@ -77,6 +77,16 @@ runner: upsert → 6 rules (cvidee.rules, ADR-004) → findings
 - `AFTERRUN`: pomp/naloopstatus na vlam-uit zonder vraag, maximaal `afterrun_max_ms` (standaard 15 min).
 - Ontbreken de signalen om te beslissen → `UNKNOWN` met zekerheid `NONE`. Onbekend wordt nooit standby.
 
+**Aanvulling (#24).** Uitwerking in `analysis/modes.py`:
+
+- **Mapping.** `PipelineConfig.mode_mapping` (eerste treffer wint; numerieke codes als geheel getal, `1.0` → `"1"`). Voorlopige standaard uit ontwerp v3: `1` = CV, `2` = tapwater (`PROVISIONAL_MODE_MAPPING`); #5 bevestigt of vervangt dit en levert de storings-/blokkeringscodes. `FAULT_BLOCKING` ontstaat alleen uit een gemapte code (apparaatmelding, bron `operating_mode@boiler`), nooit afgeleid. Een apparaatcode wint altijd, ook een `AFTERRUN`-code (niet afgekapt; de cyclusfase kapt zelf af op `afterrun_max_ms`).
+- **Geen, onbekende of niet-gemapte code** → afleiden (`INFERRED`). Warmtevraag = warmtevraagsignaal, of, als dat niet bekend is, gewenste aanvoer ≥ `demand_flow_setpoint_min_c` (voorlopig 20 °C).
+  - vlam aan + vraag → `CH`; vlam aan zonder vraag → `DHW` (combiketel; houdt tapwater uit CV-statistiek, scenario 4), behalve binnen `afterrun_max_ms` nadat er tijdens dezelfde brandperiode nog vraag was (uitlopen na einde vraag → `CH`, zodat scenario 3 `DEMAND_ENDED` blijft);
+  - vlam uit + vraag → `CH`; vlam uit zonder vraag → `AFTERRUN` zolang de pomp loopt, binnen `afterrun_max_ms` na een bekende vlam-uit-overgang en tot de eerste bekende pomp-uit; anders `STANDBY`. Zonder gekoppelde pomp wordt geen naloop afgeleid (`STANDBY`); een gekoppelde maar onbekende pomp binnen dat venster → `UNKNOWN`.
+  - vlam of vraag onbekend → `UNKNOWN`. Na onbekende tijd (ADR-003 §5.4) begint geen naloopvenster: er is geen bekende vlam-uit-overgang.
+- **`sources`** = de signalen waarop de beslissing berust (gesorteerd); leeg bij `UNKNOWN`. Segmenten met verschillende bronnen worden niet samengevoegd.
+- Alle terugblik is begrensd door `afterrun_max_ms` (≤ lookback, §5), dus in blokken == in één keer geldt; bewaakt door `test_chunked_equals_whole` in `tests/analysis/test_modes.py`. `merge_segments` is de lezerskant van §4.5.
+
 ### 3.4 Cycles
 
 Semantiek volgt de simulatie in ontwerp v3 (`buildSim`): eindredenen `stop` / `vraag` / `tapwater` / `onvolledig` ⇒ `STOP_DURING_DEMAND` / `DEMAND_ENDED` / `DHW_ENDED` / `DATA_GAP`.
