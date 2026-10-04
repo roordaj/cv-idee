@@ -6,4 +6,4 @@ Alleen-lezen analyse- en adviesapp voor een cv-installatie (Remeha Calenta Ace +
 - Technisch plan en architectuur: [docs/technisch-plan.md](docs/technisch-plan.md)
 - Ontwerp (leidend voor UI): [docs/design/CV-analyse-v3.dc.html](docs/design/CV-analyse-v3.dc.html)
 
-Werk wordt georganiseerd via GitHub-issues per mijlpaal (M0–M5). Pak alleen issues met label `status:ready` op; zie §6 van het technisch plan.
+Werk wordt georganiseerd via GitHub-issues per mijlpaal (M0–M5); zie de roadmap in https://github.com/roordaj/cv-idee/issues/63. Pak alleen issues met label `status:ready` op; zie §6 van het technisch plan.
