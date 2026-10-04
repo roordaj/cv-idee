@@ -124,9 +124,9 @@ Volume: zes ketelsignalen elke 10 s ≈ 52k rijen per dag, binnen de raming van 
 ### 5.2 Gateway-connectiviteitsentiteit (optioneel, `ConnectionSource.CAN_GATEWAY`)
 
 - Configureerbaar in de signaalkoppeling: één HA-entiteit die de verbinding van de CAN-gateway weergeeft (bijv. een binary_sensor met device_class connectivity, H13).
-- De ingest zet de toestanden ervan om in `ConnectionEvent(CAN_GATEWAY, up=…)` met `ts = last_changed`, live én bij import. `on` → op; `off`, `unavailable` en `unknown` → neer (behoudend).
+- De ingest slaat de toestanden ervan op als gewone waarnemingen van die entiteit, live én bij import (ADR-001 B2: ruwe data per HA-entiteit). Bij het lezen voor een run zet de store ze om in `ConnectionEvent(CAN_GATEWAY, up=…)` met `ts` van de waarneming: `on` → op; `off`, `unavailable` en `unknown` → neer (behoudend). Een gelijke waarde na een gelijke waarde is idempotent.
 - Effect: alleen signalen met `via_can_gateway` worden `DISCONNECTED`.
-- Wordt een andere gateway-entiteit gekozen, dan verwijdert de ingest de bestaande `CAN_GATEWAY`-events en leest hij ze opnieuw uit de HA-historie (zo ver als de recorder teruggaat). De runner herberekent vanaf het begin van die periode.
+- Wordt een andere gateway-entiteit gekozen, dan is dat een gewone configuratiewijziging: nieuwe `config_hash`, en de runner herberekent vanaf `valid_from` (ADR-002 §4.6). Er hoeft niets opnieuw geïmporteerd te worden, zolang de ingest de entiteit al volgde. Een nieuw gekozen entiteit wordt vanaf dat moment gevolgd, en waar mogelijk uit de HA-historie aangevuld.
 
 ### 5.3 Afgeleide gateway-uitval
 
@@ -315,7 +315,7 @@ Signalen: `FLAME` alleen-bij-wijziging; `FLOW` periodiek met `max_age = 30 s`; `
 | I10 | Blokgrens: rij exact op het einde van blok n | precies één waarneming (overlap 1 ms + ontdubbelen) |
 | I11 | Gat aanvullen: beginstand wijkt af van de laatst bekende waarde | `P(gat_begin,v)` — nooit `C` |
 | I12 | Gat aanvullen: één gekoppelde entiteit ontbreekt in de recorder | niets opgeslagen, geen `HISTORY`-events |
-| I13 | Gateway-entiteit `on→off→unavailable→on` op t1..t4 | `GW↓t2`, (t3 idempotent neer), `GW↑t4`; herstelpeiling `P(t4+30 s)` voor alle `via_can_gateway`-signalen |
+| I13 | Gateway-entiteit `on→off→unavailable→on` op t1..t4 | vier gewone waarnemingen; bij lezen `GW↓t2`, (t3 idempotent neer), `GW↑t4`; herstelpeiling `P(t4+30 s)` voor alle `via_can_gateway`-signalen |
 | I14 | App-crash, herstart; `ingest_alive_at = a`, laatste WS-event was op | eerst `WS↓a`, daarna normaal herverbinden (I7) |
 
 ### 10.4 Tijdafstemming (`align_pair`, #23/#29), tolerantie 30 s
@@ -372,7 +372,7 @@ Minimaal en achterwaarts compatibel (alle nieuwe velden hebben een standaardwaar
 | `PipelineConfig.derive_gateway_outage` (standaard `True`) | Afgeleide gateway-uitval uit te zetten (§5.3). |
 | Docstrings `timeline.connection_outages`, `timeline.build_timeline`, `quality.align_pair` | Verwijzen naar deze regels. |
 
-`cvidee.store` (#7) neemt `source`, `other_signal` en `count` op in `quality_events` en gebruikt `QualityEvent.key` als unieke sleutel. `test_determinism.py` gebruikt die sleutel al.
+Het schema van ADR-001 volgt in een vervolgticket, **#77**: een nieuwe migratie voor `connection_events.source = 'history'`, de kolommen `source`, `other_signal` en `count` in `quality_events`, en `QualityEvent.key` als unieke sleutel. Daar hoort ook de ontdubbelregel "sterkste soort blijft staan" bij de unieke sleutel `(source_entity_id, ts, state)` van `observations`. Tot #77 klaar is, schrijft nog niets deze waarden weg (ingest en runner bestaan nog niet). `test_determinism.py` gebruikt de nieuwe sleutel al.
 
 ## 13. Open vragen
 
