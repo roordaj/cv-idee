@@ -24,7 +24,7 @@ Uitgangspunten uit het plan (§2.1): observatie ≠ interpretatie ≠ advies; ve
 1. **Puur en los van opslag.** Een regel is een object met `evaluate(ctx, params) -> Sequence[FindingCandidate]`. `RuleContext` is een immutable dataclass die de runner vult uit de store; `cvidee.rules` importeert geen SQLAlchemy en doet geen I/O. `now` is een veld van de context.
 2. **Kandidaat, geen bevinding.** Regels leveren `FindingCandidate`s. Menselijke id's (B-014), status, `first_seen`/`last_seen`, dedupe, bundelen, prioriteren en herstel horen bij de bevindingen-engine (#34/#35).
 3. **Zekerheid = categorie uit een criteria-sjabloon.** `derive_certainty(evidence, criteria, measured=…)` geeft een `Certainty` plus reden-codes. Iedere regel vult `CertaintyCriteria` in en documenteert die tabel in `docs/regels/<id>.md`.
-4. **FR-28 in het type afgedwongen.** Een kandidaat met `insufficient_evidence` moet een advies van soort `measurement` hebben; een `setting_change` kan niet bij `insufficient_evidence` of `provisional` en vereist altijd een terugdraaicriterium.
+4. **FR-28 in het type afgedwongen.** Een kandidaat met `insufficient_evidence` moet een advies van soort `measurement` hebben; een `setting_change` kan niet bij `insufficient_evidence` of `preliminary` en vereist altijd een terugdraaicriterium.
 5. **Beschikbaarheid is één pure functie** op een `SignalRequirement` (verplicht, één-van, optioneel, resolutielimieten), de status van de gekoppelde signalen en het installatieprofiel. Dezelfde functie bepaalt de analyse-tabel (Cycli … Rendement) en of een regel wordt geëvalueerd.
 6. **Registry + semver.** Regel-id's zijn de kebab-case id's uit ontwerp v3 (`kort-branden`); versies zijn `MAJOR.MINOR.PATCH`, in de UI als `v1.3`. Elke productieregel heeft `docs/regels/<id>.md` met een wijzigingsregel voor de huidige versie (test).
 7. **Parameters zijn een pydantic-model per regel**; het JSON-schema (met `x-unit`, `x-step`, `x-group`, `x-rule`) is de enige bron voor de instellingen-UI. Opslag als JSON-object per regel in `settings`; strikt valideren bij opslaan, mild laden bij lezen.
@@ -75,7 +75,7 @@ Standaard gelden: tapwatercycli en naloop tellen niet in CV-conclusies; uitgeslo
 class Rule(Protocol):
     id: str                                # "kort-branden" (kebab-case, nooit wijzigen)
     version: str                           # "1.3.0" (semver, §7)
-    category: Category                     # cycles, temperature, data_quality, …
+    category: Category                     # cycles, temperature, data_quality, effect_measurement, …
     required_signals: frozenset[Role]      # ontbreekt → regel niet beschikbaar
     optional_signals: frozenset[Role]      # ontbreekt → beperkt, zekerheid lager
     applies_in_modes: frozenset[Mode]      # bv. {CH}
@@ -139,9 +139,11 @@ Een kandidaat noemt in `supports` de regels waaronder hij als onderbouwing past.
 | Evaluatieperiode, voorwaarden vergelijkbaarheid | `evaluation`, `evaluation_days`, `conditions` |
 | Succes-, terugdraaicriterium | `success_criterion`, `rollback_criterion` (`None` ⇒ "N.v.t."; verplicht bij `setting_change`) |
 | Opvolgstatus | niet in het concept: de engine (#36) start op `open` |
-| (extra) | `reason`; `parameter` (koppeling met wijzigingslogboek, FR-29) |
+| (extra) | `reason`; `parameter` (koppeling met wijzigingslogboek, FR-29); `follow_up` ("Daarna", B-011) |
 
-Validaties in het type: `setting_change` zonder terugdraaicriterium is ongeldig; `setting_change` bij `insufficient_evidence` of `provisional` is ongeldig; `insufficient_evidence` vereist een advies van soort `measurement` (FR-28, scenario 10).
+Opslag (ADR-001, `recommendations`): `kind == measurement` ⇒ `is_additional_measurement`; `magnitude is None` ⇒ `magnitude_substantiated = false`; de overige velden 1-op-1.
+
+Validaties in het type: `setting_change` zonder terugdraaicriterium is ongeldig; `setting_change` bij `insufficient_evidence` of `preliminary` is ongeldig; `insufficient_evidence` vereist een advies van soort `measurement` (FR-28, scenario 10).
 
 ## 5. Zekerheidsmodel (FR-22, FR-28)
 
@@ -152,7 +154,7 @@ Geordend van zwak naar sterk. Geen percentage, nergens.
 | Code | Plan / UI | Betekenis | Gevolg |
 |---|---|---|---|
 | `insufficient_evidence` | onvoldoende_bewijs · "Onvoldoende bewijs" | het minimum (dekking, relevante cycli, waargenomen uren) is niet gehaald, of een onmisbaar gegeven ontbreekt | geen diagnose; advies is altijd een aanvullende meting |
-| `provisional` | voorlopig · "Voorlopig" | minimum gehaald, maar het patroon is (nog) niet op genoeg dagen gezien | getoond als voorlopig; geen instellingsadvies |
+| `preliminary` | voorlopig · "Voorlopig" | minimum gehaald, maar het patroon is (nog) niet op genoeg dagen gezien | getoond als voorlopig; geen instellingsadvies |
 | `moderate` | matig · "Matig" | structureel patroon, net boven het minimum, of lager door ontbrekende signalen | controle/meting of voorzichtig advies |
 | `reasonable` | redelijk · "Redelijk" | ruime dekking en voldoende cycli/herhaling | advies mogelijk met voorwaarden |
 | `high` | hoog · "Hoog" | alle *hoog*-drempels gehaald, geen relevante signalen ontbreken | — |
@@ -165,7 +167,7 @@ Iedere regel vult `CertaintyCriteria` in (en dezelfde tabel in zijn regeldocumen
 | Rij | Velden (`Thresholds`) | Niet gehaald ⇒ |
 |---|---|---|
 | `minimum` | `coverage`, `relevant_cycles`, `observed_hours`, `repetition_days` | `insufficient_evidence` |
-| `structural_repetition_days` van `repetition_window_days` | aantal dagen met het patroon binnen het venster | `provisional` |
+| `structural_repetition_days` van `repetition_window_days` | aantal dagen met het patroon binnen het venster | `preliminary` |
 | `reasonable` | idem | blijft `moderate` |
 | `high` | idem | blijft `reasonable` |
 | `allow_measured` | regel mag `high_measured` geven voor kandidaten met `measured=True` | blijft `high` |
@@ -176,7 +178,7 @@ Een veld `None` doet niet mee. Een rij `None` (`reasonable`/`high`) betekent "ni
 ### 5.3 Afleiding (`derive_certainty`)
 
 1. Een `minimum`-drempel niet gehaald → `insufficient_evidence` (reden-codes per drempel).
-2. `repetition_days < structural_repetition_days` → `provisional` (`not_structural`).
+2. `repetition_days < structural_repetition_days` → `preliminary` (`not_structural`).
 3. Start op `moderate`; `reasonable` gehaald → `reasonable`; daarbovenop `high` gehaald → `high`; `measured` én `allow_measured` → `high_measured`.
 4. **Ontbrekende signalen verlagen één stap**: `missing_signals` niet leeg → één stap lager, één keer (ongeacht het aantal), en nooit onder `moderate` — *voorlopig* en *onvoldoende bewijs* gaan over de hoeveelheid data, niet over welke signalen er zijn.
 5. Plafond `max_certainty`.
@@ -256,7 +258,7 @@ Per regel één `RuleParams`-subklasse (pydantic, `frozen`, `extra="forbid"`). V
 
 - `title`, `description` — Nederlandse UI-tekst (label en uitleg uit aanvullingen §1.5);
 - `ge`/`le` → `minimum`/`maximum`, `default` → standaardwaarde;
-- `json_schema_extra`: `x-unit` (bv. `min`, `s`, `cycli`, `dagen`, `%`), `x-step`, `x-group` (`short_cycles`, `comfort`, `change_evaluation`, `data`, `recovery`, `costs`, `display` = de secties van het instellingenscherm);
+- `json_schema_extra`: `x-unit` (bv. `min`, `s`, `cycli`, `dagen`, `%`), `x-step`, `x-group` (`short_cycles`, `comfort`, `effect_measurement`, `data`, `recovery`, `costs`, `display` = de secties van het instellingenscherm);
 - de registry voegt `x-rule` (op elke property en op de wortel) en `x-rule-version` toe ("Standaard 3 min · gebruikt door kort-branden v1.3");
 - kruisvalidaties als pydantic `model_validator` (bv. herhaling *x ≤ y*).
 
@@ -287,7 +289,11 @@ Daarmee kan de gebruiker later zien "Kortecyclusgrens 3 min · min. 4 korte cycl
 - **#25** implementeert de API-notities op `assess_analyses`, en bepaalt `SignalStatus.resolution_ms`/`coverage`/`stale` uit de opgeslagen data (ADR-003 voor `stale`).
 - **#30–#33, #39** implementeren regels als `BaseRule[P]`-subklassen, met `docs/regels/<id>.md` en een registratie in `default_registry()`.
 - **#34/#35** gebruiken `(rule_id, scope_key)` als dedupesleutel, `supports` voor bundelen, `EvidenceSummary` voor de onderbouwing en `EvidenceRef` voor `finding_evidence`.
-- **#7 (store)** kan `EvidenceRef`-varianten, `RuleSnapshot` en `SpecialPeriodKind` 1-op-1 opslaan; `cvidee.rules` hangt niet van de store af — de store mapt naar deze types.
+- **Store (ADR-001, #7)**: `cvidee.rules` hangt niet van de store af; de store mapt. Concreet:
+  - `findings.support` krijgt de vorm van `EvidenceSummary` (dit ADR maakt die definitief): `coverage`, `unknown_ms`, `excluded_ms`, `excluded_cycles`, `relevant_cycles` (noemer, "van 24"), `pattern_cycles` (teller, "18"), `observed_hours`, `repetition_days`, `repetition_window_days`, `missing_signals` (als `str(SignalRef)`). Het voorlopige `total_cycles` uit ADR-001 heet hier `relevant_cycles`, en het daar genoemde `relevant_cycles` heet `pattern_cycles`.
+  - `finding_evidence.kind`: `CycleRef` → `cycle`, `PeriodRef` → `time_range`, `SignalEvidence` → `signal`, `MetricRef` → `metric`, `QualityEventRef` → `quality_event`; `change` en `bundled_candidate` vult de engine (#35/#39).
+  - `findings.rule_params` / `recommendation_snapshots.rule_params` = `RuleSnapshot.params_json`.
+  - `Certainty`, `Severity`, `SpecialPeriodKind` en `CircuitKind` hebben dezelfde waarden als in `cvidee.store.enums`; `test_store_alignment.py` bewaakt dat.
 - **#20/#21** leveren `InstallationFacts` en `SpecialPeriod` aan de runner.
 - **#22/#51** renderen het instellingenscherm generiek uit `settings_schema()`.
 
@@ -297,6 +303,6 @@ Daarmee kan de gebruiker later zien "Kortecyclusgrens 3 min · min. 4 korte cycl
 2. **Ondergrens bij ontbrekende signalen.** Gekozen: niet onder *matig*. Alternatief: tot *voorlopig* laten zakken. Huidige keuze voorkomt dat "voorlopig" twee betekenissen krijgt.
 3. **Onbekende resolutie = beperkt.** Conservatief: tot #25 de resolutie meet, is Cycli `limited`. Als dat in de praktijk te vaak "beperkt" geeft, kan #25 een standaardresolutie per integratie aannemen — maar dan zichtbaar.
 4. **Zones met gemengde signalen** (de ene zone vraag, de andere alleen klepstatus) gelden nu als `limited`, omdat geen enkel alternatief alle zones dekt. Herzien in #56.
-5. **Dubbele typen met de store.** `SpecialPeriodKind`, `CircuitKind` bestaan hier en mogelijk in het schema van #7; de store mapt. Als #7 dezelfde enums nodig heeft, kunnen ze naar een gedeelde `cvidee.domain`-module verhuizen.
+5. **Dubbele enums met de store.** `Certainty`, `Severity`, `SpecialPeriodKind`, `CircuitKind` bestaan nu in `cvidee.rules.base` én `cvidee.store.enums` (waarden gelijk, test bewaakt). Voorstel: de store re-exporteert ze uit `cvidee.rules.base`, zoals hij dat al doet voor `cvidee.analysis.types` (ADR-001 B7). Niet in deze PR om de store niet te raken.
 6. **Regel-id-taal.** Gekozen voor Nederlandse kebab-case id's omdat ze in de UI staan; alternatief is Engelse id's met een apart label. Wijzigen kan alleen vóór de eerste release (id's zijn dedupesleutels).
 7. **pydantic als directe afhankelijkheid.** `pydantic` komt nu transitief mee via FastAPI/pydantic-settings (zoals al in `cvidee.config`); bij de volgende wijziging van `pyproject.toml` expliciet opnemen.

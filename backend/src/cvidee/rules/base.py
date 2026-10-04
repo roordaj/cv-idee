@@ -74,7 +74,7 @@ class Category(StrEnum):
     """Zones."""
     CONSUMPTION = "consumption"
     """Verbruik."""
-    CHANGE_EVALUATION = "change_evaluation"
+    EFFECT_MEASUREMENT = "effect_measurement"
     """Effectmeting."""
 
 
@@ -100,13 +100,13 @@ class Relevance(StrEnum):
 class Certainty(StrEnum):
     """Zekerheid as an ordered, documented category (FR-22, FR-28; ADR-004 §5).
 
-    Order (weak → strong): ``INSUFFICIENT_EVIDENCE`` < ``PROVISIONAL`` < ``MODERATE`` <
+    Order (weak → strong): ``INSUFFICIENT_EVIDENCE`` < ``PRELIMINARY`` < ``MODERATE`` <
     ``REASONABLE`` < ``HIGH`` < ``HIGH_MEASURED``.
     """
 
     INSUFFICIENT_EVIDENCE = "insufficient_evidence"
     """Onvoldoende bewijs: hard minimum not met; propose a measurement, no diagnosis."""
-    PROVISIONAL = "provisional"
+    PRELIMINARY = "preliminary"
     """Voorlopig: minimum met, but the pattern is not (yet) repeated over enough days."""
     MODERATE = "moderate"
     """Matig."""
@@ -132,7 +132,7 @@ class Certainty(StrEnum):
 
 _CERTAINTY_ORDER: tuple[Certainty, ...] = (
     Certainty.INSUFFICIENT_EVIDENCE,
-    Certainty.PROVISIONAL,
+    Certainty.PRELIMINARY,
     Certainty.MODERATE,
     Certainty.REASONABLE,
     Certainty.HIGH,
@@ -224,7 +224,7 @@ class SpecialPeriodKind(StrEnum):
     VENTING = "venting"
     """Ontluchten."""
     TEST = "test"
-    HOLIDAY = "holiday"
+    VACATION = "vacation"
     SPECIAL_USE = "special_use"
 
 
@@ -694,6 +694,8 @@ class RecommendationDraft:
     evaluation_days: int | None = None
     parameter: str | None = None
     """Setting the advice is about (links to the change log, FR-29)."""
+    follow_up: str | None = None
+    """Next step after the evaluation ("Daarna", design v3 B-011)."""
 
     def __post_init__(self) -> None:
         if not self.action.strip():
@@ -745,14 +747,14 @@ class FindingCandidate:
             raise ValueError("FindingCandidate: relevance is required unless severity is info")
         if self.recommendation is None and not self.no_advice_reason.strip():
             raise ValueError("FindingCandidate: give a recommendation or a no-advice reason")
-        weak = self.certainty in (Certainty.INSUFFICIENT_EVIDENCE, Certainty.PROVISIONAL)
+        weak = self.certainty in (Certainty.INSUFFICIENT_EVIDENCE, Certainty.PRELIMINARY)
         if (
             weak
             and self.recommendation is not None
             and self.recommendation.kind is RecommendationKind.SETTING_CHANGE
         ):
             raise ValueError(
-                "FindingCandidate: no setting change on insufficient or provisional evidence "
+                "FindingCandidate: no setting change on insufficient or preliminary evidence "
                 "(FR-28: propose a check or measurement instead)"
             )
         if self.certainty is Certainty.INSUFFICIENT_EVIDENCE and (
@@ -778,7 +780,7 @@ class ParamGroup(StrEnum):
     SHORT_CYCLES = "short_cycles"
     """Korte cycli."""
     COMFORT = "comfort"
-    CHANGE_EVALUATION = "change_evaluation"
+    EFFECT_MEASUREMENT = "effect_measurement"
     """Effectmeting."""
     DATA = "data"
     """Gegevens."""
@@ -857,7 +859,7 @@ class CertaintyCriteria:
     minimum: Thresholds
     """Below any of these → ``INSUFFICIENT_EVIDENCE``."""
     structural_repetition_days: int | None = None
-    """Pattern on fewer days → ``PROVISIONAL`` ("voorlopig"); ``None`` = not day-based."""
+    """Pattern on fewer days → ``PRELIMINARY`` ("voorlopig"); ``None`` = not day-based."""
     repetition_window_days: int | None = None
     reasonable: Thresholds | None = None
     """All met → at least ``REASONABLE``, else ``MODERATE``. ``None`` = not reachable;

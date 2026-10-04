@@ -47,7 +47,7 @@ def test_order_and_lowering() -> None:
     assert [c.rank for c in Certainty] == list(range(6))
     assert Certainty.HIGH.lowered() is Certainty.REASONABLE
     assert Certainty.MODERATE.lowered(floor=Certainty.MODERATE) is Certainty.MODERATE
-    assert Certainty.PROVISIONAL.lowered(floor=Certainty.MODERATE) is Certainty.PROVISIONAL
+    assert Certainty.PRELIMINARY.lowered(floor=Certainty.MODERATE) is Certainty.PRELIMINARY
     assert Certainty.INSUFFICIENT_EVIDENCE.lowered() is Certainty.INSUFFICIENT_EVIDENCE
     assert Certainty.HIGH_MEASURED.at_most(Certainty.REASONABLE) is Certainty.REASONABLE
 
@@ -66,12 +66,12 @@ def test_below_minimum_is_insufficient_evidence(ev: EvidenceSummary, reason: str
     assert reason in result.reasons
 
 
-def test_not_repeated_over_days_is_provisional() -> None:
-    """FR-22: a conclusion on little data is shown as provisional."""
+def test_not_repeated_over_days_is_preliminary() -> None:
+    """FR-22: a conclusion on little data is shown as preliminary."""
     result = derive_certainty(evidence(days=1), CRITERIA)
-    assert result.certainty is Certainty.PROVISIONAL
+    assert result.certainty is Certainty.PRELIMINARY
     assert result.reasons == (CertaintyReason.NOT_STRUCTURAL,)
-    assert derive_certainty(evidence(days=None), CRITERIA).certainty is Certainty.PROVISIONAL
+    assert derive_certainty(evidence(days=None), CRITERIA).certainty is Certainty.PRELIMINARY
 
 
 def test_levels() -> None:

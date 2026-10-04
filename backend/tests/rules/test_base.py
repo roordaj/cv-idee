@@ -91,7 +91,7 @@ def test_setting_change_needs_rollback_criterion() -> None:
     assert advice(RecommendationKind.SETTING_CHANGE, rollback="Comfort > 4 u/week").kind
 
 
-@pytest.mark.parametrize("certainty", [Certainty.PROVISIONAL, Certainty.INSUFFICIENT_EVIDENCE])
+@pytest.mark.parametrize("certainty", [Certainty.PRELIMINARY, Certainty.INSUFFICIENT_EVIDENCE])
 def test_no_setting_change_on_weak_evidence(certainty: Certainty) -> None:
     change = advice(RecommendationKind.SETTING_CHANGE, rollback="terug naar 70 °C")
     with pytest.raises(ValueError, match=r"setting change|measurement"):
@@ -141,7 +141,7 @@ def test_relevant_cycles_exclude_dhw_and_special_periods() -> None:
         TimeRange(T0 + 12 * HOUR_MS, T0 + 14 * HOUR_MS), SpecialPeriodKind.COMMISSIONING
     )
     holiday_visible = SpecialPeriod(
-        TimeRange(T0 + 20 * HOUR_MS, T0 + 21 * HOUR_MS), SpecialPeriodKind.HOLIDAY, excluded=False
+        TimeRange(T0 + 20 * HOUR_MS, T0 + 21 * HOUR_MS), SpecialPeriodKind.VACATION, excluded=False
     )
     cycles = (
         cycle(T0 + 6 * HOUR_MS),

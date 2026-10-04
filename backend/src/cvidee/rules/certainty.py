@@ -19,7 +19,7 @@ class CertaintyReason(StrEnum):
     BELOW_MIN_HOURS = "below_min_hours"
     BELOW_MIN_REPETITION = "below_min_repetition"
     NOT_STRUCTURAL = "not_structural"
-    """Pattern seen on fewer days than the structural repetition → provisional."""
+    """Pattern seen on fewer days than the structural repetition → preliminary."""
     REASONABLE_MET = "reasonable_met"
     HIGH_MET = "high_met"
     MEASURED = "measured"
@@ -60,7 +60,7 @@ def derive_certainty(
     """Certainty category for one candidate (ADR-004 §5.2).
 
     1. Any ``minimum`` threshold unmet → ``INSUFFICIENT_EVIDENCE``.
-    2. Pattern on fewer than ``structural_repetition_days`` days → ``PROVISIONAL``.
+    2. Pattern on fewer than ``structural_repetition_days`` days → ``PRELIMINARY``.
     3. ``MODERATE``; ``reasonable`` met → ``REASONABLE``; ``high`` met as well → ``HIGH``;
        ``measured`` and ``allow_measured`` and ``HIGH`` → ``HIGH_MEASURED``.
     4. Missing optional signals → one step lower (once, never below ``MODERATE``).
@@ -78,7 +78,7 @@ def derive_certainty(
         evidence.repetition_days is None
         or evidence.repetition_days < criteria.structural_repetition_days
     ):
-        level = Certainty.PROVISIONAL.at_most(criteria.max_certainty)
+        level = Certainty.PRELIMINARY.at_most(criteria.max_certainty)
         return CertaintyAssessment(level, (CertaintyReason.NOT_STRUCTURAL,))
 
     level = Certainty.MODERATE

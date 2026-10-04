@@ -185,9 +185,9 @@ def test_too_few_cycles_gives_insufficient_evidence_and_a_measurement() -> None:
     assert outcome.snapshot.version == "0.1.0"
 
 
-def test_one_day_is_provisional_repeated_is_stronger() -> None:
+def test_one_day_is_preliminary_repeated_is_stronger() -> None:
     one_day = REGISTRY.evaluate("voorbeeld-cycli", context({0: 9}), ExampleCycleParams())
-    assert one_day.candidates[0].certainty is Certainty.PROVISIONAL
+    assert one_day.candidates[0].certainty is Certainty.PRELIMINARY
     repeated = REGISTRY.evaluate(
         "voorbeeld-cycli", context({0: 3, 2: 3, 4: 3}), ExampleCycleParams()
     )
