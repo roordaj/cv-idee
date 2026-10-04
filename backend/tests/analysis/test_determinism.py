@@ -57,7 +57,9 @@ class Store:
 
     cycles: dict[TimestampMs, BurnerCycle] = field(default_factory=dict)
     modes: dict[TimestampMs, ModeSegment] = field(default_factory=dict)
-    quality: dict[tuple[str, str, TimestampMs], QualityEvent] = field(default_factory=dict)
+    quality: dict[tuple[str, str, str, str, TimestampMs], QualityEvent] = field(
+        default_factory=dict
+    )
     metrics: dict[tuple[str, str, str, TimestampMs, TimestampMs | None], MetricValue] = field(
         default_factory=dict
     )
@@ -65,7 +67,7 @@ class Store:
     def replace_from(self, emit_from: TimestampMs) -> None:
         self.cycles = {k: v for k, v in self.cycles.items() if k < emit_from}
         self.modes = {k: v for k, v in self.modes.items() if k < emit_from}
-        self.quality = {k: v for k, v in self.quality.items() if k[2] < emit_from}
+        self.quality = {k: v for k, v in self.quality.items() if k[4] < emit_from}
         self.metrics = {k: v for k, v in self.metrics.items() if k[3] < emit_from}
 
     def upsert(
@@ -80,7 +82,7 @@ class Store:
         for m in modes:
             self.modes[m.start] = m
         for q in quality:
-            self.quality[(q.kind.value, str(q.signal), q.start)] = q
+            self.quality[q.key] = q
         for mv in metrics:
             key = (
                 mv.name.value,

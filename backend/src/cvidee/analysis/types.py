@@ -253,14 +253,17 @@ class Provenance:
 
 
 class ObservationKind(StrEnum):
-    """How an observation was obtained (plan §3.1)."""
+    """How an observation was obtained (plan §3.1, ADR-003 §4)."""
 
     CHANGE = "change"
-    """A ``state_changed`` event with a new value: a real transition."""
+    """A new state value (``state_changed`` with a different state, or a history row whose
+    state differs from the previous row): a real transition. ``ts`` = HA ``last_changed``."""
     CONFIRM = "confirm"
-    """Same value reported again (heartbeat / ``last_reported``): evidence, not a transition."""
+    """Same value reported again (``last_reported`` advanced, attribute-only or
+    ``force_update`` write): evidence, not a transition. ``ts`` = HA ``last_reported``."""
     POLL = "poll"
-    """Value read by polling (``get_states`` after (re)connect): never a transition."""
+    """Value read without knowing its history (``get_states`` after (re)connect, recovery
+    poll, first state of an initial import): never a transition. ``ts`` = time of the read."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -268,7 +271,9 @@ class Observation:
     """One raw, normalised observation of a signal.
 
     ``value is None`` means HA reported ``unavailable``/``unknown``. ``last_reported`` is
-    HA's latest report time for this state, if known (``>= ts``).
+    HA's latest report time for this state, if known. For ``CHANGE``/``CONFIRM`` it is
+    ``>= ts``; for ``POLL`` it may be *before* ``ts`` (HA last heard from the device before
+    we read the state), which makes the evidence older than the read (ADR-003 §4.3).
     """
 
     signal: SignalRef
@@ -278,12 +283,17 @@ class Observation:
     last_reported: TimestampMs | None = None
 
     def __post_init__(self) -> None:
-        if self.last_reported is not None and self.last_reported < self.ts:
-            raise ValueError("last_reported must not be before ts")
+        if (
+            self.last_reported is not None
+            and self.last_reported < self.ts
+            and self.kind is not ObservationKind.POLL
+        ):
+            raise ValueError("last_reported must not be before ts (except for polls)")
 
     @property
     def evidence_ts(self) -> TimestampMs:
-        """Latest instant at which this value is known to have held."""
+        """Latest instant at which this value is known to have held (HA ``last_reported``
+        if known, else ``ts``). May be before ``ts`` for a poll."""
         return self.ts if self.last_reported is None else self.last_reported
 
     @property
@@ -297,10 +307,16 @@ class ConnectionSource(StrEnum):
     """Our own WebSocket connection to HA: affects all signals."""
     CAN_GATEWAY = "can_gateway"
     """HA's connection to the boiler: affects signals configured as ``via_can_gateway``."""
+    HISTORY = "history"
+    """Coverage by an HA history import (ADR-003 §6): ``up`` starts a range whose
+    observations come from the HA recorder, ``down`` ends it. Inside such a range a WS outage
+    is not a gap, and staleness is not evaluated (history carries no ``last_reported``)."""
 
 
 @dataclass(frozen=True, slots=True)
 class ConnectionEvent:
+    """State change of connection ``source`` at ``ts`` (HA time base, ADR-003 §5)."""
+
     ts: TimestampMs
     source: ConnectionSource
     up: bool
@@ -434,14 +450,22 @@ class SignalTimeline:
 
 
 class QualityEventKind(StrEnum):
+    """Kinds of data-quality events (ADR-003 §8)."""
+
     DATA_GAP = "data_gap"
+    """Signal has no data (``UnknownReason.NO_DATA``)."""
     STALE = "stale"
+    """Heartbeat signal older than ``max_age`` (``UnknownReason.STALE``)."""
     INVALID = "invalid"
     IMPLAUSIBLE = "implausible"
     UNAVAILABLE = "unavailable"
+    """HA reported ``unavailable``/``unknown``."""
     CONNECTION_LOST = "connection_lost"
+    """A connection source was down; one event per source (``source``), not per signal."""
     COUNTER_RESET = "counter_reset"
+    """Point event (``start == end``) where a cumulative counter decreased."""
     DUPLICATE = "duplicate"
+    """Exact duplicate observations dropped; per signal per grid bucket, with ``count``."""
     MISALIGNED = "misaligned"
     """Two signals were combined (e.g. flow/return) with evidence times beyond tolerance."""
 
@@ -450,8 +474,14 @@ class QualityEventKind(StrEnum):
 class QualityEvent:
     """Detected data-quality event. ``end is None`` while ongoing at the horizon.
 
-    Deterministic key: ``(kind, signal, start)``; interval events are split on the
-    canonical grid (ADR-002 §4.5) and merged by readers.
+    Deterministic key: :attr:`key` = ``(kind, signal, other_signal, source, start)``;
+    interval events are split on the canonical grid (ADR-002 §4.5) and merged by readers.
+
+    * ``source``: the connection source (only and always for ``CONNECTION_LOST``).
+    * ``other_signal``: the second signal of a pair (only and always for ``MISALIGNED``).
+    * ``count``: number of affected observations (required for ``DUPLICATE``).
+    * ``detail``: short machine-readable detail, e.g. ``"derived"`` for a gateway outage
+      inferred from stale heartbeat signals, or ``"1234.5->0.4"`` for a counter reset.
     """
 
     kind: QualityEventKind
@@ -460,12 +490,38 @@ class QualityEvent:
     end: TimestampMs | None
     detail: str = ""
     final: bool = False
+    source: ConnectionSource | None = None
+    other_signal: SignalRef | None = None
+    count: int | None = None
 
     def __post_init__(self) -> None:
         if self.end is not None and self.end < self.start:
             raise ValueError("QualityEvent: end before start")
         if self.end is None and self.final:
             raise ValueError("QualityEvent: an ongoing event cannot be final")
+        if (self.kind is QualityEventKind.CONNECTION_LOST) != (self.source is not None):
+            raise ValueError("QualityEvent: source is required for (only) CONNECTION_LOST")
+        if self.kind is QualityEventKind.CONNECTION_LOST and self.signal is not None:
+            raise ValueError("QualityEvent: CONNECTION_LOST is per source, not per signal")
+        if (self.kind is QualityEventKind.MISALIGNED) != (self.other_signal is not None):
+            raise ValueError("QualityEvent: other_signal is required for (only) MISALIGNED")
+        if self.count is not None and self.count < 1:
+            raise ValueError("QualityEvent: count must be >= 1")
+        if self.kind is QualityEventKind.DUPLICATE and self.count is None:
+            raise ValueError("QualityEvent: DUPLICATE requires a count")
+        if self.kind is QualityEventKind.COUNTER_RESET and self.end != self.start:
+            raise ValueError("QualityEvent: COUNTER_RESET is a point event (end == start)")
+
+    @property
+    def key(self) -> tuple[str, str, str, str, TimestampMs]:
+        """Deterministic storage key ``(kind, signal, other_signal, source, start)``."""
+        return (
+            self.kind.value,
+            "" if self.signal is None else str(self.signal),
+            "" if self.other_signal is None else str(self.other_signal),
+            "" if self.source is None else self.source.value,
+            self.start,
+        )
 
 
 class Alignment(StrEnum):
@@ -725,12 +781,18 @@ class SignalConfig:
     signal: SignalRef
     provenance: Provenance
     heartbeat_expected: bool = False
+    """The integration reports this signal periodically even without change (HA
+    ``last_reported`` advances), so its age is meaningful (ADR-003 §3)."""
     max_age_ms: DurationMs | None = None
-    """Only meaningful with ``heartbeat_expected`` (ADR-003)."""
+    """Required with, and only used with, ``heartbeat_expected`` (ADR-003 §3)."""
     plausible_min: float | None = None
     plausible_max: float | None = None
     cumulative: bool = False
     via_can_gateway: bool = False
+
+    def __post_init__(self) -> None:
+        if self.heartbeat_expected and (self.max_age_ms is None or self.max_age_ms <= 0):
+            raise ValueError("SignalConfig: heartbeat_expected requires a positive max_age_ms")
 
 
 @dataclass(frozen=True, slots=True)
@@ -758,6 +820,9 @@ class PipelineConfig:
     startup_max_ms: DurationMs = 3 * MINUTE_MS
     startup_flow_margin_k: float = 2.0
     afterrun_max_ms: DurationMs = 15 * MINUTE_MS
+    derive_gateway_outage: bool = True
+    """Treat the CAN gateway as down while *all* heartbeat signals ``via_can_gateway`` are
+    stale (ADR-003 §5.3). No effect without such signals."""
     config_hash: str = ""
 
     def __post_init__(self) -> None:
