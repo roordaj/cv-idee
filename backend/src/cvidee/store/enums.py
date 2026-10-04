@@ -5,9 +5,11 @@ CHECK constraint for closed sets. Open sets that are expected to grow (rule ids,
 specification keys, metric names, setting keys, categories) are plain TEXT and validated
 in code, so adding a value never needs a migration.
 
-Enums of the analysis contract (ADR-002) are owned by :mod:`cvidee.analysis.types` and
-re-exported here; ``cvidee.store`` may import ``cvidee.analysis.types``, never the other
-way round. ``ValueKind`` is an ``IntEnum`` there (ordered by strength) and is stored as
+Enums of the analysis contract (ADR-002) are owned by :mod:`cvidee.analysis.types`, those of
+the rule contract (ADR-004: ``Certainty``, ``Severity``, ``SpecialPeriodKind``,
+``CircuitKind``) by :mod:`cvidee.rules.base`; both are re-exported here. ``cvidee.store``
+may import ``cvidee.analysis`` and ``cvidee.rules``, never the other way round.
+``ValueKind`` is an ``IntEnum`` there (ordered by strength) and is stored as
 its lower-case name.
 """
 
@@ -24,6 +26,7 @@ from cvidee.analysis.types import (
     QualityEventKind,
     ValueKind,
 )
+from cvidee.rules.base import Certainty, CircuitKind, Severity, SpecialPeriodKind
 
 __all__ = [
     "Certainty",
@@ -74,25 +77,11 @@ class SpecStatus(StrEnum):
     NOT_APPLICABLE = "not_applicable"
 
 
-class CircuitKind(StrEnum):
-    DIRECT = "direct"
-    MIXING_MANIFOLD = "mixing_manifold"
-
-
 class EmitterType(StrEnum):
     RADIATOR = "radiator"
     UNDERFLOOR = "underfloor"
     OTHER = "other"
     UNKNOWN = "unknown"
-
-
-class SpecialPeriodKind(StrEnum):
-    COMMISSIONING = "commissioning"  # opstookprotocol
-    MAINTENANCE = "maintenance"
-    VENTING = "venting"  # ontluchten
-    TEST = "test"
-    VACATION = "vacation"
-    SPECIAL_USE = "special_use"
 
 
 class TriState(StrEnum):
@@ -130,24 +119,6 @@ class ImportStatus(StrEnum):
     INTERRUPTED = "interrupted"  # onderbroken
     FAILED = "failed"  # mislukt
     CANCELLED = "cancelled"  # geannuleerd
-
-
-class Severity(StrEnum):
-    HIGH = "high"
-    MEDIUM = "medium"
-    LOW = "low"
-    INFO = "info"
-
-
-class Certainty(StrEnum):
-    """Documented certainty categories (FR-22); never a percentage."""
-
-    INSUFFICIENT_EVIDENCE = "insufficient_evidence"
-    PRELIMINARY = "preliminary"
-    MODERATE = "moderate"
-    REASONABLE = "reasonable"
-    HIGH = "high"
-    HIGH_MEASURED = "high_measured"
 
 
 class FindingLifecycle(StrEnum):

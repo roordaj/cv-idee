@@ -37,3 +37,7 @@ via de repository-URL werkt daarom pas zodra er een gepubliceerde image is (`ima
 - **MQTT:** de add-on vraagt de Mosquitto-brokergegevens op bij de Supervisor (`services: mqtt:want`)
   voor de terugkoppeling van samenvattende sensoren naar Home Assistant.
 - **Opslag:** SQLite in `/data`.
+
+## Database en back-up
+
+De database (`/data/cvidee.sqlite`) staat in `/data` en wordt daarom meegenomen in Home Assistant-back-ups van de add-on. Het schema wordt bij elke start automatisch bijgewerkt (Alembic-migraties); een herstart op een bestaande database is veilig. Mislukt de migratie, dan start de add-on niet en staat de oorzaak in het log. Herstel van een back-up brengt oudere data terug; het schema wordt bij de volgende start weer op het huidige niveau gebracht.

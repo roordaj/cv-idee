@@ -16,11 +16,13 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
 from cvidee.store.base import Base, enum_column, ts_column
 from cvidee.store.enums import (
+    ConnectionSource,
     EndReason,
     ImportStatus,
     MetricStatus,
@@ -100,7 +102,16 @@ class QualityEvent(Base):
 
     __tablename__ = "quality_events"
     __table_args__ = (
-        Index("uq_quality_events_key", "kind", "signal", "start_ts", unique=True),
+        # COALESCE: SQLite treats NULLs as distinct in a unique index; '' = no source.
+        Index(
+            "uq_quality_events_key",
+            "kind",
+            "signal",
+            "other_signal",
+            text("coalesce(source, '')"),
+            "start_ts",
+            unique=True,
+        ),
         Index("ix_quality_events_start_ts", "start_ts"),
         CheckConstraint("end_ts IS NULL OR end_ts >= start_ts", name="end_not_before_start"),
         CheckConstraint("NOT (final AND end_ts IS NULL)", name="ongoing_not_final"),
@@ -110,8 +121,13 @@ class QualityEvent(Base):
     kind: Mapped[QualityEventKind] = enum_column(QualityEventKind, "kind")
     # str(SignalRef), e.g. 'flow_temperature@boiler'; '' = all signals (SignalRef None).
     signal: Mapped[str] = mapped_column(String(160))
+    # Only for CONNECTION_LOST (ADR-003 §6.3); NULL otherwise.
+    source: Mapped[ConnectionSource | None] = enum_column(ConnectionSource, "source", nullable=True)
+    # Second signal of a MISALIGNED pair; '' = none.
+    other_signal: Mapped[str] = mapped_column(String(160), default="", server_default="")
     start_ts: Mapped[int] = ts_column()
     end_ts: Mapped[int | None] = ts_column(nullable=True)  # NULL = ongoing at the horizon
+    count: Mapped[int | None] = mapped_column(Integer)  # affected observations (DUPLICATE)
     detail: Mapped[str] = mapped_column(Text, default="")
     final: Mapped[bool] = mapped_column(Boolean)
     run_id: Mapped[int | None] = mapped_column(ForeignKey(_RUN_FK, ondelete="SET NULL"))
@@ -133,6 +149,8 @@ class ModeSegment(Base):
     mode: Mapped[Mode] = enum_column(Mode, "mode")
     certainty: Mapped[ModeCertainty] = enum_column(ModeCertainty, "certainty")
     sources: Mapped[list[Any]] = mapped_column(default=list)  # [str(SignalRef)]
+    # Boiler fault/blocking code for FAULT/BLOCKED segments (requirements §8); NULL = none.
+    device_code: Mapped[str | None] = mapped_column(String(64))
     final: Mapped[bool] = mapped_column(Boolean)
     run_id: Mapped[int | None] = mapped_column(ForeignKey(_RUN_FK, ondelete="SET NULL"))
 

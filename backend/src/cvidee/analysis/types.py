@@ -581,6 +581,8 @@ class ModeSegment:
     certainty: ModeCertainty
     sources: tuple[SignalRef, ...] = ()
     final: bool = False
+    device_code: str | None = None
+    """Boiler fault/blocking code behind the segment, when reported (requirements §8)."""
 
     def __post_init__(self) -> None:
         _check_range(self.start, self.end, "ModeSegment")
