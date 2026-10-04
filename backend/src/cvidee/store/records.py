@@ -23,7 +23,18 @@ class ObservationRecord:
     last_reported_ts: int | None = None
 
 
+@dataclass(frozen=True, slots=True, order=True)
+class DuplicateCount:
+    """Number of duplicate observations skipped for one entity in one whole UTC hour."""
+
+    entity_id: str
+    hour_start_ts: int
+    count: int
+
+
 @dataclass(frozen=True, slots=True)
 class InsertResult:
     inserted: int
     duplicates_skipped: int
+    # Per (entity, UTC hour), sorted; empty for connection events.
+    duplicates: tuple[DuplicateCount, ...] = ()

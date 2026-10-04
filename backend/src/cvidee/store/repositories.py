@@ -57,21 +57,27 @@ class StaleRevisionError(Exception):
 
 
 class ObservationRepository(Protocol):
-    """Raw observations and connection events (#16)."""
+    """Raw observations and connection events (#16, SQL: ``store.observations``)."""
 
     def add_observations(self, records: Iterable[ObservationRecord]) -> InsertResult:
-        """Insert, ignoring duplicates on (entity, ts, state)."""
+        """Insert, merging duplicates on (entity, ts, state); a reported change that
+        repeats the previous stored state is stored as confirm."""
         ...
 
-    def observations(self, entity_id: str, start_ts: int, end_ts: int) -> list[ObservationRecord]:
-        """Observations in ``[start_ts, end_ts)`` ordered by ts."""
+    def observations(
+        self, entity_id: str, start_ts: int, end_ts: int, *, with_carry_in: bool = False
+    ) -> list[ObservationRecord]:
+        """Observations in ``[start_ts, end_ts)`` ordered by ts; ``with_carry_in`` prepends
+        the last observation before ``start_ts``."""
         ...
 
     def last_before(self, entity_id: str, ts: int) -> ObservationRecord | None: ...
 
     def add_connection_events(self, events: Iterable[ConnectionEvent]) -> InsertResult: ...
 
-    def connection_events(self, start_ts: int, end_ts: int) -> list[ConnectionEvent]: ...
+    def connection_events(
+        self, start_ts: int, end_ts: int, *, with_carry_in: bool = False
+    ) -> list[ConnectionEvent]: ...
 
     def purge_before(self, ts: int) -> int:
         """Retention: delete raw rows older than ``ts``; returns the number deleted."""
