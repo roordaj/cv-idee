@@ -84,6 +84,12 @@ def align_pair(
     * At least one change-only signal → ``ASSUMED_UNCHANGED`` (combined, weaker certainty),
       unless the change-only value is older than the other signal's last *change* by more
       than the tolerance while the other one changed (then ``MISALIGNED``) — see ADR-002 §7.
+
+    Formally (ADR-003 §7): with ``E`` = ``observed_at`` of the interval at ``ts`` and ``C`` =
+    ``observed_at`` of the latest interval at or before ``ts`` with origin ``CHANGE`` or
+    ``POLL``: for a change-only ``x`` and the other signal ``y``, ``C_y - E_x > tolerance``
+    → ``MISALIGNED``. Callers pass ``*_heartbeat=False`` for intervals inside ``HISTORY``
+    coverage (no confirmations there).
     """
     raise NotImplementedError
 

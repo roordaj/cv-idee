@@ -13,6 +13,7 @@ from cvidee.analysis.types import (
     MINUTE_MS,
     AnalysisWindow,
     BurnerCycle,
+    ConnectionSource,
     EndReason,
     MetricName,
     MetricValue,
@@ -30,6 +31,7 @@ from cvidee.analysis.types import (
     Role,
     Scope,
     ScopeKind,
+    SignalConfig,
     SignalRef,
     SignalTimeline,
     TimeRange,
@@ -157,6 +159,14 @@ class TestSignals:
         assert obs.evidence_ts == 20
         with pytest.raises(ValueError, match="last_reported"):
             Observation(FLAME, 10, True, ObservationKind.CHANGE, last_reported=5)
+        with pytest.raises(ValueError, match="last_reported"):
+            Observation(FLAME, 10, True, ObservationKind.CONFIRM, last_reported=5)
+
+    def test_poll_evidence_may_predate_the_read(self) -> None:
+        # ADR-003 §4.3: get_states after reconnect, HA last heard from the device earlier.
+        poll = Observation(FLAME, 600, False, ObservationKind.POLL, last_reported=300)
+        assert poll.evidence_ts == 300
+        assert Observation(FLAME, 600, False, ObservationKind.POLL).evidence_ts == 600
 
 
 class TestAnalysisWindow:
@@ -230,9 +240,57 @@ class TestOtherTypes:
             MetricWindow(MetricWindowKind.CYCLE, TimeRange(0, 10))
 
     def test_quality_event(self) -> None:
-        QualityEvent(QualityEventKind.CONNECTION_LOST, None, 0, None)
+        QualityEvent(QualityEventKind.CONNECTION_LOST, None, 0, None, source=ConnectionSource.WS)
+        lost = QualityEventKind.CONNECTION_LOST
         with pytest.raises(ValueError, match="ongoing"):
-            QualityEvent(QualityEventKind.CONNECTION_LOST, None, 0, None, final=True)
+            QualityEvent(lost, None, 0, None, final=True, source=ConnectionSource.WS)
+
+    def test_quality_event_fields_per_kind(self) -> None:
+        flow, ret = SignalRef(Role.FLOW_TEMPERATURE), SignalRef(Role.RETURN_TEMPERATURE)
+        with pytest.raises(ValueError, match="source"):
+            QualityEvent(QualityEventKind.CONNECTION_LOST, None, 0, 10)
+        with pytest.raises(ValueError, match="per source"):
+            QualityEvent(QualityEventKind.CONNECTION_LOST, FLAME, 0, 10, source=ConnectionSource.WS)
+        with pytest.raises(ValueError, match="source"):
+            QualityEvent(QualityEventKind.STALE, flow, 0, 10, source=ConnectionSource.WS)
+        with pytest.raises(ValueError, match="other_signal"):
+            QualityEvent(QualityEventKind.MISALIGNED, flow, 0, 10)
+        with pytest.raises(ValueError, match="other_signal"):
+            QualityEvent(QualityEventKind.STALE, flow, 0, 10, other_signal=ret)
+        with pytest.raises(ValueError, match="count"):
+            QualityEvent(QualityEventKind.DUPLICATE, flow, 0, HOUR_MS)
+        with pytest.raises(ValueError, match="count"):
+            QualityEvent(QualityEventKind.DUPLICATE, flow, 0, HOUR_MS, count=0)
+        with pytest.raises(ValueError, match="point event"):
+            QualityEvent(QualityEventKind.COUNTER_RESET, flow, 0, 10)
+        QualityEvent(QualityEventKind.COUNTER_RESET, flow, 5, 5, detail="1234.5->0.4")
+        QualityEvent(QualityEventKind.DUPLICATE, flow, 0, HOUR_MS, count=3)
+
+    def test_quality_event_key_distinguishes_sources_and_pairs(self) -> None:
+        # ADR-003 §8: WS and gateway outages starting together, and one signal misaligned
+        # with two partners at once, must not collide on the storage key.
+        ws = QualityEvent(QualityEventKind.CONNECTION_LOST, None, 0, 10, source=ConnectionSource.WS)
+        gw = dataclasses.replace(ws, source=ConnectionSource.CAN_GATEWAY)
+        assert ws.key != gw.key
+        flow, ret = SignalRef(Role.FLOW_TEMPERATURE), SignalRef(Role.RETURN_TEMPERATURE)
+        a = QualityEvent(QualityEventKind.MISALIGNED, flow, 0, 10, other_signal=ret)
+        b = dataclasses.replace(a, other_signal=SignalRef(Role.FLOW_SETPOINT))
+        assert a.key != b.key
+        assert a.key == (
+            "misaligned",
+            "flow_temperature@boiler",
+            "return_temperature@boiler",
+            "",
+            0,
+        )
+
+    def test_signal_config_heartbeat_requires_max_age(self) -> None:
+        with pytest.raises(ValueError, match="max_age_ms"):
+            SignalConfig(FLAME, PROV, heartbeat_expected=True)
+        with pytest.raises(ValueError, match="max_age_ms"):
+            SignalConfig(FLAME, PROV, heartbeat_expected=True, max_age_ms=0)
+        SignalConfig(FLAME, PROV, heartbeat_expected=True, max_age_ms=30_000)
+        SignalConfig(FLAME, PROV, max_age_ms=30_000)  # stored but unused without heartbeat
 
     def test_pipeline_config_defaults_and_lookback(self) -> None:
         cfg = PipelineConfig(signals=())
