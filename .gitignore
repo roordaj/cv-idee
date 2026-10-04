@@ -15,3 +15,5 @@ dist/
 coverage/
 .hypothesis/
 .claude/worktrees/
+/build/
+/data/

@@ -1,0 +1,101 @@
+# Home Assistant development instance for CV-idee (docker-compose.dev.yml).
+# Simulated boiler, room and outdoor signals; they change every minute based on the clock.
+# The MQTT integration (broker `mosquitto`, user dev/dev) is seeded via
+# .storage/core.config_entries because MQTT can only be set up from the UI.
+
+homeassistant:
+  name: CV-idee dev
+  time_zone: Europe/Amsterdam
+  unit_system: metric
+  country: NL
+  language: nl
+  currency: EUR
+
+frontend:
+config:
+history:
+logbook:
+recorder:
+  purge_keep_days: 14
+  commit_interval: 5
+
+logger:
+  default: warning
+
+input_number:
+  dev_kamer_setpoint:
+    name: Dev kamersetpoint
+    min: 15
+    max: 23
+    step: 0.5
+    initial: 20.5
+    unit_of_measurement: "°C"
+
+input_boolean:
+  dev_tapwater_vraag:
+    name: Dev tapwatervraag
+    initial: false
+
+template:
+  - binary_sensor:
+      # Burner cycle: 4 min on / 6 min off, plus forced on during a simulated DHW demand.
+      - name: Dev ketel vlam
+        unique_id: dev_ketel_vlam
+        state: >
+          {{ now().minute % 10 < 4 or is_state('input_boolean.dev_tapwater_vraag', 'on') }}
+      - name: Dev warmtevraag
+        unique_id: dev_warmtevraag
+        state: "{{ now().minute % 10 < 7 }}"
+  - sensor:
+      - name: Dev ketel status
+        unique_id: dev_ketel_status
+        state: >
+          {% if is_state('input_boolean.dev_tapwater_vraag', 'on') %}tapwater
+          {% elif now().minute % 10 < 4 %}cv
+          {% elif now().minute % 10 < 6 %}naloop
+          {% else %}standby{% endif %}
+      - name: Dev ketel gewenste aanvoer
+        unique_id: dev_ketel_gewenste_aanvoer
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        state: "{{ 45 if now().minute % 10 < 7 else 0 }}"
+      - name: Dev ketel aanvoertemperatuur
+        unique_id: dev_ketel_aanvoertemperatuur
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        state: >
+          {% set m = now().minute % 10 %}
+          {{ (30 + m * 4) if m < 4 else (46 - (m - 4) * 2.5) }}
+      - name: Dev ketel retourtemperatuur
+        unique_id: dev_ketel_retourtemperatuur
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        state: >
+          {% set m = now().minute % 10 %}
+          {{ (27 + m * 2.5) if m < 4 else (36 - (m - 4) * 1.5) }}
+      - name: Dev ketel modulatie
+        unique_id: dev_ketel_modulatie
+        unit_of_measurement: "%"
+        state_class: measurement
+        state: "{{ [100 - (now().minute % 10) * 20, 0] | max if now().minute % 10 < 4 else 0 }}"
+      - name: Dev woonkamer temperatuur
+        unique_id: dev_woonkamer_temperatuur
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        state: "{{ (19.8 + (now().minute % 20) * 0.05) | round(2) }}"
+      - name: Dev slaapkamer temperatuur
+        unique_id: dev_slaapkamer_temperatuur
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        state: "{{ (17.5 + (now().minute % 30) * 0.03) | round(2) }}"
+      - name: Dev buitentemperatuur
+        unique_id: dev_buitentemperatuur
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        state: "{{ (6 + 4 * ((now().hour / 24 * 2 * pi) | sin)) | round(1) }}"
