@@ -19,7 +19,7 @@ Gekozen basis (besluit 4 okt 2026):
 | Analyse | Pure Python-functies zonder I/O in `cvidee.analysis`; polars voor aggregaties waar nuttig. |
 | Opslag | **SQLite** (WAL-modus) in de add-on `/data`-map, achter een repository-laag zodat TimescaleDB later mogelijk is. |
 | Frontend | **React 18 + TypeScript + Vite**, React Router, TanStack Query, gegenereerde API-client uit OpenAPI, CSS Modules + design tokens, eigen SVG-grafieken (d3-scale), lucide-react iconen. |
-| Terugkoppeling HA (FR-38) | **HA REST `POST /api/states/<entity_id>`**, met herpublicatie bij HA-herstart en periodiek. |
+| Terugkoppeling HA (FR-38) | **MQTT discovery** via de Mosquitto-broker van HA: entiteiten met vaste `unique_id` onder één apparaat "CV-analyse", retained config- en state-berichten (blijven behouden over HA-herstarts). Terugvaloptie zonder broker: HA REST `POST /api/states` met herpublicatie. |
 | Meldingen (FR-39) | HA `notify.*`-service via WebSocket `call_service` + HA-event `cv_analyse_finding` voor eigen automations. |
 
 ## 2. Architectuur
@@ -55,7 +55,7 @@ Gekozen basis (besluit 4 okt 2026):
 │            levenscyclus, aanbevelingen, snapshot advieshistorie)   │
 │ changes/   wijzigingslogboek + voor/na-evaluatie                   │
 │ notify/    meldingsbeleid (ernst→kanaal, bundel, herstelcriterium) │
-│ ha_export/ samenvattende sensoren → HA REST /api/states            │
+│ ha_export/ samenvattende sensoren → MQTT discovery (Mosquitto)     │
 │ api/       FastAPI (REST, OpenAPI) ── serveert ook frontend-build  │
 └────────────────────────────────────────────────────────────────────┘
          ▲
@@ -65,7 +65,7 @@ Gekozen basis (besluit 4 okt 2026):
 
 ### 2.1 Kernprincipes
 
-1. **Alleen-lezen.** Geen enkele code-pad schrijft naar ketel of thermostaat. De HA-token wordt alleen gebruikt voor lezen, `/api/states` van eigen `sensor.cv_analyse_*`-entiteiten en `notify`. (Afbakening §8.)
+1. **Alleen-lezen.** Geen enkele code-pad schrijft naar ketel of thermostaat. De HA-token wordt alleen gebruikt voor lezen en `notify`; MQTT wordt alleen gebruikt voor de eigen topics `cv_analyse/#` en `homeassistant/+/cv_analyse/#` (nooit `set`/command-topics van andere apparaten). (Afbakening §8.)
 2. **Live == import (FR-06).** De pipeline is een pure functie `analyse(waarnemingen[t0,t1), config-snapshot, regelversies) → resultaten`. Live verwerking is niets anders dan herhaald draaien van dezelfde functie over een schuivend venster. Een property-test bewaakt dat in blokken verwerken hetzelfde oplevert als in één keer.
 3. **Onbekend ≠ uit (FR-11).** Elk tijdstip per signaal is óf een geldige waarde, óf expliciet *onbekend* met reden (geen data, verouderd, ongeldig, verbinding weg). Statistieken rekenen alleen met waargenomen tijd en tonen hun tijdsbasis.
 4. **Herkomst van waarden.** Elke waarde draagt `kind ∈ {gemeten, gerapporteerd, afgeleid, geschat}` en bron (entiteit of afleiding). Afgeleide waarden erven de zwakste herkomst.
@@ -177,7 +177,15 @@ MVP-regels: `kort-branden` (FR-14), `stop-tijdens-vraag` (FR-16), `temperatuurve
 
 ### 3.8 Meldingen en HA-export
 
-- **HA-export (FR-38).** `POST /api/states/sensor.cv_analyse_*` met attributen (`friendly_name`, `unit_of_measurement`, `icon`, `attribution`). Entiteiten uit ontwerp: `sensor.cv_analyse_starts_per_uur`, `…_korte_cycli_6u`, `…_gegevensdekking`, `…_open_bevindingen`, `…_hoogste_ernst`, `…_volgende_actie`, `binary_sensor.cv_analyse_onvoldoende_gegevens` (+ `…_bedrijfsmodus`). Beperking REST-states: geen `unique_id`, niet bewerkbaar in UI, verdwijnen bij HA-herstart ⇒ herpubliceren bij `homeassistant_started`-event, na eigen reconnect en elke 5 min.
+- **HA-export (FR-38) — MQTT discovery.**
+  - **Broker.** Add-on: `services: [mqtt:want]` in `config.yaml`; host, poort en credentials via Supervisor `GET /services/mqtt`. Standalone: `MQTT_HOST`/`MQTT_PORT`/`MQTT_USER`/`MQTT_PASSWORD`. Client: `aiomqtt`.
+  - **Apparaat.** Eén device `CV-analyse` (`identifiers: ["cv_analyse"]`, `manufacturer`, `model`, `sw_version`, `configuration_url` naar ingress). Alle entiteiten krijgen `unique_id = cv_analyse_<sleutel>` en `object_id` zodat de entity_id's gelijk zijn aan het ontwerp.
+  - **Entiteiten (uit ontwerp):** `sensor.cv_analyse_starts_per_uur`, `…_korte_cycli_6u`, `…_gegevensdekking` (%), `…_open_bevindingen`, `…_hoogste_ernst` (enum), `…_volgende_actie`, `…_bedrijfsmodus` (enum), `binary_sensor.cv_analyse_onvoldoende_gegevens`. Detailinformatie via `json_attributes_topic`. `entity_category: diagnostic` waar passend; `device_class`/`state_class` waar zinvol (`measurement` voor kengetallen, zodat HA long-term statistics bijhoudt).
+  - **Topics.** Config: `homeassistant/<component>/cv_analyse/<sleutel>/config` (retained). State: `cv_analyse/<sleutel>/state` (retained), attributen `cv_analyse/<sleutel>/attributes` (retained).
+  - **Beschikbaarheid.** `availability_topic: cv_analyse/status` met Last Will `offline` (retained) en `online` bij verbinden. Als de app niet draait of de analyse geen geldige data heeft, toont HA de entiteiten als *niet beschikbaar* in plaats van een oude waarde (sluit aan bij FR-36: geen misleidende status).
+  - **HA-herstart.** Geen herpublicatie nodig: de broker levert retained config en state direct bij het herabonneren van HA. Wel: luisteren op `homeassistant/status` = `online` en dan config opnieuw publiceren (vangnet als retained berichten gewist zijn).
+  - **Opruimen.** Entiteiten die vervallen: leeg retained config-bericht publiceren (verwijdert de entiteit in HA).
+  - **Terugvaloptie zonder broker:** REST `POST /api/states` (geen `unique_id`, herpubliceren bij `homeassistant_started` en elke 5 min); in UI zichtbaar welke modus actief is.
 - **Meldingen (FR-39).** Beleid per ernst: `direct | dagbundel | weekrapport | geen`. Eén melding per bevinding; opnieuw alleen bij verslechtering (ernst omhoog of patroon substantieel erger) als dat aan staat. Verzending via `notify.<doel>` (instelbaar) en altijd een HA-event `cv_analyse_finding` (voor eigen automations).
 
 ### 3.9 API (`cvidee.api`)
@@ -277,7 +285,7 @@ AGENTS.md / CLAUDE.md        conventies voor (AI-)ontwikkelaars
 |---|---|
 | Welke CAN-signalen de Calenta Ace werkelijk levert, met welke resolutie en statuscodes. | Spike-ticket (vereist toegang tot de HA-instantie van de gebruiker); modus-mapping configureerbaar zodat implementatie niet blokkeert. |
 | Veroudering bij alleen-bij-wijziging-events. | Refinement-ticket (zie §3.1). |
-| REST-states zonder `unique_id`. | Herpublicatie; later eventueel MQTT discovery of eigen integratie. |
+| MQTT-broker niet beschikbaar of credentials gewijzigd. | Reconnect met backoff, status in UI en `quality_events`; terugvaloptie REST-states. Eigen HA-integratie blijft een latere optie als acties vanuit HA nodig zijn. |
 | Klokverschillen tussen bronnen. | Gebruik HA `last_changed`/`last_reported`, tolerantie per signaalcombinatie, kwaliteitsvlag. |
 | SQLite-groei. | Retentie ruwe data + aggregaten; TimescaleDB-optie. |
 | Zomertijd. | Alles UTC intern; tests rond 25 okt 2026 (DST-overgang). |
