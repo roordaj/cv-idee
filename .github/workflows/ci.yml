@@ -61,4 +61,5 @@ jobs:
       - name: Check api/openapi.json matches generated spec
         # TODO(#11): once the API contract lands, check out the repo, generate the
         # OpenAPI spec from the backend and fail if it differs from api/openapi.json.
-        run: echo "No-op until #11 adds api/openapi.json."
+        run: |
+          echo "No-op until #11 adds api/openapi.json."
