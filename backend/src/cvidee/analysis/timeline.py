@@ -238,6 +238,7 @@ def build_timeline(
     window: AnalysisWindow,
     *,
     history: Sequence[TimeRange] = (),
+    prior_outage_end: TimestampMs | None = None,
 ) -> SignalTimeline:
     """Build the timeline of one signal over ``window.context``.
 
@@ -265,6 +266,11 @@ def build_timeline(
     ``outages`` are the ranges during which this signal is disconnected (the caller selects
     WS, gateway and derived outages per signal). Observations inside an outage are masked.
 
+    ``prior_outage_end`` is the end (``<= window.context_start``) of the latest outage
+    affecting this signal that lies before the context. A carry-in observation from before
+    it does not carry over: the signal is ``DISCONNECTED`` from ``context_start`` until its
+    next observation, exactly as in a run whose context contains that outage (#27).
+
     Returns:
         A timeline whose intervals exactly cover ``window.context``.
     """
@@ -274,8 +280,16 @@ def build_timeline(
     outs = _clip(((r.start, r.end) for r in outages), ctx)
     hist = _clip(((r.start, r.end) for r in history), ctx)
     everything = _prepare(signal.signal, observations, window.end)
-    accepted = [o for o in everything if not any(s <= o.ts < e for s, e in outs)]
+    accepted = [
+        o
+        for o in everything
+        if not any(s <= o.ts < e for s, e in outs)
+        and not (prior_outage_end is not None and o.ts < prior_outage_end)
+    ]
     first_ts = everything[0].ts if everything else None
+    prior_gap = (
+        prior_outage_end is not None and first_ts is not None and first_ts < prior_outage_end
+    )
 
     pieces: list[ValueInterval | UnknownInterval] = []
     for index, obs in enumerate(accepted):
@@ -317,8 +331,8 @@ def build_timeline(
         for boundary in [*boundaries, g_end]:
             if cursor < boundary:
                 inside = any(s <= cursor < e for s, e in outs)
-                after_gap = first_ts is not None and any(
-                    e <= cursor and first_ts < e for _, e in outs
+                after_gap = prior_gap or (
+                    first_ts is not None and any(e <= cursor and first_ts < e for _, e in outs)
                 )
                 reason = (
                     UnknownReason.DISCONNECTED if inside or after_gap else UnknownReason.NO_DATA
@@ -355,6 +369,25 @@ def _merge_unknown(
     return tuple(out)
 
 
+def _prior_outage_ends(
+    connection_events: Sequence[ConnectionEvent], window: AnalysisWindow
+) -> tuple[TimestampMs | None, TimestampMs | None]:
+    """End of the latest effective WS and explicit CAN-gateway outage before
+    ``window.context_start`` (an outage still open there ends at ``context_start``).
+
+    Needs the events from the latest "down" before the context start onwards (the runner
+    supplies them); with only a carry-in per source an outage that ended before the context
+    is invisible. Derived gateway outages before the context are not reconstructed.
+    """
+    first = min((e.ts for e in connection_events), default=None)
+    if first is None or first >= window.context_start:
+        return None, None
+    before = AnalysisWindow(first, first, window.context_start)
+    outs = connection_outages(connection_events, before)
+    ws, gateway = outs[ConnectionSource.WS], outs[ConnectionSource.CAN_GATEWAY]
+    return (ws[-1].end if ws else None), (gateway[-1].end if gateway else None)
+
+
 def build_stage1(
     observations: Sequence[Observation],
     connection_events: Sequence[ConnectionEvent],
@@ -377,11 +410,18 @@ def build_stage1(
 
     configs = sorted({c.signal: c for c in config.signals}.values(), key=lambda c: c.signal)
     explicit = _merge([*_spans(ws), *_spans(gateway)])
+    prior_ws, prior_gateway = _prior_outage_ends(connection_events, window)
+    prior_any = max((t for t in (prior_ws, prior_gateway) if t is not None), default=None)
     built: dict[SignalRef, SignalTimeline] = {}
     heartbeat_gateway = [c for c in configs if c.heartbeat_expected and c.via_can_gateway]
     for cfg in heartbeat_gateway:
         built[cfg.signal] = build_timeline(
-            cfg, by_signal[cfg.signal], _ranges(explicit), window, history=history
+            cfg,
+            by_signal[cfg.signal],
+            _ranges(explicit),
+            window,
+            history=history,
+            prior_outage_end=prior_any,
         )
     derived: tuple[TimeRange, ...] = ()
     if config.derive_gateway_outage and heartbeat_gateway:
@@ -393,7 +433,12 @@ def build_stage1(
             continue
         spans = with_derived if cfg.via_can_gateway else _spans(ws)
         built[cfg.signal] = build_timeline(
-            cfg, by_signal[cfg.signal], _ranges(spans), window, history=history
+            cfg,
+            by_signal[cfg.signal],
+            _ranges(spans),
+            window,
+            history=history,
+            prior_outage_end=prior_any if cfg.via_can_gateway else prior_ws,
         )
     timelines = tuple(built[c.signal] for c in configs)
     return Stage1Result(timelines, ConnectionOutages(ws, gateway, derived, history))

@@ -1,9 +1,10 @@
 """FR-06 / ADR-002 §6: processing in chunks yields the same result as processing at once.
 
 The runner is simulated here with the exact replace-from semantics of ADR-002 §4: each run
-deletes derived items with key ``>= window.emit_from`` and inserts the run's output. The
-property is xfail until the stages (#23, #24, #26, #28, #29) are implemented; it must then
-pass without the marker.
+deletes derived items with key ``>= window.emit_from`` and inserts the run's output. Stage 5
+(metrics) contributes nothing until #28/#29 register their functions in
+``cvidee.analysis.pipeline.METRIC_STAGES``; the runner-level variant over a real database is
+``tests/runner/test_runner.py``.
 """
 
 from __future__ import annotations
@@ -11,7 +12,6 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 
-import pytest
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
@@ -179,9 +179,6 @@ def histories(
     return observations, events, horizons
 
 
-@pytest.mark.xfail(
-    raises=NotImplementedError, strict=False, reason="pipeline stages not implemented yet"
-)
 @settings(max_examples=50, deadline=None, suppress_health_check=[HealthCheck.too_slow])
 @given(histories())
 def test_chunked_equals_whole(
@@ -196,9 +193,6 @@ def test_chunked_equals_whole(
     assert chunked.metrics == whole.metrics
 
 
-@pytest.mark.xfail(
-    raises=NotImplementedError, strict=False, reason="pipeline stages not implemented yet"
-)
 def test_reconnect_poll_is_not_a_start() -> None:
     """Scenario 5 / FR-08: flame on seen first via a poll after an outage is no new start."""
     observations = [
