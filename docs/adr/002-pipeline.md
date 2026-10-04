@@ -140,12 +140,14 @@ next_watermark = min( end − lookahead,
 
 begrensd tot `[emit_from, end]`. Een item is **definitief** (`final = True`) als zijn einde ≤ `next_watermark`; anders voorlopig (open cyclus, het laatste gedeeltelijke uur/segment, een nog lopende kwaliteitsgebeurtenis). Voorlopige items worden in een volgende run vervangen.
 
+**Aanvulling (#26).** Een gesloten cyclus kijkt ook ná haar einde: de naloopfase (`AFTERRUN`) loopt tot `afterrun_max_ms` na vlam-uit. "Eindigt na `end − lookahead`" wordt daarom gelezen als `cycles.cycle_settles_at(cyclus) > end`, met `cycle_settles_at = einde + max(lookahead, afterrun_max_ms)` (`None` = open). Zonder deze aanvulling kan een cyclus met afgekapte naloop definitief worden en geldt in blokken == in één keer niet (aangetoond door de property-test in `tests/analysis/test_cycles.py`).
+
 ### 4.4 Een cyclus over een venstergrens
 
 - **Over de horizon (open cyclus).** De cyclus heeft `end = None`, is voorlopig en houdt het watermark op zijn `start`. De volgende run begint dus met `emit_from ≤ start` en berekent de cyclus vanaf het begin opnieuw, met sleutel `start`; de oude rij wordt vervangen. Dit geldt ook voor cycli die langer duren dan de lookback (een modulerende ketel kan uren branden): het watermark wacht, de lookback schuift mee.
 - **Over `emit_from` / in het lookbackdeel.** Cycli waarvan de start in het lookbackdeel ligt, worden in elke run opnieuw berekend, maar alleen als context (pauze vóór de volgende cyclus, naloop, modus). Ze worden niet opnieuw geschreven: hun sleutel ligt vóór `emit_from`, en dankzij de watermark-regel waren ze al definitief. Een cyclus kan `emit_from` niet "half" overspannen: was zij bij de vorige run nog niet definitief, dan lag het watermark — en dus `emit_from` — op of vóór haar start.
 - **Over `context_start`.** Een cyclus die al brandde op `context_start` krijgt in deze run `start_observed = False` en een afgekapt begin. Haar sleutel ligt vóór `emit_from`, dus zij wordt niet uitgegeven; de opgeslagen, eerder definitief berekende versie blijft staan.
-- **Alleen cycli waarvan het einde vóór `end − lookahead` ligt zijn definitief.** Een cyclus die 30 s vóór de horizon stopt, is nog voorlopig: haar eindreden hangt af van de warmtevraag in de lookahead.
+- **Alleen cycli waarvan het einde vóór `end − lookahead` ligt zijn definitief.** Een cyclus die 30 s vóór de horizon stopt, is nog voorlopig: haar eindreden hangt af van de warmtevraag in de lookahead. Hetzelfde geldt voor een cyclus waarvan de naloop nog kan doorlopen (zie aanvulling in §4.3).
 
 ### 4.5 Canoniek raster voor intervallen
 
