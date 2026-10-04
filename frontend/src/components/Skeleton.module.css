@@ -1,0 +1,21 @@
+.block {
+  display: block;
+  background: var(--color-divider);
+  animation: pulse 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+  from {
+    opacity: 0.55;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .block {
+    animation: none;
+  }
+}

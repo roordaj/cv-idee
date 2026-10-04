@@ -1,0 +1,17 @@
+.actions {
+  margin-top: var(--space-2);
+}
+
+.details {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.details summary {
+  cursor: pointer;
+}
+
+.details code {
+  font-family: inherit;
+  word-break: break-all;
+}

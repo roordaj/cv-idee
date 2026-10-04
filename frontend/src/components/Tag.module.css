@@ -1,0 +1,22 @@
+.tag {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--tone-tint);
+  color: var(--tone-dark);
+  white-space: nowrap;
+}
+
+.md {
+  padding: 3px 10px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.sm {
+  padding: 2px 9px;
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-bold);
+}

@@ -1,0 +1,49 @@
+.group {
+  display: inline-flex;
+  align-self: flex-start;
+  border-radius: var(--radius-lg);
+  padding: var(--space-1);
+  gap: var(--space-1);
+}
+
+.fill {
+  display: flex;
+  align-self: stretch;
+}
+
+.fill .segment {
+  flex: 1;
+  padding: 7px 8px;
+}
+
+.subtle {
+  background: var(--color-bg);
+}
+
+.accent {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.segment {
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: 6px 14px;
+  cursor: pointer;
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
+  background: transparent;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.subtle .selected {
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-segment);
+}
+
+.accent .selected {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
