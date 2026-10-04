@@ -162,6 +162,7 @@ def test_observation_round_trip_and_dedupe(session: Session) -> None:
         state="on",
         value_num=1.0,
         kind=ObservationKind.CHANGE,
+        reported_kind=ObservationKind.CHANGE,
         origin=ObservationOrigin.LIVE,
         received_at_ts=T0 + 5,
     )
@@ -180,6 +181,7 @@ def test_observation_round_trip_and_dedupe(session: Session) -> None:
             state="on",
             value_num=1.0,
             kind=ObservationKind.POLL,
+            reported_kind=ObservationKind.POLL,
             origin=ObservationOrigin.IMPORT,
             received_at_ts=T0 + 9,
         )

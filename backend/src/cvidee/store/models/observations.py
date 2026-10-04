@@ -8,7 +8,14 @@ from cvidee.store.enums import ConnectionSource, ObservationKind, ObservationOri
 
 
 class Observation(Base):
-    """One raw HA state for a source entity. Dedupe key: (source_entity_id, ts, state)."""
+    """One raw HA state for a source entity. Dedupe key: (source_entity_id, ts, state).
+
+    ``reported_kind`` is the kind as delivered by ingest (merged over duplicates: change >
+    confirm > poll); ``kind`` is the stored classification: a reported ``change`` whose
+    state equals the previous stored state of the entity is a ``confirm`` (FR-08). Keeping
+    both lets the store reclassify a successor when late data arrives, so the stored
+    result does not depend on arrival order (#16).
+    """
 
     __tablename__ = "observations"
     __table_args__ = (
@@ -23,6 +30,7 @@ class Observation(Base):
     state: Mapped[str] = mapped_column(String(255))  # raw HA state, incl. 'unavailable'
     value_num: Mapped[float | None] = mapped_column(Float)  # parsed; NULL if not numeric
     kind: Mapped[ObservationKind] = enum_column(ObservationKind, "kind")
+    reported_kind: Mapped[ObservationKind] = enum_column(ObservationKind, "reported_kind")
     last_reported_ts: Mapped[int | None] = ts_column(nullable=True)  # HA last_reported
     origin: Mapped[ObservationOrigin] = enum_column(ObservationOrigin, "origin")
     received_at_ts: Mapped[int] = ts_column()
