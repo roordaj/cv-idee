@@ -1,0 +1,42 @@
+name: Afhankelijkheden → status-labels
+
+# Houdt `status:blocked` / `status:ready` in lijn met de `Depends on #n`-regels.
+# Script + tests: .github/scripts/deps.py, .github/scripts/test_deps.py
+
+on:
+  issues:
+    types: [opened, edited, closed, reopened, labeled, unlabeled]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Alleen tonen wat er zou veranderen"
+        type: boolean
+        default: false
+  schedule:
+    - cron: "17 5 * * *" # dagelijks vangnet
+
+permissions:
+  issues: write
+
+# Eén run tegelijk; extra triggers wachten (de run scant toch alle open issues).
+concurrency:
+  group: deps-status
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/scripts
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Synchroniseer status-labels
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
+        run: python3 .github/scripts/deps.py
