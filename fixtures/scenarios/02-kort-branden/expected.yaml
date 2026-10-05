@@ -1,0 +1,13 @@
+# Requirements §9.2: repeated short burns during sustained demand: one finding.
+scenario: 02-kort-branden
+cycles:
+  tolerance: 0
+  ch: {stop_during_demand: 475, demand_ended: 10}
+  dhw: {dhw_ended: 6}
+mode_share: {ch: [0.73, 0.83], standby: [0.15, 0.25]}
+findings:
+  - {rule: kort-branden, severity: high, certainty: high, count: 1, hypotheses: true, next_step: true}
+must_not:
+  - {rule: kort-branden, reason: not more than one finding for the pattern, max_count: 1}
+  - {kind: dhw_counted, reason: DHW draws must not count towards short cycles}
+availability: {short_cycles: available}

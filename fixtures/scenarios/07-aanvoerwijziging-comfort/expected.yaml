@@ -1,0 +1,19 @@
+# Requirements §9.7: better cycles, worse comfort: trade-off named, rollback criterion triggered.
+scenario: 07-aanvoerwijziging-comfort
+cycles:
+  tolerance: 0
+  ch: {stop_during_demand: 550, demand_ended: 34}
+  dhw: {dhw_ended: 12}
+mode_share: {ch: [0.67, 0.78], standby: [0.20, 0.31]}
+findings:
+  - {rule: voor-na, severity: medium, certainty: reasonable, count: 1}
+before_after:
+  change: flow_setpoint_max 55 -> 45 at hour 72
+  comparable: true
+  cycles: improved
+  comfort: worse
+  rollback_triggered: true
+  verdict_names_tradeoff: true
+must_not:
+  - {kind: unqualified_success, reason: outcome must not be reported as plain improvement}
+availability: {before_after: available}

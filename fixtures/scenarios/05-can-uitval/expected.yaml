@@ -1,0 +1,17 @@
+# Requirements §9.5: CAN/HA outage: quality finding, no fictitious starts, no "solved" conclusion.
+scenario: 05-can-uitval
+cycles:
+  # Truth cycles; those touching a gap may be observed as data_gap / undetermined / open.
+  tolerance: 55
+  ch: {stop_during_demand: 306, demand_ended: 1}
+  dhw: {dhw_ended: 3}
+  observed_end_reasons_allowed: [stop_during_demand, dhw_ended, data_gap, undetermined, demand_ended]
+gaps: 2
+mode_share: {unknown: [0.12, 0.22], ch: [0.68, 0.80]}
+findings:
+  - {rule: dataverlies, severity: medium, certainty: high_measured, count: 2}
+must_not:
+  - {kind: fictitious_start, reason: burner already on when gateway returns, start_observed must be false}
+  - {kind: problem_solved, reason: silence during gap is not improvement; kort-branden must not be retracted}
+  - {kind: cycle_inside_gap, reason: no cycle may start inside a gap}
+availability: {short_cycles: limited}

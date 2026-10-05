@@ -1,0 +1,14 @@
+# Requirements §9.10: insufficient data: status "onvoldoende bewijs" naming the missing measurements.
+scenario: 10-onvoldoende-gegevens
+cycles:
+  tolerance: 0
+  # Cycles are counted but cannot be classified (no heat demand / operating mode).
+  unknown: {undetermined: 19}
+mode_share: {unknown: [1.0, 1.0]}
+findings:
+  - {rule: kort-branden, severity: info, certainty: insufficient_evidence, count: 1,
+     missing: [heat_demand, operating_mode, return_temperature, modulation, room_temperature]}
+must_not:
+  - {kind: diagnosis, reason: no conclusion without evidence}
+  - {kind: classified_cycle_reason, reason: stop_during_demand/demand_ended need heat demand}
+availability: {short_cycles: unavailable, hydraulic: unavailable, before_after: unavailable}

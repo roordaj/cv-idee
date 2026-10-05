@@ -1,0 +1,13 @@
+# Requirements §9.1: long-running CH without relevant deviation.
+scenario: 01-normaal-cv
+cycles:
+  tolerance: 0
+  ch: {stop_during_demand: 57, demand_ended: 26}
+  dhw: {dhw_ended: 9}
+mode_share: {ch: [0.47, 0.56], standby: [0.42, 0.51], dhw: [0.005, 0.03]}
+findings: []
+must_not:
+  - {rule: kort-branden, reason: no short cycling}
+  - {rule: stop-tijdens-vraag, reason: no unfounded optimisation advice}
+  - {kind: recommendation, reason: no unfounded optimisation advice}
+availability: {short_cycles: available, dhw_exclusion: available}

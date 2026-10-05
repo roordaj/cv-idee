@@ -1,0 +1,14 @@
+# Requirements §9.9: heat-up protocol active: visible, excluded from optimisation and reference.
+scenario: 09-opstookprotocol
+cycles:
+  tolerance: 1
+  ch: {stop_during_demand: 86, demand_ended: 33}
+  dhw: {dhw_ended: 11}
+mode_share: {ch: [0.62, 0.73], standby: [0.27, 0.37]}
+special_periods:
+  - {kind: opstookprotocol, start_h: 48, end_h: 96, visible: true, excluded_from_optimisation: true, excluded_from_reference: true}
+findings: []
+must_not:
+  - {rule: kort-branden, reason: protocol period excluded from normal optimisation}
+  - {kind: reference_model_includes_period, reason: protocol period must not enter the reference model}
+availability: {short_cycles: available}

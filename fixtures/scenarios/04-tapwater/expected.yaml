@@ -1,0 +1,13 @@
+# Requirements §9.4: DHW cycles are excluded from CH temperature and cycling conclusions.
+scenario: 04-tapwater
+cycles:
+  tolerance: 0
+  ch: {stop_during_demand: 59, demand_ended: 26}
+  dhw: {dhw_ended: 17}
+mode_share: {ch: [0.48, 0.58], standby: [0.40, 0.50], dhw: [0.003, 0.02]}
+findings:
+  - {rule: tapwater-uitgesloten, severity: info, certainty: high, count: 1}
+must_not:
+  - {rule: kort-branden, reason: short DHW draws are not cycling}
+  - {kind: dhw_in_ch_aggregate, reason: DHW flow temperature (72 C) must not enter CH temperature patterns}
+availability: {dhw_exclusion: available}
