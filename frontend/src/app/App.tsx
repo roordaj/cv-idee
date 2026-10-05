@@ -4,6 +4,7 @@ import { Card } from '../components/Card.tsx';
 import { EmptyState } from '../components/EmptyState.tsx';
 import { ICON_SIZE } from '../components/icons.ts';
 import { ChangesScreen } from '../screens/Changes/index.ts';
+import { Overview } from '../screens/Overview';
 import { PlaceholderScreen } from '../screens/PlaceholderScreen.tsx';
 import { AppShell } from './AppShell.tsx';
 import { SCREENS } from './navigation.ts';
@@ -38,7 +39,8 @@ export function App({ shellData }: AppProps) {
     <Routes>
       <Route element={<AppShell data={shellData ?? fetched} />}>
         <Route index element={<Navigate to="overzicht" replace />} />
-        {SCREENS.map((screen) => (
+        <Route path="overzicht" element={<Overview />} />
+        {SCREENS.filter((screen) => screen.key !== 'overzicht').map((screen) => (
           <Route
             key={screen.key}
             path={screen.path}
