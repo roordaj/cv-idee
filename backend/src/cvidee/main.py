@@ -3,6 +3,8 @@
 Run with ``uvicorn cvidee.main:create_app --factory --port 8099``.
 """
 
+import asyncio
+import contextlib
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -16,6 +18,7 @@ from cvidee.api.spa import create_spa_router
 from cvidee.config import Settings, get_settings
 from cvidee.ingest.ha_client import AiohttpHAClient
 from cvidee.ingest.service import FileAliveStore, IngestService, sql_tracked_entities
+from cvidee.runner.service import AnalysisRunner, RunnerSettings
 from cvidee.store.engine import create_db_engine, create_session_factory, database_url
 from cvidee.store.schema import upgrade_to_head
 
@@ -63,6 +66,22 @@ def _start_ingest(app: FastAPI, settings: Settings) -> IngestService | None:
     return service
 
 
+def _start_runner(
+    app: FastAPI, settings: Settings
+) -> tuple[AnalysisRunner, asyncio.Event, asyncio.Task[None]] | None:
+    """Start the analysis runner loop; ``None`` when disabled. A tick without signal
+    mappings is a no-op, so an unconfigured installation does nothing."""
+    app.state.runner = None
+    if not settings.analysis_enabled:
+        logger.info("Analysis runner disabled")
+        return None
+    factory = create_session_factory(create_db_engine(database_url(settings.db_path)))
+    runner = AnalysisRunner(factory, RunnerSettings(interval_s=settings.analysis_interval_s))
+    stop = asyncio.Event()
+    app.state.runner = runner
+    return runner, stop, asyncio.create_task(runner.run_forever(stop), name="analysis-runner")
+
+
 @asynccontextmanager
 async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Migrate before anything (ingest, runner) touches the database.
@@ -71,9 +90,15 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     ingest = _start_ingest(app, settings)
     if ingest is not None:
         await ingest.start()
+    started = _start_runner(app, settings)
     try:
         yield
     finally:
+        if started is not None:
+            _, stop, task = started
+            stop.set()
+            with contextlib.suppress(asyncio.CancelledError):
+                await task
         if ingest is not None:
             await ingest.stop()
 

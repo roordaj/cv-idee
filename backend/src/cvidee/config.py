@@ -71,6 +71,8 @@ class Settings(BaseSettings):
     log_level: str = Field(default="info", alias="CVIDEE_LOG_LEVEL")
     retention_days: int = Field(default=180, ge=1, alias="CVIDEE_RETENTION_DAYS")
     notify_target: str | None = Field(default=None, alias="CVIDEE_NOTIFY_TARGET")
+    analysis_enabled: bool = Field(default=True, alias="CVIDEE_ANALYSIS_ENABLED")
+    analysis_interval_s: float = Field(default=60.0, gt=0, alias="CVIDEE_ANALYSIS_INTERVAL_S")
 
     mqtt_host: str | None = Field(default=None, alias="MQTT_HOST")
     mqtt_port: int = Field(default=1883, alias="MQTT_PORT")
