@@ -23,6 +23,16 @@ import {
   X,
 } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
+import { useTimeline } from '../../api/hooks/data.ts';
+import {
+  BeforeAfterBars,
+  CoverageBar,
+  Donut,
+  Legend,
+  MiniTimeline,
+  StackedShareBar,
+  TimelineChart,
+} from '../../charts/index.ts';
 import { Button, IconButton } from '../../components/Button.tsx';
 import { Callout, type CalloutTone } from '../../components/Callout.tsx';
 import { Card } from '../../components/Card.tsx';
@@ -144,6 +154,43 @@ const STATUSES: ConnectionStatus[] = [
   { state: 'importing', progress: 42 },
   { state: 'recomputing', progress: 63 },
 ];
+
+function ChartsDemo() {
+  const timeline = useTimeline();
+  const [selected, setSelected] = useState<number | null>(null);
+  const slices = [
+    { key: 'ch', label: 'CV', value: 62, color: CHART_COLORS.burnCv },
+    { key: 'dhw', label: 'Tapwater', value: 23, color: CHART_COLORS.dhw },
+    { key: 'short', label: 'Kort', value: 15, color: CHART_COLORS.shortDuringDemand },
+  ];
+  return (
+    <>
+      <Demo title="TimelineChart + Legend">
+        {timeline.data ? (
+          <>
+            <Legend hide={timeline.data.changes.length ? [] : ['change']} />
+            <TimelineChart
+              data={timeline.data}
+              selectedCycle={selected}
+              onSelectCycle={setSelected}
+            />
+          </>
+        ) : (
+          <Skeleton />
+        )}
+      </Demo>
+      <Demo title="MiniTimeline">
+        {timeline.data ? <MiniTimeline data={timeline.data} /> : <Skeleton />}
+      </Demo>
+      <Demo title="BeforeAfterBars, CoverageBar, Donut, StackedShareBar">
+        <BeforeAfterBars label="Starts per uur" before={4.2} after={2.6} afterTone="green" />
+        <CoverageBar coveragePct={87} />
+        <Donut slices={slices} centerLabel="62%" />
+        <StackedShareBar slices={slices} />
+      </Demo>
+    </>
+  );
+}
 
 function Demo({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -466,6 +513,8 @@ export default function ComponentGallery() {
           selectedKey={selectedCycle}
         />
       </Section>
+
+      <ChartsDemo />
 
       <Demo title="KeyValueGrid">
         <KeyValueGrid
