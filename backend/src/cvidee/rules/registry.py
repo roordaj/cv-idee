@@ -213,5 +213,7 @@ def rule_set_hash(snapshots: Iterable[RuleSnapshot]) -> str:
 
 
 def default_registry() -> RuleRegistry:
-    """The production rules. Empty until the MVP rules land (#30-#33, #39)."""
-    return RuleRegistry(())
+    """The production rules (the MVP rules land one by one: #30-#33, #39)."""
+    from cvidee.rules.short_cycling import ShortCyclingRule
+
+    return RuleRegistry((ShortCyclingRule(),))
