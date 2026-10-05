@@ -4,6 +4,9 @@ import { Card } from '../components/Card.tsx';
 import { EmptyState } from '../components/EmptyState.tsx';
 import { ICON_SIZE } from '../components/icons.ts';
 import Findings from '../screens/Findings/Findings.tsx';
+import { ChangesScreen } from '../screens/Changes/index.ts';
+import { Overview } from '../screens/Overview';
+import { CyclesScreen } from '../screens/Cycles/index.ts';
 import { PlaceholderScreen } from '../screens/PlaceholderScreen.tsx';
 import { AppShell } from './AppShell.tsx';
 import { SCREENS } from './navigation.ts';
@@ -38,15 +41,26 @@ export function App({ shellData }: AppProps) {
     <Routes>
       <Route element={<AppShell data={shellData ?? fetched} />}>
         <Route index element={<Navigate to="overzicht" replace />} />
+        <Route path="overzicht" element={<Overview />} />
         <Route path="bevindingen" element={<Findings />} />
         <Route path="bevindingen/:id" element={<Findings />} />
-        {SCREENS.filter((screen) => screen.key !== 'bevindingen').map((screen) => (
-          <Route
-            key={screen.key}
-            path={screen.path}
-            element={<PlaceholderScreen screen={screen} />}
-          />
-        ))}
+        {SCREENS.filter((screen) => screen.key !== 'overzicht' && screen.key !== 'bevindingen').map(
+          (screen) => (
+            <Route
+              key={screen.key}
+              path={screen.path}
+              element={
+                screen.key === 'wijzigingen' ? (
+                  <ChangesScreen />
+                ) : screen.key === 'cycli' ? (
+                  <CyclesScreen />
+                ) : (
+                  <PlaceholderScreen screen={screen} />
+                )
+              }
+            />
+          ),
+        )}
         <Route
           path="dev/components"
           element={

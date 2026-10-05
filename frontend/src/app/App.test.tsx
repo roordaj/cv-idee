@@ -61,7 +61,7 @@ describe('App shell', () => {
 
   it('renders the header with live status, source and date', () => {
     renderApp('/overzicht');
-    expect(screen.getByRole('status')).toHaveTextContent('Live · bijgewerkt 12:00');
+    expect(screen.getByText(/^Live · bijge/)).toHaveTextContent('Live · bijgewerkt 12:00');
     expect(screen.getByText('CAN-bus via Home Assistant')).toBeInTheDocument();
   });
 
