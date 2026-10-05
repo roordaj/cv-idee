@@ -5,6 +5,7 @@ import { EmptyState } from '../components/EmptyState.tsx';
 import { ICON_SIZE } from '../components/icons.ts';
 import { ChangesScreen } from '../screens/Changes/index.ts';
 import { Overview } from '../screens/Overview';
+import { CyclesScreen } from '../screens/Cycles/index.ts';
 import { PlaceholderScreen } from '../screens/PlaceholderScreen.tsx';
 import { AppShell } from './AppShell.tsx';
 import { SCREENS } from './navigation.ts';
@@ -47,6 +48,8 @@ export function App({ shellData }: AppProps) {
             element={
               screen.key === 'wijzigingen' ? (
                 <ChangesScreen />
+              ) : screen.key === 'cycli' ? (
+                <CyclesScreen />
               ) : (
                 <PlaceholderScreen screen={screen} />
               )
