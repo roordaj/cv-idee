@@ -716,6 +716,14 @@ class MetricName(StrEnum):
     HEATING_RATE = "heating_rate"
     BOILER_DELTA_T_STABLE = "boiler_delta_t_stable"
     FLOW_MEAN_STABLE = "flow_mean_stable"
+    INCOMPLETE_CYCLES = "incomplete_cycles"
+    """Count of incomplete (open / gap-ended / unobserved-start) CH cycles, kept apart."""
+    OVERSHOOT_AT_STOP = "overshoot_at_stop"
+    """Flow minus flow setpoint in the last minute before flame-off (K)."""
+    BOILER_DELTA_T_STARTUP = "boiler_delta_t_startup"
+    BOILER_DELTA_T_AFTERRUN = "boiler_delta_t_afterrun"
+    PAIR_MISALIGNED_TIME = "pair_misaligned_time"
+    """Quality flag: seconds where flow and return were not aligned (not combined)."""
 
 
 class MetricWindowKind(StrEnum):
