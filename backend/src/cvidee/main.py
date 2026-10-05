@@ -95,6 +95,9 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Migrate before anything (ingest, runner) touches the database.
     settings: Settings = app.state.settings
     migrate_database(settings)
+    app.state.session_factory = create_session_factory(
+        create_db_engine(database_url(settings.db_path))
+    )
     ingest = _start_ingest(app, settings)
     if ingest is not None:
         await ingest.start()
@@ -124,6 +127,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.settings = settings
     app.state.stub_store = StubStore() if settings.stub_data else None
+    app.state.session_factory = None  # set by the lifespan once the database is migrated
     install_problem_handlers(app)
     if settings.api_auth_enabled and settings.api_token is not None:
         app.add_middleware(ApiTokenMiddleware, token=settings.api_token)

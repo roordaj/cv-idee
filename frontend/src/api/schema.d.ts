@@ -1292,6 +1292,31 @@ export interface components {
       missing_signals: string;
     };
     /**
+     * EvidenceLink
+     * @description Link from a finding to the data it is based on (FR-37): shown as 'Toon in tijdlijn'.
+     */
+    EvidenceLink: {
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: 'time_range' | 'cycle' | 'signal' | 'metric' | 'quality_event';
+      /**
+       * Start
+       * @description Range start, or the cycle/metric/event start.
+       */
+      start?: string | null;
+      /** End */
+      end?: string | null;
+      /**
+       * Signal
+       * @example flame@boiler
+       */
+      signal?: string | null;
+      /** Label */
+      label?: string | null;
+    };
+    /**
      * FieldError
      * @description One validation error (``422``), shown on the matching form field.
      */
@@ -1360,6 +1385,13 @@ export interface components {
       postponed_until?: string | null;
       /** Notes */
       notes?: components['schemas']['FindingNote'][];
+      /**
+       * Evidence Links
+       * @description Time ranges, cycles and signals behind the finding.
+       */
+      evidence_links?: components['schemas']['EvidenceLink'][];
+      /** @description Prioritisation and its explanation. */
+      priority?: components['schemas']['PriorityOut'] | null;
     };
     /**
      * FindingLifecycle
@@ -2051,6 +2083,30 @@ export interface components {
        * @default true
        */
       ch_conclusions: boolean;
+    };
+    /** PriorityFactor */
+    PriorityFactor: {
+      /**
+       * Factor
+       * @enum {string}
+       */
+      factor: 'severity' | 'certainty' | 'relevance' | 'recency';
+      /** Value */
+      value: string;
+      /** Weight */
+      weight: number;
+    };
+    /**
+     * PriorityOut
+     * @description Why the finding ranks where it does: score = product of the factor weights.
+     */
+    PriorityOut: {
+      /** Score */
+      score: number;
+      /** Formula */
+      formula: string;
+      /** Factors */
+      factors: components['schemas']['PriorityFactor'][];
     };
     /**
      * Problem

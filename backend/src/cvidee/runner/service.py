@@ -26,7 +26,7 @@ import logging
 import threading
 import time
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -39,6 +39,9 @@ from cvidee.analysis.types import (
     TimestampMs,
     floor_to_grid,
 )
+from cvidee.findings.engine import RecoverySettings
+from cvidee.findings.stage import FindingsStage
+from cvidee.rules.registry import RuleRegistry, default_registry
 from cvidee.runner.sources import (
     MappedSignal,
     SourceSettings,
@@ -74,6 +77,10 @@ class RunnerSettings:
     """Thresholds/windows (signals are filled from the mappings); ``None`` = defaults."""
     sources: SourceSettings = field(default_factory=SourceSettings)
     rule_versions: Mapping[str, str] = field(default_factory=dict)
+    registry: RuleRegistry | None = None
+    """Rules evaluated after the pipeline (stage 6, #34); ``None`` = :func:`default_registry`."""
+    recovery: RecoverySettings = field(default_factory=RecoverySettings)
+    """Recovery criterion for closing findings (FR-21)."""
 
 
 class AnalysisRunner:
@@ -88,7 +95,12 @@ class AnalysisRunner:
         after_run: Sequence[AfterRunHook] = (),
     ) -> None:
         self._sessions = session_factory
-        self.settings = settings if settings is not None else RunnerSettings()
+        settings = settings if settings is not None else RunnerSettings()
+        registry = settings.registry if settings.registry is not None else default_registry()
+        if not settings.rule_versions and len(registry):
+            settings = replace(settings, rule_versions=registry.versions())
+        self.settings = settings
+        self._findings = FindingsStage(registry, settings.recovery, settings.sources)
         self._clock = clock
         self._after_run = tuple(after_run)
         self._lock = threading.Lock()
@@ -262,6 +274,7 @@ class AnalysisRunner:
                 attached = session.merge(run)
                 for hook in self._after_run:
                     hook(session, result, attached)
+                self._findings(session, result, run_id, mapped, config)
                 repo = SqlAnalysisRunRepository(session)
                 repo.supersede(covered, by_run=run_id, now_ts=self._clock())
                 attached.status = RunStatus.SUCCEEDED
