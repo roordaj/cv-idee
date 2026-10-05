@@ -1,0 +1,18 @@
+# Requirements §9.8 / FR-32: simultaneous changes and different weather: no attribution.
+scenario: 08-gelijktijdige-wijzigingen
+cycles:
+  tolerance: 1
+  ch: {stop_during_demand: 566, demand_ended: 36}
+  dhw: {dhw_ended: 12}
+mode_share: {ch: [0.71, 0.81], standby: [0.18, 0.28]}
+findings:
+  - {rule: voor-na, severity: info, certainty: preliminary, count: 1}
+before_after:
+  changes: 2
+  comparable: false
+  confounders: [simultaneous_changes, weather_difference]
+  attributed_to: null
+must_not:
+  - {kind: single_parameter_credit, reason: effect must not be attributed to pump speed or flow setpoint alone}
+  - {rule: voor-na, reason: no certainty above preliminary, min_certainty_exclusive: preliminary}
+availability: {before_after: limited}

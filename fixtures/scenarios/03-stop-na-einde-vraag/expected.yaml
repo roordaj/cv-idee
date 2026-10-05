@@ -1,0 +1,12 @@
+# Requirements §9.3: burner stops with the end of demand, not cycling during sustained demand.
+scenario: 03-stop-na-einde-vraag
+cycles:
+  tolerance: 1
+  ch: {demand_ended: 108, stop_during_demand: 0}
+  dhw: {dhw_ended: 4}
+mode_share: {ch: [0.10, 0.16], standby: [0.81, 0.90]}
+findings: []
+must_not:
+  - {rule: kort-branden, reason: short burns end with demand, not during sustained demand}
+  - {rule: stop-tijdens-vraag, reason: no cycle ends during demand}
+availability: {short_cycles: available}

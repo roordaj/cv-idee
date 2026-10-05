@@ -1,0 +1,13 @@
+# Requirements §9.6: mixed installation without manifold measurements: limited hydraulic conclusion.
+scenario: 06-mengverdeler-zonder-verdelerdata
+cycles:
+  tolerance: 0
+  ch: {stop_during_demand: 183, demand_ended: 15}
+  dhw: {dhw_ended: 9}
+mode_share: {ch: [0.65, 0.76], standby: [0.22, 0.32]}
+findings:
+  - {rule: hydraulisch, severity: info, certainty: insufficient_evidence, count: 1, advice_kind: measurement}
+must_not:
+  - {kind: loop_specific_advice, reason: no manifold/valve/zone signals, no advice about a specific loop}
+  - {rule: hydraulisch, reason: no diagnosis above insufficient_evidence, min_certainty_exclusive: insufficient_evidence}
+availability: {hydraulic: limited}
