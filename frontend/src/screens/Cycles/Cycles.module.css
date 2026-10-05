@@ -1,0 +1,39 @@
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+.chartCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-x: auto;
+}
+.tableHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 10px 12px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.tableTitle {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+}
+.hint {
+  font-size: 12px;
+  color: #8a92a3;
+}
