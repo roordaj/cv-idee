@@ -12,6 +12,11 @@ from dataclasses import dataclass, replace
 from typing import Protocol
 
 from cvidee.analysis.cycles import cycle_settles_at, detect_cycles
+from cvidee.analysis.metrics_cycles import grid_buckets, hourly_cycle_metrics
+from cvidee.analysis.metrics_temperature import (
+    cycle_temperature_metrics,
+    hourly_temperature_metrics,
+)
 from cvidee.analysis.modes import classify_modes
 from cvidee.analysis.quality import apply_quality, duplicate_events
 from cvidee.analysis.timeline import build_stage1
@@ -25,6 +30,8 @@ from cvidee.analysis.types import (
     PipelineConfig,
     PipelineResult,
     QualityEvent,
+    Role,
+    SignalRef,
     SignalTimeline,
     TimestampMs,
 )
@@ -48,10 +55,37 @@ class MetricStage(Protocol):
     def __call__(self, data: MetricInput, /) -> Sequence[MetricValue]: ...
 
 
-METRIC_STAGES: tuple[MetricStage, ...] = ()
-"""Extension point for stage 5 (ADR-002 §3.5): the metric tickets (#28, #29) register their
-functions here. Empty while the metric functions are stubs; the runner persists whatever
-the registered stages return."""
+def _timeline(data: MetricInput, role: Role) -> SignalTimeline | None:
+    return next((t for t in data.timelines if t.signal == SignalRef(role)), None)
+
+
+def cycle_metrics_stage(data: MetricInput) -> Sequence[MetricValue]:
+    """Stage 5a (#28): hourly cycle metrics. Without a flame signal nothing is observed."""
+    flame = _timeline(data, Role.FLAME)
+    if flame is None:
+        return ()
+    buckets = grid_buckets(data.window, data.config.grid_ms)
+    return hourly_cycle_metrics(
+        data.cycles,
+        data.modes,
+        flame,
+        _timeline(data, Role.HEAT_DEMAND),
+        buckets,
+        data.config,
+    )
+
+
+def temperature_metrics_stage(data: MetricInput) -> Sequence[MetricValue]:
+    """Stage 5b (#29): per-cycle and hourly temperature metrics."""
+    buckets = grid_buckets(data.window, data.config.grid_ms)
+    return (
+        *cycle_temperature_metrics(data.cycles, data.timelines, data.config),
+        *hourly_temperature_metrics(data.cycles, data.timelines, buckets, data.config),
+    )
+
+
+METRIC_STAGES: tuple[MetricStage, ...] = (cycle_metrics_stage, temperature_metrics_stage)
+"""Stage 5 (ADR-002 §3.5): the metric functions; the runner persists what they return."""
 
 
 def next_watermark(
