@@ -1,5 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { POSTPONE_DAYS, statusText } from '../../screens/Findings/labels.ts';
 import { api, unwrap, type RequestBody } from '../client.ts';
+import type { components } from '../schema';
+
+type FindingDetail = components['schemas']['FindingDetail'];
+type FindingList = components['schemas']['FindingList'];
 
 const findingsKey = ['findings'] as const;
 
@@ -34,6 +39,7 @@ function useInvalidateFindings() {
 }
 
 export function useSetFindingStatus() {
+  const queryClient = useQueryClient();
   const invalidate = useInvalidateFindings();
   return useMutation({
     mutationFn: async (args: {
@@ -46,7 +52,34 @@ export function useSetFindingStatus() {
           body: args.body,
         }),
       ),
-    onSuccess: invalidate,
+    // Optimistic update (FR-27): patch list and detail caches, roll back on error.
+    onMutate: async (args) => {
+      await queryClient.cancelQueries({ queryKey: findingsKey });
+      const snapshot = queryClient.getQueriesData({ queryKey: findingsKey });
+      const status = args.body.status;
+      const until = args.body.postponed_until
+        ? new Date(args.body.postponed_until)
+        : new Date(Date.now() + POSTPONE_DAYS * 86_400_000);
+      const patch = { status, status_text: statusText(status, until) };
+      queryClient.setQueryData<FindingDetail>([...findingsKey, args.findingId], (old) =>
+        old ? { ...old, ...patch } : old,
+      );
+      queryClient.setQueryData<FindingList>(findingsKey, (old) =>
+        old
+          ? {
+              ...old,
+              items: old.items.map((f) => (f.id === args.findingId ? { ...f, ...patch } : f)),
+            }
+          : old,
+      );
+      return { snapshot };
+    },
+    onError: (_error, _args, context) => {
+      context?.snapshot.forEach(([key, data]) => {
+        queryClient.setQueryData(key, data);
+      });
+    },
+    onSettled: invalidate,
   });
 }
 
