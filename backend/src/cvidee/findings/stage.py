@@ -24,8 +24,10 @@ from cvidee.analysis.types import (
 )
 from cvidee.findings.engine import EngineResult, FindingsEngine, RecoverySettings
 from cvidee.findings.repository import SqlFindingRepository
+from cvidee.installation import SqlInstallationProfileRepository, profile_facts
+from cvidee.periods import rule_periods
 from cvidee.rules.availability import assess_analyses
-from cvidee.rules.base import InstallationFacts, RuleContext, SignalStatus
+from cvidee.rules.base import RuleContext, SignalStatus
 from cvidee.rules.registry import RuleRegistry
 from cvidee.runner.sources import MappedSignal, SourceSettings, load_window_input
 from cvidee.store.derived import SqlDerivedDataRepository
@@ -104,7 +106,8 @@ class FindingsStage:
             SignalStatus(sig, min(1.0, _known_ms(tl, period) / period.duration_ms))
             for sig, tl in sorted(built.items())
         )
-        profile = InstallationFacts()
+        profiles = SqlInstallationProfileRepository(session)
+        profile = profile_facts(profiles.at(now) or profiles.current_or_default(now))
         derived = SqlDerivedDataRepository(session)
         metrics = tuple(
             m for kind in MetricWindowKind for m in derived.metric_values(kind, period.start, now)
@@ -119,6 +122,7 @@ class FindingsStage:
             mode_segments=tuple(derived.mode_segments(period.start, now)),
             metrics=metrics,
             quality_events=tuple(derived.quality_events(period.start, now)),
+            special_periods=rule_periods(session, period),
             timelines=timelines,
             config_hash=config.config_hash,
         )

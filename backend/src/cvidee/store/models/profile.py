@@ -1,6 +1,9 @@
 """Installation profile (FR-02, FR-03), versioned copy-on-write, and special periods (FR-10)."""
 
+from typing import Any
+
 from sqlalchemy import (
+    JSON,
     Boolean,
     CheckConstraint,
     Float,
@@ -32,6 +35,9 @@ class InstallationProfile(Base):
     created_at_ts: Mapped[int] = ts_column()
     change_id: Mapped[int | None] = mapped_column(ForeignKey("changes.id", ondelete="SET NULL"))
     note: Mapped[str | None] = mapped_column(Text)
+    # Presentation facts without a relational meaning (boiler description, loops, notes,
+    # room schedules); copied with the version like the children.
+    details: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, server_default="{}")
 
     circuits: Mapped[list["ProfileCircuit"]] = relationship(
         back_populates="profile", cascade="all, delete-orphan"

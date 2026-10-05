@@ -11,9 +11,21 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from cvidee.api.findings_read import FindingsReadModel
 from cvidee.api.problems import ProblemError
+from cvidee.api.config_backend import ConfigBackend
 from cvidee.api.schemas.common import UtcDateTime
+from cvidee.api.schemas.data import SpecialPeriod, SpecialPeriodIn, SpecialPeriodList
 from cvidee.api.schemas.findings import FindingDetail, FindingList
+from cvidee.api.schemas.installation import InstallationProfile, InstallationProfileIn
 from cvidee.api.stubs.store import StubStore
+
+
+def get_stub_store_problem() -> ProblemError:
+    return ProblemError(
+        501,
+        "Nog niet geïmplementeerd",
+        "Deze route heeft nog geen implementatie. Start de backend met "
+        "CVIDEE_STUB_DATA=1 voor voorbeeldgegevens.",
+    )
 
 
 def get_stub_store(request: Request) -> StubStore:
@@ -50,6 +62,33 @@ def get_findings(request: Request) -> Iterator[FindingsBackend]:
         yield FindingsReadModel(session, lambda: int(time.time() * 1000))
 
 
+class ConfigBackendProtocol(Protocol):
+    """Installation profile and special periods: the database, or the stub."""
+
+    def installation_profile(self) -> InstallationProfile: ...
+
+    def put_installation(self, body: InstallationProfileIn) -> InstallationProfile: ...
+
+    def period_list(self) -> SpecialPeriodList: ...
+
+    def create_period(self, body: SpecialPeriodIn) -> SpecialPeriod: ...
+
+    def update_period(self, period_id: str, body: SpecialPeriodIn) -> SpecialPeriod: ...
+
+    def delete_period(self, period_id: str) -> None: ...
+
+
+def get_config(request: Request) -> ConfigBackendProtocol:
+    stub: StubStore | None = getattr(request.app.state, "stub_store", None)
+    if stub is not None:
+        return stub
+    factory: sessionmaker[Session] | None = getattr(request.app.state, "session_factory", None)
+    if factory is None:
+        raise get_stub_store_problem()
+    return ConfigBackend(factory, getattr(request.app.state, "runner", None))
+
+
+Config = Annotated[ConfigBackendProtocol, Depends(get_config)]
 Findings = Annotated[FindingsBackend, Depends(get_findings)]
 Store = Annotated[StubStore, Depends(get_stub_store)]
 From = Annotated[
