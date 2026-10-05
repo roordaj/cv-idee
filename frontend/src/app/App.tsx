@@ -5,6 +5,8 @@ import { EmptyState } from '../components/EmptyState.tsx';
 import { ICON_SIZE } from '../components/icons.ts';
 import Findings from '../screens/Findings/Findings.tsx';
 import { ChangesScreen } from '../screens/Changes/index.ts';
+import { HistoryScreen } from '../screens/History/index.ts';
+import { NotificationsScreen } from '../screens/Notifications/index.ts';
 import { Overview } from '../screens/Overview';
 import { CyclesScreen } from '../screens/Cycles/index.ts';
 import { PlaceholderScreen } from '../screens/PlaceholderScreen.tsx';
@@ -35,6 +37,21 @@ function NotFound() {
   );
 }
 
+function screenElement(screen: (typeof SCREENS)[number]) {
+  switch (screen.key) {
+    case 'wijzigingen':
+      return <ChangesScreen />;
+    case 'cycli':
+      return <CyclesScreen />;
+    case 'historie':
+      return <HistoryScreen />;
+    case 'meldingen':
+      return <NotificationsScreen />;
+    default:
+      return <PlaceholderScreen screen={screen} />;
+  }
+}
+
 export function App({ shellData }: AppProps) {
   const fetched = useShellData();
   return (
@@ -46,19 +63,7 @@ export function App({ shellData }: AppProps) {
         <Route path="bevindingen/:id" element={<Findings />} />
         {SCREENS.filter((screen) => screen.key !== 'overzicht' && screen.key !== 'bevindingen').map(
           (screen) => (
-            <Route
-              key={screen.key}
-              path={screen.path}
-              element={
-                screen.key === 'wijzigingen' ? (
-                  <ChangesScreen />
-                ) : screen.key === 'cycli' ? (
-                  <CyclesScreen />
-                ) : (
-                  <PlaceholderScreen screen={screen} />
-                )
-              }
-            />
+            <Route key={screen.key} path={screen.path} element={screenElement(screen)} />
           ),
         )}
         <Route
