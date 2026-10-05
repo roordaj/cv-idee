@@ -115,7 +115,9 @@ describe('QualityScreen', () => {
     expect(screen.getByText('Datagat van 2 uur')).toBeInTheDocument();
     expect(screen.getByText('Cv-bedrijf')).toBeInTheDocument();
     expect(screen.getByText(/Resolutie vlamstatus/)).toBeInTheDocument();
-    expect(await screen.findByText('Jaarlijks onderhoud · telt niet mee in vergelijkingen')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Jaarlijks onderhoud · telt niet mee in vergelijkingen'),
+    ).toBeInTheDocument();
   });
 
   it('creates a period through the dialog', async () => {

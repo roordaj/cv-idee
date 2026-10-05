@@ -11,7 +11,7 @@ import { ICON_SIZE } from '../../components/icons.ts';
 import { IconBadge } from '../../components/IconBadge.tsx';
 import { PageHeader } from '../../components/PageHeader.tsx';
 import { Skeleton, SkeletonGroup } from '../../components/Skeleton.tsx';
-import { toneVars } from '../../components/tone.ts';
+import { cx, toneVars } from '../../components/tone.ts';
 import { StackedShareBar } from '../../charts/StackedShareBar.tsx';
 import { formatDayMonth, formatNumber, formatPercent, formatTime } from '../../lib/format.ts';
 import { NO_DATA_PATTERN } from '../../lib/semantics.ts';
@@ -116,7 +116,10 @@ export function QualityScreen() {
                 Compleet
               </li>
               <li>
-                <span className={styles.swatch} style={{ background: SEGMENT_COLOR.connection_lost }} />
+                <span
+                  className={styles.swatch}
+                  style={{ background: SEGMENT_COLOR.connection_lost }}
+                />
                 Verbinding weg
               </li>
               <li>
@@ -131,7 +134,7 @@ export function QualityScreen() {
           </Card>
 
           <div className={styles.cols}>
-            <Card padding="md" className={`${styles.card} ${styles.eventsCard}`}>
+            <Card padding="md" className={cx(styles.card, styles.eventsCard)}>
               <h3 className={styles.h3}>Gedetecteerde gebeurtenissen</h3>
               {!q ? (
                 <SkeletonGroup>
@@ -171,19 +174,17 @@ export function QualityScreen() {
             <div className={styles.side}>
               <Card padding="md" className={styles.card}>
                 <h3 className={styles.h3}>Bedrijfsmodi vandaag</h3>
-                {!q ? (
-                  <Skeleton height={14} radius={7} />
-                ) : (
-                  <ModeShare data={q} />
-                )}
+                {!q ? <Skeleton height={14} radius={7} /> : <ModeShare data={q} />}
               </Card>
               {q ? (
                 q.flame_resolution_s === null ? (
-                  <Callout tone="warning">Resolutie vlamstatus: onbekend. {q.flame_resolution_text}</Callout>
+                  <Callout tone="warning">
+                    Resolutie vlamstatus: onbekend. {q.flame_resolution_text}
+                  </Callout>
                 ) : (
                   <Callout tone="success">
-                    Resolutie vlamstatus: <strong>{formatNumber(q.flame_resolution_s, 0)} s</strong>.{' '}
-                    {q.flame_resolution_text}
+                    Resolutie vlamstatus: <strong>{formatNumber(q.flame_resolution_s, 0)} s</strong>
+                    . {q.flame_resolution_text}
                   </Callout>
                 )
               ) : null}
@@ -226,7 +227,7 @@ export function QualityScreen() {
               <li key={p.id}>
                 <button
                   type="button"
-                  className={`${styles.period} ${highlight === p.id ? styles.periodNew : ''}`}
+                  className={cx(styles.period, highlight === p.id && styles.periodNew)}
                   style={toneVars(PERIOD_TONE[p.kind])}
                   title={PERIOD_HELP[p.kind]}
                   onClick={() => {
@@ -271,7 +272,7 @@ type QualityData = components['schemas']['QualityResponse'];
 
 function CoverageRows({ data }: { data: QualityData }) {
   const t0 = new Date(data.range.start).getTime();
-  const t1 = data.range.end ? new Date(data.range.end).getTime() : Date.now();
+  const t1 = data.range.end ? new Date(data.range.end).getTime() : t0 + 7 * 86_400_000;
   const span = Math.max(1, t1 - t0);
   return (
     <>
@@ -286,12 +287,19 @@ function CoverageRows({ data }: { data: QualityData }) {
           >
             {r.segments.map((g) => {
               const l = Math.max(0, ((new Date(g.start).getTime() - t0) / span) * 100);
-              const w = Math.min(100 - l, ((new Date(g.end).getTime() - new Date(g.start).getTime()) / span) * 100);
+              const w = Math.min(
+                100 - l,
+                ((new Date(g.end).getTime() - new Date(g.start).getTime()) / span) * 100,
+              );
               return (
                 <span
                   key={`${g.kind}-${g.start}`}
                   className={styles.covSeg}
-                  style={{ left: `${String(l)}%`, width: `${String(w)}%`, background: SEGMENT_COLOR[g.kind] }}
+                  style={{
+                    left: `${String(l)}%`,
+                    width: `${String(w)}%`,
+                    background: SEGMENT_COLOR[g.kind],
+                  }}
                 />
               );
             })}
@@ -319,7 +327,10 @@ function ModeShare({ data }: { data: QualityData }) {
       <ul className={styles.modeList} aria-label="Legenda bedrijfsmodi">
         {data.mode_share.map((m) => (
           <li key={m.mode} className={styles.modeItem}>
-            <span className={styles.swatch} style={{ background: MODE_COLOR[m.mode], width: 10, height: 10, borderRadius: 3 }} />
+            <span
+              className={styles.swatch}
+              style={{ background: MODE_COLOR[m.mode], width: 10, height: 10, borderRadius: 3 }}
+            />
             <span className={styles.modeLabel}>{m.label}</span>
             <span className={styles.muted}>{formatPercent(m.share_pct)}</span>
           </li>

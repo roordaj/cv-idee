@@ -1,11 +1,7 @@
 import { CalendarDays, Check, CircleAlert, Loader2, TriangleAlert } from 'lucide-react';
 import { useState, type FormEvent, type KeyboardEvent } from 'react';
 import type { components } from '../../api/schema';
-import {
-  useCreatePeriod,
-  useDeletePeriod,
-  useUpdatePeriod,
-} from '../../api/hooks/installation.ts';
+import { useCreatePeriod, useDeletePeriod, useUpdatePeriod } from '../../api/hooks/installation.ts';
 import { Button } from '../../components/Button.tsx';
 import { Dialog } from '../../components/Dialog.tsx';
 import { ICON_SIZE } from '../../components/icons.ts';
@@ -39,11 +35,7 @@ export interface PeriodErrors {
   end?: string;
 }
 
-export interface PeriodWarnings {
-  messages: string[];
-}
-
-export function validatePeriod(
+function validatePeriod(
   v: { kind: PeriodKind | null; start: Date | null; end: Date | null; ongoing: boolean },
   others: readonly Period[],
   now = new Date(),
@@ -375,7 +367,9 @@ function PeriodDialogInner({ open, onClose, period, allPeriods, onSaved }: Perio
               setExcluded({ ...excluded, ch_conclusions: v });
             }}
           />
-          <p className={styles.note}>De gegevens blijven altijd zichtbaar in grafieken en tabellen.</p>
+          <p className={styles.note}>
+            De gegevens blijven altijd zichtbaar in grafieken en tabellen.
+          </p>
         </div>
         {warnings.map((w) => (
           <div key={w} role="status" className={styles.warn}>

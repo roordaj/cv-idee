@@ -2,12 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { CalendarDays, Database, Download, Repeat, Shield } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  useCancelImport,
-  useImport,
-  useImports,
-  useStartImport,
-} from '../../api/hooks/data.ts';
+import { useCancelImport, useImport, useImports, useStartImport } from '../../api/hooks/data.ts';
 import { Button } from '../../components/Button.tsx';
 import { Callout } from '../../components/Callout.tsx';
 import { Card } from '../../components/Card.tsx';
@@ -42,6 +37,7 @@ function etaText(seconds: number | null | undefined, blocksDone: number): string
 
 export function ImportCard({ minCoveragePct = 95 }: { minCoveragePct?: number }) {
   const queryClient = useQueryClient();
+  const [now] = useState(() => Date.now());
   const list = useImports();
   const latest = list.data?.items
     .slice()
@@ -51,7 +47,7 @@ export function ImportCard({ minCoveragePct = 95 }: { minCoveragePct?: number })
   const start = useStartImport();
   const cancel = useCancelImport();
   const [preset, setPreset] = useState<Preset>('7');
-  const [from, setFrom] = useState(dateInput(new Date(Date.now() - 7 * DAY_MS)));
+  const [from, setFrom] = useState(dateInput(new Date(now - 7 * DAY_MS)));
   const [to, setTo] = useState(dateInput(new Date()));
   const [stopping, setStopping] = useState(false);
   const [forceForm, setForceForm] = useState(false);
@@ -70,18 +66,20 @@ export function ImportCard({ minCoveragePct = 95 }: { minCoveragePct?: number })
   const earliest = list.data?.earliest_available_at ?? null;
   const rangeFrom = (): Date => {
     if (preset === 'custom') return new Date(`${from}T00:00`);
-    if (preset === 'all') return earliest ? new Date(earliest) : new Date(Date.now() - 30 * DAY_MS);
-    return new Date(Date.now() - Number(preset) * DAY_MS);
+    if (preset === 'all') return earliest ? new Date(earliest) : new Date(now - 30 * DAY_MS);
+    return new Date(now - Number(preset) * DAY_MS);
   };
   const rangeTo = (): Date => (preset === 'custom' ? new Date(`${to}T23:59`) : new Date());
   const customError =
     preset === 'custom' && (!from || !to || from >= to)
       ? 'De begindatum moet vóór de einddatum liggen.'
-      : preset === 'custom' && new Date(`${to}T00:00`).getTime() > Date.now() + DAY_MS
+      : preset === 'custom' && new Date(`${to}T00:00`).getTime() > now + DAY_MS
         ? 'De einddatum mag niet in de toekomst liggen.'
         : null;
   const bigRange =
-    preset === 'custom' && !customError && rangeTo().getTime() - rangeFrom().getTime() > 365 * DAY_MS;
+    preset === 'custom' &&
+    !customError &&
+    rangeTo().getTime() - rangeFrom().getTime() > 365 * DAY_MS;
   const beforeEarliest = earliest !== null && rangeFrom().getTime() < new Date(earliest).getTime();
 
   const begin = (range?: { from: string; to: string }) => {
@@ -95,7 +93,8 @@ export function ImportCard({ minCoveragePct = 95 }: { minCoveragePct?: number })
 
   const statusInfo = job ? IMPORT_STATUS[job.status] : null;
   const showForm = !job || forceForm || (!active && status === 'cancelled');
-  const pct = job && job.blocks_total > 0 ? Math.round((job.blocks_done / job.blocks_total) * 100) : 0;
+  const pct =
+    job && job.blocks_total > 0 ? Math.round((job.blocks_done / job.blocks_total) * 100) : 0;
   const analysing = status === 'analysing';
 
   let body;
@@ -215,7 +214,9 @@ export function ImportCard({ minCoveragePct = 95 }: { minCoveragePct?: number })
             </ul>
           </Callout>
         ) : (
-          <Callout tone="success">Alles binnen. Geen gaten gevonden in de geïmporteerde periode.</Callout>
+          <Callout tone="success">
+            Alles binnen. Geen gaten gevonden in de geïmporteerde periode.
+          </Callout>
         )}
         <div className={styles.actions}>
           <span style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -280,8 +281,8 @@ export function ImportCard({ minCoveragePct = 95 }: { minCoveragePct?: number })
   const form = (
     <>
       <p className={styles.muted}>
-        Haal eerdere metingen op uit Home Assistant. De import gebruikt precies dezelfde analyse
-        als live gegevens, dus dezelfde historie levert dezelfde cycli op.
+        Haal eerdere metingen op uit Home Assistant. De import gebruikt precies dezelfde analyse als
+        live gegevens, dus dezelfde historie levert dezelfde cycli op.
       </p>
       <SegmentedControl
         label="Periode"
