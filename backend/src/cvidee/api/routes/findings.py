@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, status
 
-from cvidee.api.routes.deps import Limit, Offset, Store
+from cvidee.api.routes.deps import Findings, Limit, Offset, Store
 from cvidee.api.schemas.common import Page, problem_responses
 from cvidee.api.schemas.findings import (
     FindingDetail,
@@ -17,13 +17,13 @@ router = APIRouter(responses=problem_responses(501))
 
 
 @router.get("/findings", tags=["findings"])
-async def list_findings(store: Store) -> FindingList:
+async def list_findings(store: Findings) -> FindingList:
     """Active findings (FR-21-28)."""
     return store.finding_list()
 
 
 @router.get("/findings/{finding_id}", tags=["findings"], responses=problem_responses(404, 422))
-async def get_finding(finding_id: str, store: Store) -> FindingDetail:
+async def get_finding(finding_id: str, store: Findings) -> FindingDetail:
     """Observation, interpretation, evidence, hypotheses and advice (FR-37)."""
     return store.finding(finding_id)
 

@@ -108,6 +108,32 @@ class FindingNote(ApiModel):
     created_at: UtcDateTime
 
 
+class EvidenceLink(ApiModel):
+    """Link from a finding to the data it is based on (FR-37): shown as 'Toon in tijdlijn'."""
+
+    kind: Literal["time_range", "cycle", "signal", "metric", "quality_event"]
+    start: UtcDateTime | None = Field(
+        default=None, description="Range start, or the cycle/metric/event start."
+    )
+    end: UtcDateTime | None = None
+    signal: str | None = Field(default=None, examples=["flame@boiler"])
+    label: str | None = None
+
+
+class PriorityFactor(ApiModel):
+    factor: Literal["severity", "certainty", "relevance", "recency"]
+    value: str
+    weight: float = Field(gt=0, le=1)
+
+
+class PriorityOut(ApiModel):
+    """Why the finding ranks where it does: score = product of the factor weights."""
+
+    score: float
+    formula: str
+    factors: list[PriorityFactor]
+
+
 class FindingDetail(FindingSummary):
     rule: RuleRef
     observation: str
@@ -125,6 +151,12 @@ class FindingDetail(FindingSummary):
     )
     postponed_until: UtcDateTime | None = None
     notes: list[FindingNote] = Field(default_factory=list)
+    evidence_links: list[EvidenceLink] = Field(
+        default_factory=list, description="Time ranges, cycles and signals behind the finding."
+    )
+    priority: PriorityOut | None = Field(
+        default=None, description="Prioritisation and its explanation."
+    )
 
 
 class FindingStatusUpdate(ApiModel):

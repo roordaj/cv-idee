@@ -1,0 +1,276 @@
+# ruff: noqa: RUF001, RUF002
+"""Read model of persisted findings: ORM rows → API schemas (Dutch UI texts, #34)."""
+
+from __future__ import annotations
+
+from collections.abc import Callable
+from datetime import UTC, datetime
+from typing import Any
+from zoneinfo import ZoneInfo
+
+from sqlalchemy.orm import Session
+
+from cvidee.api.problems import not_found
+from cvidee.api.schemas.common import TimeRange
+from cvidee.api.schemas.findings import (
+    Evidence,
+    EvidenceDisplay,
+    EvidenceLink,
+    FindingDetail,
+    FindingList,
+    FindingSummary,
+    HypothesisOut,
+    PriorityFactor,
+    PriorityOut,
+    RecommendationOut,
+    RuleRef,
+)
+from cvidee.api.stubs.fixtures import status_text
+from cvidee.findings.repository import SqlFindingRepository
+from cvidee.rules.base import Category, RecommendationKind, Relevance
+from cvidee.store.enums import (
+    Certainty,
+    EvidenceKind,
+    FindingLifecycle,
+    RecommendationStatus,
+    Severity,
+)
+from cvidee.store.models import Finding, FindingEvidence, Recommendation
+
+__all__ = ["FindingsReadModel"]
+
+AMS = ZoneInfo("Europe/Amsterdam")
+MONTHS = ("jan", "feb", "mrt", "apr", "mei", "jun", "jul", "aug", "sep", "okt", "nov", "dec")
+DAY_NAMES = ("ma", "di", "wo", "do", "vr", "za", "zo")
+ROLE_LABELS = {
+    "flame": "vlamstatus",
+    "operating_mode": "CV-modus",
+    "heat_demand": "warmtevraag",
+    "flow_setpoint": "gewenste aanvoer",
+    "flow_temperature": "aanvoer",
+    "return_temperature": "retour",
+    "modulation": "modulatie",
+    "outdoor_temperature": "buitentemperatuur",
+    "room_temperature": "kamertemperatuur",
+    "room_setpoint": "kamersetpoint",
+}
+_OPEN = (RecommendationStatus.OPEN, RecommendationStatus.ROLLBACK_TRIGGERED)
+
+
+def _dt(ms: int) -> datetime:
+    return datetime.fromtimestamp(ms / 1000, tz=UTC)
+
+
+def _role_label(signal: str) -> str:
+    role = signal.partition("@")[0]
+    label = ROLE_LABELS.get(role, role.replace("_", " "))
+    scope = signal.partition("@")[2].partition(":")[2]
+    return f"{label} {scope}" if scope else label
+
+
+def _hm(ms: int) -> str:
+    return _dt(ms).astimezone(AMS).strftime("%H:%M")
+
+
+def _day(ms: int) -> str:
+    local = _dt(ms).astimezone(AMS)
+    return f"{local.day} {MONTHS[local.month - 1]}"
+
+
+def when_text(start: int, end: int, now: int) -> str:
+    """'vandaag 06:00–10:10', '3 okt 06:00–10:10' or 'sinds 21 sep' (multi-day patterns)."""
+    s, e, n = (_dt(x).astimezone(AMS) for x in (start, end, now))
+    if e.date() != s.date() and (e - s).total_seconds() > 24 * 3600:
+        return f"sinds {_day(start)}"
+    prefix = "vandaag" if s.date() == n.date() else _day(start)
+    return f"{prefix} {_hm(start)}–{_hm(end)}"
+
+
+def period_text(f: Finding) -> str:
+    s = _dt(f.period_start_ts).astimezone(AMS)
+    text = (
+        f"{DAY_NAMES[s.weekday()].capitalize()} {_day(f.period_start_ts)} "
+        f"{_hm(f.period_start_ts)}–{_hm(f.period_end_ts)}"
+    )
+    return f"{text} · {f.period_note}" if f.period_note else text
+
+
+def _duration_text(ms: int) -> str:
+    minutes = round(ms / 60_000)
+    if minutes >= 120:
+        return f"{minutes // 60} u"
+    return f"{minutes} min"
+
+
+def _evidence(f: Finding) -> Evidence:
+    sup: dict[str, Any] = f.support
+    coverage = sup.get("coverage")
+    unknown_ms = int(sup.get("unknown_ms") or 0)
+    relevant, pattern = sup.get("relevant_cycles"), sup.get("pattern_cycles")
+    days, window = sup.get("repetition_days"), sup.get("repetition_window_days")
+    missing = [str(s) for s in sup.get("missing_signals", [])]
+    cov_text = "—" if coverage is None else f"{round(coverage * 100)} %"
+    if unknown_ms:
+        cov_text += f" · {_duration_text(unknown_ms)} onbekend"
+    if pattern is not None and relevant is not None:
+        cycles = f"{pattern} van {relevant} cv-cycli"
+    elif relevant is not None:
+        cycles = f"{relevant} cv-cycli"
+    else:
+        cycles = "—"
+    repetition = f"{days} van laatste {window} dagen" if days is not None and window else "—"
+    return Evidence(
+        coverage_pct=None if coverage is None else round(coverage * 100, 1),
+        unknown_s=unknown_ms // 1000,
+        excluded_cycles=int(sup.get("excluded_cycles") or 0),
+        relevant_cycles=relevant,
+        pattern_cycles=pattern,
+        repetition_days=days,
+        repetition_window_days=window,
+        missing_signals=missing,
+        display=EvidenceDisplay(
+            coverage=cov_text,
+            cycles=cycles,
+            repetition=repetition,
+            missing_signals=", ".join(_role_label(m) for m in missing) or "Geen",
+        ),
+    )
+
+
+def _link(e: FindingEvidence) -> EvidenceLink:
+    signal = None if e.role is None else f"{e.role}@{e.scope_key or 'boiler'}"
+    start = None if e.start_ts is None else _dt(e.start_ts)
+    end = None if e.end_ts is None else _dt(e.end_ts)
+    match e.kind:
+        case EvidenceKind.CYCLE:
+            return EvidenceLink(
+                kind="cycle", start=_dt(e.cycle_start_ts) if e.cycle_start_ts is not None else None
+            )
+        case EvidenceKind.TIME_RANGE:
+            return EvidenceLink(kind="time_range", start=start, end=end, label=e.summary)
+        case EvidenceKind.SIGNAL:
+            return EvidenceLink(kind="signal", signal=signal, start=start, end=end)
+        case EvidenceKind.METRIC:
+            return EvidenceLink(kind="metric", start=start, label=e.metric)
+        case _:
+            return EvidenceLink(kind="quality_event", start=start, signal=signal, label=e.summary)
+
+
+def _recommendation(rec: Recommendation, finding: Finding) -> RecommendationOut:
+    kind = (rec.success_spec or {}).get("kind")
+    return RecommendationOut(
+        kind=RecommendationKind(kind)
+        if kind
+        else (
+            RecommendationKind.MEASUREMENT
+            if rec.is_additional_measurement
+            else RecommendationKind.CHECK
+        ),
+        action=rec.action,
+        reason=rec.reason,
+        expected_effect=rec.expected_effect,
+        comfort_impact=rec.comfort_impact,
+        magnitude=rec.magnitude,
+        conditions=rec.conditions,
+        evaluation=rec.evaluation,
+        success_criterion=rec.success_criterion,
+        rollback_criterion=rec.rollback_criterion,
+        follow_up=rec.follow_up,
+    )
+
+
+class FindingsReadModel:
+    """``GET /api/findings`` and ``/api/findings/{id}`` over the database."""
+
+    def __init__(self, session: Session, clock: Callable[[], int]) -> None:
+        self._repo = SqlFindingRepository(session)
+        self._clock = clock
+
+    def _status(self, finding: Finding) -> Recommendation | None:
+        return self._repo.recommendation_of(finding)
+
+    def _summary_fields(self, f: Finding, rec: Recommendation | None) -> dict[str, Any]:
+        status = rec.status if rec is not None else RecommendationStatus.OPEN
+        postponed = (
+            _dt(rec.postponed_until_ts) if rec is not None and rec.postponed_until_ts else None
+        )
+        return {
+            "id": f.human_id,
+            "category": Category(f.category),
+            "title": f.title,
+            "severity": Severity(f.severity),
+            "certainty": Certainty(f.certainty),
+            "relevance": [Relevance(r) for r in f.relevance],
+            "lifecycle": FindingLifecycle(f.lifecycle),
+            "status": status,
+            "status_text": status_text(status, postponed),
+            "period": TimeRange(start=_dt(f.period_start_ts), end=_dt(f.period_end_ts)),
+            "when_text": when_text(f.period_start_ts, f.period_end_ts, self._clock()),
+        }
+
+    def finding_list(self) -> FindingList:
+        findings = self._repo.list_findings()
+        items: list[FindingSummary] = []
+        open_count = 0
+        for f in findings:
+            rec = self._status(f)
+            fields = self._summary_fields(f, rec)
+            items.append(FindingSummary(**fields))
+            if rec is not None and rec.status in _OPEN:
+                open_count += 1
+        return FindingList(items=items, open_count=open_count)
+
+    def finding(self, human_id: str) -> FindingDetail:
+        f = self._repo.by_human_id(human_id)
+        if f is None:
+            raise not_found("Bevinding", human_id)
+        rec = self._status(f)
+        links = [_link(e) for e in sorted(f.evidence, key=_link_order)]
+        has_cycles = any(link.kind == "cycle" for link in links)
+        explanation: dict[str, Any] = f.priority_explanation or {}
+        priority = (
+            PriorityOut(
+                score=f.priority_score,
+                formula=str(explanation.get("formula", "")),
+                factors=[PriorityFactor(**x) for x in explanation.get("factors", [])],
+            )
+            if explanation
+            else None
+        )
+        return FindingDetail(
+            **self._summary_fields(f, rec),
+            rule=RuleRef(id=f.rule_id, version=f.rule_version),
+            observation=f.observation,
+            period_text=period_text(f),
+            signals_text=", ".join(_role_label(s) for s in f.signals).capitalize(),
+            interpretation=f.interpretation,
+            hypotheses=[
+                HypothesisOut(
+                    number=h.ordinal,
+                    name=h.name,
+                    evidence_for=h.evidence_for or "",
+                    missing=h.evidence_against or "",
+                    distinguishing_measurement=h.distinguishing_measurement or "",
+                )
+                for h in f.hypotheses
+            ],
+            evidence=_evidence(f),
+            recommendation=_recommendation(rec, f) if rec is not None else None,
+            no_advice_text=f.no_advice_text,
+            bundle=[],
+            glossary=[],
+            timeline_range=(
+                TimeRange(start=_dt(f.period_start_ts), end=_dt(f.period_end_ts))
+                if has_cycles
+                else None
+            ),
+            postponed_until=_dt(rec.postponed_until_ts)
+            if rec is not None and rec.postponed_until_ts
+            else None,
+            evidence_links=links,
+            priority=priority,
+        )
+
+
+def _link_order(e: FindingEvidence) -> tuple[str, int, int]:
+    return (str(e.kind), e.cycle_start_ts or e.start_ts or 0, e.id or 0)

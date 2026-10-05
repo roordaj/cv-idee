@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
-from typing import Annotated
+import time
+from collections.abc import Iterator
+from typing import Annotated, Protocol
 
 from fastapi import Depends, Query, Request
+from sqlalchemy.orm import Session, sessionmaker
 
+from cvidee.api.findings_read import FindingsReadModel
 from cvidee.api.problems import ProblemError
 from cvidee.api.schemas.common import UtcDateTime
+from cvidee.api.schemas.findings import FindingDetail, FindingList
 from cvidee.api.stubs.store import StubStore
 
 
@@ -24,6 +29,28 @@ def get_stub_store(request: Request) -> StubStore:
     return store
 
 
+class FindingsBackend(Protocol):
+    """Read side of the findings routes: the database, or the stub with CVIDEE_STUB_DATA."""
+
+    def finding_list(self) -> FindingList: ...
+
+    def finding(self, finding_id: str) -> FindingDetail: ...
+
+
+def get_findings(request: Request) -> Iterator[FindingsBackend]:
+    stub: StubStore | None = getattr(request.app.state, "stub_store", None)
+    if stub is not None:
+        yield stub
+        return
+    factory: sessionmaker[Session] | None = getattr(request.app.state, "session_factory", None)
+    if factory is None:
+        get_stub_store(request)  # raises the 501 problem
+        return
+    with factory() as session:
+        yield FindingsReadModel(session, lambda: int(time.time() * 1000))
+
+
+Findings = Annotated[FindingsBackend, Depends(get_findings)]
 Store = Annotated[StubStore, Depends(get_stub_store)]
 From = Annotated[
     UtcDateTime | None, Query(alias="from", description="Start (ISO 8601); default: latest.")

@@ -3825,6 +3825,86 @@
         "title": "EvidenceDisplay",
         "description": "The four evidence tiles as shown in design v3."
       },
+      "EvidenceLink": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "time_range",
+              "cycle",
+              "signal",
+              "metric",
+              "quality_event"
+            ],
+            "title": "Kind"
+          },
+          "start": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 timestamp in UTC.",
+                "examples": [
+                  "2026-10-04T10:00:00Z"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start",
+            "description": "Range start, or the cycle/metric/event start."
+          },
+          "end": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 timestamp in UTC.",
+                "examples": [
+                  "2026-10-04T10:00:00Z"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End"
+          },
+          "signal": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signal",
+            "examples": [
+              "flame@boiler"
+            ]
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind"
+        ],
+        "title": "EvidenceLink",
+        "description": "Link from a finding to the data it is based on (FR-37): shown as 'Toon in tijdlijn'."
+      },
       "FieldError": {
         "properties": {
           "loc": {
@@ -4008,6 +4088,25 @@
             },
             "type": "array",
             "title": "Notes"
+          },
+          "evidence_links": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceLink"
+            },
+            "type": "array",
+            "title": "Evidence Links",
+            "description": "Time ranges, cycles and signals behind the finding."
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PriorityOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Prioritisation and its explanation."
           }
         },
         "additionalProperties": false,
@@ -5808,6 +5907,66 @@
         "type": "object",
         "title": "PeriodExclusions",
         "description": "What the period does not count for (all on by default, design additions §3a)."
+      },
+      "PriorityFactor": {
+        "properties": {
+          "factor": {
+            "type": "string",
+            "enum": [
+              "severity",
+              "certainty",
+              "relevance",
+              "recency"
+            ],
+            "title": "Factor"
+          },
+          "value": {
+            "type": "string",
+            "title": "Value"
+          },
+          "weight": {
+            "type": "number",
+            "maximum": 1.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Weight"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "factor",
+          "value",
+          "weight"
+        ],
+        "title": "PriorityFactor"
+      },
+      "PriorityOut": {
+        "properties": {
+          "score": {
+            "type": "number",
+            "title": "Score"
+          },
+          "formula": {
+            "type": "string",
+            "title": "Formula"
+          },
+          "factors": {
+            "items": {
+              "$ref": "#/components/schemas/PriorityFactor"
+            },
+            "type": "array",
+            "title": "Factors"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "score",
+          "formula",
+          "factors"
+        ],
+        "title": "PriorityOut",
+        "description": "Why the finding ranks where it does: score = product of the factor weights."
       },
       "Problem": {
         "properties": {
