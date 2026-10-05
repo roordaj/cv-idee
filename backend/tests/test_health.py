@@ -33,10 +33,14 @@ def test_health_is_in_openapi_schema() -> None:
     assert "/api/health" in schema["paths"]
 
 
-@given(st.from_regex(r"\A[a-z]{1,12}\Z").filter(lambda name: name != "health"))
+_APP = create_app()
+_ROUTE_NAMES = {path.split("/")[2] for path in _APP.openapi()["paths"] if path.startswith("/api/")}
+
+
+@given(st.from_regex(r"\A[a-z]{1,12}\Z").filter(lambda name: name not in _ROUTE_NAMES))
 def test_unknown_api_paths_return_404(name: str) -> None:
     async def get_status() -> int:
-        async with _client(create_app()) as ac:
+        async with _client(_APP) as ac:
             return (await ac.get(f"/api/{name}")).status_code
 
     assert asyncio.run(get_status()) == 404

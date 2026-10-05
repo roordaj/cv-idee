@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense } from 'react';
 import { Link, Navigate, Route, Routes } from 'react-router-dom';
 import { Card } from '../components/Card.tsx';
 import { EmptyState } from '../components/EmptyState.tsx';
@@ -6,13 +6,13 @@ import { ICON_SIZE } from '../components/icons.ts';
 import { PlaceholderScreen } from '../screens/PlaceholderScreen.tsx';
 import { AppShell } from './AppShell.tsx';
 import { SCREENS } from './navigation.ts';
-import { mockShellData, type ShellData } from './shellData.ts';
+import { useShellData, type ShellData } from './shellData.ts';
 import { CircleHelp } from 'lucide-react';
 
 const ComponentGallery = lazy(() => import('./dev/ComponentGallery.tsx'));
 
 export interface AppProps {
-  /** Shell data; mocked until the API client (#11) provides it. */
+  /** Override of the shell data (tests); defaults to `GET /api/status`. */
   shellData?: ShellData;
 }
 
@@ -32,10 +32,10 @@ function NotFound() {
 }
 
 export function App({ shellData }: AppProps) {
-  const [mock] = useState(() => mockShellData());
+  const fetched = useShellData();
   return (
     <Routes>
-      <Route element={<AppShell data={shellData ?? mock} />}>
+      <Route element={<AppShell data={shellData ?? fetched} />}>
         <Route index element={<Navigate to="overzicht" replace />} />
         {SCREENS.map((screen) => (
           <Route

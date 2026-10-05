@@ -7,6 +7,7 @@ export type ConnectionStatus =
   | { state: 'delayed'; lastDataAt: Date }
   | { state: 'ha-offline'; since: Date }
   | { state: 'app-unreachable' }
+  | { state: 'connecting' }
   | { state: 'importing'; progress: number }
   | { state: 'recomputing'; progress: number };
 
@@ -15,6 +16,7 @@ export const STATUS_TONE: Readonly<Record<ConnectionStatus['state'], Tone>> = {
   delayed: 'amber',
   'ha-offline': 'rose',
   'app-unreachable': 'rose',
+  connecting: 'slate',
   importing: 'blue',
   recomputing: 'violet',
 };
@@ -29,6 +31,8 @@ export function statusText(status: ConnectionStatus): string {
       return `Geen verbinding met Home Assistant · sinds ${formatTime(status.since)}`;
     case 'app-unreachable':
       return 'Geen verbinding met CV-analyse';
+    case 'connecting':
+      return 'Verbinding maken…';
     case 'importing':
       return `Historie importeren · ${formatPercent(status.progress)}`;
     case 'recomputing':

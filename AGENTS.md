@@ -102,12 +102,13 @@ Each backend package's `__init__.py` docstring describes its responsibility; res
 | Command | What it does |
 |---|---|
 | `make install` | `uv sync` (backend) + `npm ci` (frontend) |
-| `make dev` | Backend on http://localhost:8099 (uvicorn, reload) + Vite dev server proxying `/api` to it |
+| `make dev` | Backend on http://localhost:8099 (uvicorn, reload, `CVIDEE_STUB_DATA=1` design-v3 example data) + Vite dev server proxying `/api` to it |
 | `make test` | `pytest` + `vitest run` |
 | `make lint` | `ruff check` + `ruff format --check` + `eslint` + `prettier --check` |
 | `make typecheck` | `mypy --strict` + `tsc --noEmit` |
 | `make fmt` | Auto-format (ruff, eslint --fix, prettier) |
 | `make build` | Production build of the frontend |
+| `make openapi` | Regenerate `api/openapi.json` from the backend and the frontend types (`npm run gen:api`) |
 
 Run `make lint typecheck test` before opening a PR. Copy `.env.example` to `.env` for local configuration (never commit `.env`).
 
@@ -127,7 +128,7 @@ Run `make lint typecheck test` before opening a PR. Copy `.env.example` to `.env
 
 - `backend` — `uv sync`, ruff check, ruff format --check, mypy --strict, pytest (via the Makefile targets).
 - `frontend` — `npm ci`, eslint, prettier --check, tsc, vitest, production build.
-- `openapi` — placeholder (no-op) until #11 adds `api/openapi.json`; it will then fail when the committed spec differs from the generated one.
+- `openapi` — regenerates `api/openapi.json` and `frontend/src/api/schema.d.ts` (`make openapi`) and fails when they differ from the committed files.
 
 Branch protection advice for `main`: require a pull request, require the status checks **`backend`** and **`frontend`** to pass (add `openapi` once #11 makes it real), and require branches to be up to date before merging. Never merge with a red check.
 

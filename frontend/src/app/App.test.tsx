@@ -4,13 +4,13 @@ import { MemoryRouter } from 'react-router-dom';
 import { setViewportWidth } from '../test/viewport.ts';
 import { App } from './App.tsx';
 import { AppProviders } from './AppProviders.tsx';
-import { mockShellData } from './shellData.ts';
+import { fixtureShellData } from '../test/shellFixture.ts';
 
 function renderApp(path = '/') {
   return render(
     <AppProviders>
       <MemoryRouter initialEntries={[path]}>
-        <App shellData={mockShellData(new Date('2026-10-04T10:00:00Z'))} />
+        <App shellData={fixtureShellData(new Date('2026-10-04T10:00:00Z'))} />
       </MemoryRouter>
     </AppProviders>,
   );
