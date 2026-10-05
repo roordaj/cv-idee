@@ -251,22 +251,23 @@ class AnalysisRunner:
                 )
             )
             session.expunge(run)
+        run_id = run.id
         try:
             with self._sessions.begin() as session:
                 observations, events = load_window_input(
                     session, mapped, self.settings.sources, window
                 )
                 result = run_pipeline(observations, events, config, window, now)
-                SqlDerivedDataRepository(session).replace_from(window.emit_from, result, run.id)
-                run = session.merge(run)
+                SqlDerivedDataRepository(session).replace_from(window.emit_from, result, run_id)
+                attached = session.merge(run)
                 for hook in self._after_run:
-                    hook(session, result, run)
+                    hook(session, result, attached)
                 repo = SqlAnalysisRunRepository(session)
-                repo.supersede(covered, by_run=run.id, now_ts=self._clock())
-                run.status = RunStatus.SUCCEEDED
-                run.watermark_ts = result.next_watermark
-                run.finished_at_ts = self._clock()
-                run.stats = {
+                repo.supersede(covered, by_run=run_id, now_ts=self._clock())
+                attached.status = RunStatus.SUCCEEDED
+                attached.watermark_ts = result.next_watermark
+                attached.finished_at_ts = self._clock()
+                attached.stats = {
                     "observations": len(observations),
                     "connection_events": len(events),
                     "cycles": len(result.cycles),
@@ -275,14 +276,14 @@ class AnalysisRunner:
                     "metrics": len(result.metrics),
                     "covered_requests": covered,
                 }
-                repo.finish(run)
+                repo.finish(attached)
                 session.flush()
-                session.expunge(run)
-            return run
+                session.expunge(attached)
+            return attached
         except Exception as exc:
-            logger.exception("analysis run %s failed", run.id)
+            logger.exception("analysis run %s failed", run_id)
             with self._sessions.begin() as session:
-                failed = session.get(AnalysisRun, run.id)
+                failed = session.get(AnalysisRun, run_id)
                 if failed is not None:
                     failed.status = RunStatus.FAILED
                     failed.finished_at_ts = self._clock()
