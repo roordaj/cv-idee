@@ -346,7 +346,8 @@ async def test_entities_endpoint_lists_ha_entities(
         r = await c.get("/api/ha/entities")
         status = await c.get("/api/ha/status")
     assert r.status_code == 200
-    assert r.json() == [
+    keys = ("id", "friendly_name", "unit", "device_class")
+    assert [{k: e[k] for k in keys} for e in r.json()] == [
         {"id": FLAME, "friendly_name": None, "unit": None, "device_class": None},
         {"id": FLOW, "friendly_name": None, "unit": "°C", "device_class": None},
     ]

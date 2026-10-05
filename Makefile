@@ -7,7 +7,8 @@ UV := uv run --project $(BACKEND)
 BACKEND_PORT ?= 8099
 
 .PHONY: help install dev dev-backend dev-frontend test test-backend test-frontend \
-	lint lint-backend lint-frontend fmt typecheck typecheck-backend typecheck-frontend build
+	lint lint-backend lint-frontend fmt typecheck typecheck-backend typecheck-frontend build \
+	openapi gen-api
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-20s %s\n", $$1, $$2}'
@@ -22,8 +23,8 @@ dev: ## Run backend (port 8099) and frontend dev server together
 	$(MAKE) --no-print-directory dev-frontend & \
 	wait
 
-dev-backend: ## Run backend with auto-reload on port 8099
-	cd $(BACKEND) && uv run uvicorn cvidee.main:create_app --factory --reload --host 127.0.0.1 --port $(BACKEND_PORT)
+dev-backend: ## Run backend with auto-reload on port 8099 (design-v3 stub data)
+	cd $(BACKEND) && CVIDEE_STUB_DATA=$${CVIDEE_STUB_DATA:-1} uv run uvicorn cvidee.main:create_app --factory --reload --host 127.0.0.1 --port $(BACKEND_PORT)
 
 dev-frontend: ## Run Vite dev server (proxies /api to the backend)
 	cd $(FRONTEND) && npm run dev
@@ -58,6 +59,10 @@ typecheck-frontend:
 
 build: ## Build the frontend
 	cd $(FRONTEND) && npm run build
+
+openapi: ## Regenerate api/openapi.json and the frontend API types from the backend
+	cd $(BACKEND) && uv run python -m cvidee.api.openapi ../api/openapi.json
+	cd $(FRONTEND) && npm run gen:api
 
 ADDON_LOCAL_DIR ?= build/addon-local/cv_analyse
 

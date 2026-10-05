@@ -56,10 +56,26 @@ jobs:
 
   openapi:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
-      - name: Check api/openapi.json matches generated spec
-        # TODO(#11): once the API contract lands, check out the repo, generate the
-        # OpenAPI spec from the backend and fail if it differs from api/openapi.json.
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
         run: |
-          echo "No-op until #11 adds api/openapi.json."
+          uv sync --project backend --locked
+          cd frontend && npm ci
+      - name: Regenerate OpenAPI spec and frontend types
+        run: make openapi
+      - name: Fail if api/openapi.json or frontend/src/api/schema.d.ts is outdated
+        run: |
+          git diff --exit-code -- api/openapi.json frontend/src/api/schema.d.ts \
+            || { echo "::error::Contract out of date: run 'make openapi' and commit."; exit 1; }

@@ -73,6 +73,8 @@ class Settings(BaseSettings):
     notify_target: str | None = Field(default=None, alias="CVIDEE_NOTIFY_TARGET")
     analysis_enabled: bool = Field(default=True, alias="CVIDEE_ANALYSIS_ENABLED")
     analysis_interval_s: float = Field(default=60.0, gt=0, alias="CVIDEE_ANALYSIS_INTERVAL_S")
+    stub_data: bool = Field(default=False, alias="CVIDEE_STUB_DATA")
+    """Serve the design-v3 example data on all API routes (contract stubs, issue #11)."""
 
     mqtt_host: str | None = Field(default=None, alias="MQTT_HOST")
     mqtt_port: int = Field(default=1883, alias="MQTT_PORT")

@@ -10,11 +10,14 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.routing import APIRoute
 
 from cvidee import __version__
 from cvidee.api import router as api_router
 from cvidee.api.auth import ApiTokenMiddleware
+from cvidee.api.problems import install_problem_handlers
 from cvidee.api.spa import create_spa_router
+from cvidee.api.stubs.store import StubStore
 from cvidee.config import Settings, get_settings
 from cvidee.ingest.ha_client import AiohttpHAClient
 from cvidee.ingest.service import FileAliveStore, IngestService, sql_tracked_entities
@@ -23,6 +26,11 @@ from cvidee.store.engine import create_db_engine, create_session_factory, databa
 from cvidee.store.schema import upgrade_to_head
 
 logger = logging.getLogger(__name__)
+
+
+def _operation_id(route: APIRoute) -> str:
+    """Use the endpoint function name as OpenAPI operationId (stable client names)."""
+    return route.name
 
 
 def migrate_database(settings: Settings) -> None:
@@ -106,8 +114,17 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
 def create_app(settings: Settings | None = None) -> FastAPI:
     """Create and configure the FastAPI application."""
     settings = settings if settings is not None else get_settings()
-    app = FastAPI(title="CV-idee", version=__version__, lifespan=_lifespan)
+    app = FastAPI(
+        title="CV-idee",
+        version=__version__,
+        description="Read-only analysis and advice API for a central-heating installation. "
+        "Contract of issue #11; errors are RFC 7807 problem documents.",
+        lifespan=_lifespan,
+        generate_unique_id_function=_operation_id,
+    )
     app.state.settings = settings
+    app.state.stub_store = StubStore() if settings.stub_data else None
+    install_problem_handlers(app)
     if settings.api_auth_enabled and settings.api_token is not None:
         app.add_middleware(ApiTokenMiddleware, token=settings.api_token)
     app.include_router(api_router)

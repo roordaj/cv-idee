@@ -5,7 +5,7 @@ from typing import Literal
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-router = APIRouter(prefix="/api")
+router = APIRouter()
 
 
 class HealthResponse(BaseModel):
