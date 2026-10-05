@@ -1,0 +1,113 @@
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-start;
+}
+.col {
+  flex: 1 1 360px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+}
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: #5b6475;
+}
+.summaryBox {
+  padding: 9px 12px;
+  border: 1px solid #dfe2e8;
+  border-radius: 10px;
+  background: #f8f9fb;
+  color: #1d2433;
+  font-size: 14px;
+}
+.link {
+  color: #c2531f;
+  font-weight: 600;
+  font-size: 13px;
+  text-decoration: none;
+}
+.link:hover {
+  color: #ea6a2f;
+}
+.exportHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.sub {
+  font-size: 12px;
+  color: #5b6475;
+}
+.entity {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 0;
+  border-top: 1px solid #eef0f3;
+  font-size: 13px;
+}
+.entityKey {
+  flex: 1;
+  color: #3d4452;
+  word-break: break-all;
+}
+.entityValue {
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 8px;
+  background: #f4f5f8;
+  white-space: nowrap;
+}
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sent {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  font-size: 13px;
+}
+.sentText {
+  flex: 1;
+  min-width: 0;
+}
+.time {
+  color: #8a92a3;
+}
+.muted {
+  font-size: 13px;
+  color: #5b6475;
+  margin: 0;
+}
