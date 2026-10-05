@@ -23,10 +23,10 @@ dev: ## Run backend (port 8099) and frontend dev server together
 	$(MAKE) --no-print-directory dev-frontend & \
 	wait
 
-dev-backend: ## Run backend with auto-reload on port 8099 (design-v3 stub data)
+dev-backend: backend/.venv/.synced ## Run backend with auto-reload on port 8099 (design-v3 stub data)
 	cd $(BACKEND) && CVIDEE_STUB_DATA=$${CVIDEE_STUB_DATA:-1} uv run uvicorn cvidee.main:create_app --factory --reload --host 127.0.0.1 --port $(BACKEND_PORT)
 
-dev-frontend: ## Run Vite dev server (proxies /api to the backend)
+dev-frontend: frontend/node_modules/.installed ## Run Vite dev server (proxies /api to the backend)
 	cd $(FRONTEND) && npm run dev
 
 test: test-backend test-frontend ## Run all tests
@@ -85,3 +85,12 @@ dev-up: ## Start Mosquitto, Home Assistant and the app (docker-compose.dev.yml)
 
 dev-down: ## Stop the development stack
 	docker compose -f docker-compose.dev.yml down
+
+# Re-install dependencies automatically when the lockfiles change (e.g. after git pull).
+backend/.venv/.synced: backend/uv.lock backend/pyproject.toml
+	uv sync --project $(BACKEND)
+	@touch $@
+
+frontend/node_modules/.installed: frontend/package-lock.json
+	cd $(FRONTEND) && npm ci
+	@touch $@
