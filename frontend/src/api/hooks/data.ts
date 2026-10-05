@@ -34,10 +34,15 @@ export function useImports() {
   });
 }
 
+export const IMPORT_POLL_MS = 2000;
+const IMPORT_ACTIVE: readonly string[] = ['pending', 'fetching', 'analysing'];
+
 export function useImport(importId: string | null) {
   return useQuery({
     queryKey: ['imports', importId],
     enabled: importId !== null,
+    refetchInterval: (query) =>
+      query.state.data && IMPORT_ACTIVE.includes(query.state.data.status) ? IMPORT_POLL_MS : false,
     queryFn: async () =>
       unwrap(
         await api().GET('/api/import/{import_id}', {
