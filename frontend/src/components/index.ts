@@ -33,3 +33,8 @@ export { Pill, Tag } from './Tag.tsx';
 export type { TagProps } from './Tag.tsx';
 export { Toggle } from './Toggle.tsx';
 export type { ToggleProps } from './Toggle.tsx';
+export { ExplainBanner } from './ExplainBanner.tsx';
+export { Term } from './Term.tsx';
+export type { TermProps } from './Term.tsx';
+export { TermsPanel } from './TermsPanel.tsx';
+export type { TermsPanelProps } from './TermsPanel.tsx';

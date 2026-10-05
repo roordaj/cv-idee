@@ -52,6 +52,10 @@ import { Skeleton, SkeletonGroup } from '../../components/Skeleton.tsx';
 import { StatusPill, StubDataPill } from '../../components/StatusPill.tsx';
 import { Tag } from '../../components/Tag.tsx';
 import { Toggle } from '../../components/Toggle.tsx';
+import { ExplainBanner } from '../../components/ExplainBanner.tsx';
+import { Term } from '../../components/Term.tsx';
+import { TermsPanel } from '../../components/TermsPanel.tsx';
+import { useExplain } from '../../content/useExplain.ts';
 import { formatDuration, formatPercent, formatTemperature, formatTime } from '../../lib/format.ts';
 import {
   AVAILABILITY_LABEL,
@@ -482,6 +486,15 @@ export default function ComponentGallery() {
         </div>
       </Demo>
 
+      <Demo title="Uitleglaag">
+        <ExplainSettings />
+        <ExplainBanner />
+        <p>
+          Een <Term term="Pendelen" /> met <Term term="ΔT" /> in de aanvoer.
+        </p>
+        <TermsPanel findingId="B-014" />
+      </Demo>
+
       <Demo title="Toggle">
         <Toggle
           checked={bundle}
@@ -699,5 +712,21 @@ export default function ComponentGallery() {
         </Dialog>
       </Demo>
     </div>
+  );
+}
+
+function ExplainSettings() {
+  const { explain, setExplain, showRequirementIds, setShowRequirementIds } = useExplain();
+  return (
+    <>
+      <Toggle checked={explain} onChange={setExplain} label="Uitleg tonen" />
+      {import.meta.env.DEV ? (
+        <Toggle
+          checked={showRequirementIds}
+          onChange={setShowRequirementIds}
+          label="Requirement-ID's tonen"
+        />
+      ) : null}
+    </>
   );
 }
