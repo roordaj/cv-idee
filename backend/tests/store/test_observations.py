@@ -317,6 +317,7 @@ def test_resolve_retention_days() -> None:
     assert resolve_retention_days(None, 180) == 180
     assert resolve_retention_days({}, 180) == 180
     assert resolve_retention_days({"retention.raw_days": 90}, 180) == 90
+    assert resolve_retention_days({"retention_days": 90}, 180) == 90
     assert resolve_retention_days({"retention.raw_days": 10}, 180) == 180
     assert resolve_retention_days({"retention.raw_days": "90"}, 180) == 180
     assert resolve_retention_days({"retention.raw_days": True}, 180) == 180

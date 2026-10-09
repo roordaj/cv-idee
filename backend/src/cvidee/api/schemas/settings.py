@@ -318,14 +318,29 @@ class SettingsIn(ApiModel):
     revision: str
     values: AnalysisSettings
     onboarding_completed_at: UtcDateTime | None = None
+    changed_by: str | None = Field(default=None, max_length=64)
+    note: str | None = Field(default=None, max_length=1000)
 
 
 class SettingsResponse(ApiModel):
-    revision: str = Field(description="Config hash; recorded with runs and snapshots.")
-    updated_at: UtcDateTime
+    revision: str = Field(description="Version token, including the configuration hash.")
+    updated_at: UtcDateTime | None
     values: AnalysisSettings
     onboarding_completed_at: UtcDateTime | None
     recompute_started: bool = Field(description="True when saving started a recomputation.")
     json_schema: dict[str, Any] = Field(
         description="JSON schema of 'values' with x-unit/x-step/x-group/x-rule for rendering."
     )
+
+
+class SettingsRevisionOut(ApiModel):
+    revision: str
+    config_hash: str
+    saved_at: UtcDateTime
+    changed_by: str | None
+    note: str | None
+    values: AnalysisSettings
+
+
+class SettingsHistory(ApiModel):
+    items: list[SettingsRevisionOut]

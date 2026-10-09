@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from cvidee.analysis.timeline import build_timelines
@@ -22,16 +23,21 @@ from cvidee.analysis.types import (
     SignalTimeline,
     TimeRange,
 )
+from cvidee.api.findings_read import FindingsReadModel
+from cvidee.api.schemas.settings import AnalysisSettings
 from cvidee.findings.engine import EngineResult, FindingsEngine, RecoverySettings
 from cvidee.findings.repository import SqlFindingRepository
 from cvidee.installation import SqlInstallationProfileRepository, profile_facts
 from cvidee.periods import rule_periods
-from cvidee.rules.availability import assess_analyses
+from cvidee.rules.availability import AvailabilityPolicy, assess_analyses
 from cvidee.rules.base import RuleContext
 from cvidee.rules.registry import RuleRegistry
 from cvidee.runner.sources import MappedSignal, SourceSettings, load_window_input
+from cvidee.settings.repository import rule_params
 from cvidee.signals.quality import signal_statuses
 from cvidee.store.derived import SqlDerivedDataRepository
+from cvidee.store.enums import RecommendationStatus, SnapshotTrigger
+from cvidee.store.models import AnalysisRun, Finding, RecommendationSnapshot
 
 __all__ = ["FindingsStage", "StoreTimelines"]
 
@@ -93,13 +99,18 @@ class FindingsStage:
         run_id: int,
         mapped: Sequence[MappedSignal],
         config: PipelineConfig,
+        settings_values: AnalysisSettings | None = None,
     ) -> EngineResult:
         if len(self.registry) == 0:
             return EngineResult()
         now = result.window.end
-        history = max(
-            rule.history_ms(self.registry.default_params(rule.id)) for rule in self.registry
-        )
+        params = {
+            rule.id: self.registry.default_params(rule.id)
+            if settings_values is None
+            else rule_params(self.registry, rule.id, settings_values)
+            for rule in self.registry
+        }
+        history = max(rule.history_ms(params[rule.id]) for rule in self.registry)
         period = TimeRange(now - max(history, 1), now)
         timelines = StoreTimelines(session, mapped, self._sources, config, now)
         built = timelines.build(period)
@@ -115,7 +126,16 @@ class FindingsStage:
             period=period,
             profile=profile,
             signals=statuses,
-            availability=assess_analyses(statuses, profile),
+            availability=assess_analyses(
+                statuses,
+                profile,
+                None
+                if settings_values is None
+                else AvailabilityPolicy(
+                    settings_values.min_assessment_coverage_pct / 100,
+                    settings_values.flame_resolution_s * 1000,
+                ),
+            ),
             cycles=tuple(derived.burner_cycles(period.start, now)),
             mode_segments=tuple(derived.mode_segments(period.start, now)),
             metrics=metrics,
@@ -124,8 +144,67 @@ class FindingsStage:
             timelines=timelines,
             config_hash=config.config_hash,
         )
-        engine = FindingsEngine(self.registry, SqlFindingRepository(session), self.recovery)
-        return engine.evaluate(ctx, run_id)
+        recovery = (
+            self.recovery
+            if settings_values is None
+            else RecoverySettings(
+                days_without_pattern=settings_values.recovery_days,
+                min_coverage=settings_values.recovery_min_coverage_pct / 100,
+                require_comparable_weather=settings_values.recovery_comparable_weather_only,
+                max_outdoor_delta_k=settings_values.comparable_weather_c,
+            )
+        )
+        engine = FindingsEngine(
+            self.registry, SqlFindingRepository(session), recovery, params_for=params.__getitem__
+        )
+        outcome = engine.evaluate(ctx, run_id)
+        if settings_values is not None:
+            session.flush()
+            run = session.get(AnalysisRun, run_id)
+            for human_id in (*outcome.created, *outcome.updated):
+                finding = session.scalar(select(Finding).where(Finding.human_id == human_id))
+                if finding is None or not finding.recommendations:
+                    continue
+                recommendation = finding.recommendations[-1]
+                if recommendation.status is not RecommendationStatus.OPEN:
+                    continue
+                previous = session.scalar(
+                    select(RecommendationSnapshot)
+                    .where(RecommendationSnapshot.recommendation_id == recommendation.id)
+                    .order_by(RecommendationSnapshot.id.desc())
+                    .limit(1)
+                )
+                if (
+                    previous is not None
+                    and previous.config_hash == config.config_hash
+                    and previous.rule_params == finding.rule_params
+                ):
+                    continue
+                session.add(
+                    RecommendationSnapshot(
+                        recommendation_id=recommendation.id,
+                        finding_id=finding.id,
+                        taken_at_ts=now,
+                        trigger=SnapshotTrigger.CREATED
+                        if previous is None
+                        else SnapshotTrigger.CONTENT_UPDATED,
+                        status=recommendation.status,
+                        outcome=recommendation.outcome,
+                        measurement_start_ts=finding.period_start_ts,
+                        measurement_end_ts=finding.period_end_ts,
+                        rule_id=finding.rule_id,
+                        rule_version=finding.rule_version,
+                        rule_params=dict(finding.rule_params),
+                        profile_id=int(profile.version),
+                        settings_revision_id=None if run is None else run.settings_revision_id,
+                        config_hash=config.config_hash,
+                        settings=settings_values.model_dump(mode="json"),
+                        content=FindingsReadModel(session, lambda: now)
+                        .finding(human_id)
+                        .model_dump(mode="json"),
+                    )
+                )
+        return outcome
 
 
 def _known_ms(timeline: SignalTimeline, period: TimeRange) -> int:
