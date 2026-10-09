@@ -26,10 +26,13 @@ from cvidee.analysis.types import (
     ConnectionEvent,
     ConnectionSource,
     Observation,
+    ObservationKind,
     ObservedValue,
     PipelineConfig,
     Provenance,
     Role,
+    Scope,
+    ScopeKind,
     SignalConfig,
     SignalRef,
     TimestampMs,
@@ -99,7 +102,11 @@ def load_mapped_signals(session: Session) -> list[MappedSignal]:
     for mapping, entity_id in rows:
         try:
             role = Role(mapping.role)
-            signal = signal_ref(role, mapping.scope_key.partition(":")[2] or None)
+            if mapping.scope_key:
+                kind, _, key = mapping.scope_key.partition(":")
+                signal = SignalRef(role, Scope(ScopeKind(kind), key))
+            else:
+                signal = signal_ref(role)
         except ValueError:
             continue  # unknown role or malformed scope: not analysable
         out.append(
@@ -237,7 +244,7 @@ def _carry_in(
 ) -> Observation | None:
     """Latest observation before ``ts`` within the validity of the mapping that held it."""
     for m in sorted(versions, key=lambda v: v.valid_from, reverse=True):
-        if m.valid_from >= ts:
+        if m.valid_from >= ts or not m.valid_at(ts):
             continue
         upper = ts if m.valid_to is None else min(ts, m.valid_to)
         record = repo.last_before(m.entity_id, upper)
@@ -272,6 +279,18 @@ def load_window_input(
                 to_analysis_observation(r, signal, m.value_map)
                 for r in repo.observations(m.entity_id, lo, hi)
             )
+        # Closing or unlinking a mapping ends validity even without another HA event.
+        for m in versions:
+            boundary = m.valid_to
+            if (
+                boundary is not None
+                and start <= boundary < end
+                and not any(
+                    observation.signal == signal and observation.ts == boundary
+                    for observation in observations
+                )
+            ):
+                observations.append(Observation(signal, boundary, None, ObservationKind.POLL))
     since = start
     last_down = _last_down_before(session, sources, start)
     if last_down is not None:

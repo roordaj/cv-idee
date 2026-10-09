@@ -2494,6 +2494,14 @@ export interface components {
        * @description Actual median update interval over the last 24 h.
        */
       median_update_interval_s?: number | null;
+      /** Expected Resolution S */
+      expected_resolution_s?: number | null;
+      /** Valid From */
+      valid_from?: string | null;
+      /** Value Map */
+      value_map?: {
+        [key: string]: number | string | boolean | null;
+      } | null;
     };
     /** SignalCoverage */
     SignalCoverage: {
@@ -2543,6 +2551,14 @@ export interface components {
       max_age_s?: number | null;
       /** Expects Regular Updates */
       expects_regular_updates?: boolean | null;
+      /** Expected Resolution S */
+      expected_resolution_s?: number | null;
+      /** Valid From */
+      valid_from?: string | null;
+      /** Value Map */
+      value_map?: {
+        [key: string]: number | string | boolean | null;
+      } | null;
     };
     /**
      * SignalState
@@ -2911,6 +2927,26 @@ export interface operations {
       };
       /** @description Not implemented (start the backend with CVIDEE_STUB_DATA=1 for example data) */
       501: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+      /** @description Error */
+      502: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+      /** @description Error */
+      503: {
         headers: {
           [name: string]: unknown;
         };

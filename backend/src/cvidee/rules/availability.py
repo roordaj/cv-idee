@@ -160,6 +160,20 @@ class _Verdict:
 def _refs_for(role: Role, env: _Env) -> tuple[SignalRef, ...]:
     kind = role.scope_kind
     if kind in _SINGLETON_KINDS:
+        circuit_refs = tuple(
+            sorted(
+                ref
+                for ref in env.signals
+                if ref.role is role and ref.scope.kind is ScopeKind.CIRCUIT
+            )
+        )
+        if circuit_refs:
+            singleton = signal_ref(role)
+            return (
+                tuple(sorted((*circuit_refs, singleton)))
+                if singleton in env.signals
+                else circuit_refs
+            )
         return (signal_ref(role),)
     keys = set(env.profile.scope_keys(kind))
     keys.update(

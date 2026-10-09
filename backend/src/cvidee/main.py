@@ -22,6 +22,7 @@ from cvidee.config import Settings, get_settings
 from cvidee.ingest.ha_client import AiohttpHAClient
 from cvidee.ingest.service import FileAliveStore, IngestService, sql_tracked_entities
 from cvidee.runner.service import AnalysisRunner, RunnerSettings
+from cvidee.signals.catalog import sync_catalogue
 from cvidee.store.engine import create_db_engine, create_session_factory, database_url
 from cvidee.store.schema import upgrade_to_head
 
@@ -98,6 +99,8 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.session_factory = create_session_factory(
         create_db_engine(database_url(settings.db_path))
     )
+    with app.state.session_factory.begin() as session:
+        sync_catalogue(session)
     ingest = _start_ingest(app, settings)
     if ingest is not None:
         await ingest.start()
