@@ -22,6 +22,7 @@ from cvidee.api.routes import (
     ha,
     installation,
     notifications,
+    periods,
     settings,
     signals,
     system,
@@ -76,7 +77,7 @@ async def client() -> AsyncIterator[httpx.AsyncClient]:
 
 def _operations() -> Iterator[tuple[str, APIRoute]]:
     """Every API operation, with its full path (routers are mounted under ``/api``)."""
-    modules = (health, changes, data, findings, ha, installation, notifications, settings)
+    modules = (health, changes, data, findings, ha, installation, notifications, periods, settings)
     for module in (*modules, signals, system):
         for route in module.router.routes:
             assert isinstance(route, APIRoute)

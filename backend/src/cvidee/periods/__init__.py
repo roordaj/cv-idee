@@ -56,11 +56,7 @@ def excluded_intervals(
     that merely touch are merged and a period ending exactly at ``rng.start`` is not included.
     """
     clipped = sorted(
-        (
-            r
-            for p in periods
-            if _excludes(p, purpose) and (r := _range_of(p, rng)) is not None
-        ),
+        (r for p in periods if _excludes(p, purpose) and (r := _range_of(p, rng)) is not None),
         key=lambda r: (r.start, r.end),
     )
     merged: list[TimeRange] = []
@@ -76,15 +72,15 @@ class SqlSpecialPeriodRepository:
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    def in_range(self, start_ts: int | None = None, end_ts: int | None = None) -> list[SpecialPeriod]:
+    def in_range(
+        self, start_ts: int | None = None, end_ts: int | None = None
+    ) -> list[SpecialPeriod]:
         """Periods overlapping ``[start_ts, end_ts)`` (open-ended periods included)."""
         stmt = select(SpecialPeriod).order_by(SpecialPeriod.start_ts, SpecialPeriod.id)
         if end_ts is not None:
             stmt = stmt.where(SpecialPeriod.start_ts < end_ts)
         if start_ts is not None:
-            stmt = stmt.where(
-                (SpecialPeriod.end_ts.is_(None)) | (SpecialPeriod.end_ts > start_ts)
-            )
+            stmt = stmt.where((SpecialPeriod.end_ts.is_(None)) | (SpecialPeriod.end_ts > start_ts))
         return list(self._session.scalars(stmt))
 
     def get(self, period_id: int) -> SpecialPeriod | None:
@@ -113,8 +109,7 @@ class SqlSpecialPeriodRepository:
 
 
 def rule_periods(session: Session, rng: TimeRange) -> tuple[RuleSpecialPeriod, ...]:
-    """Periods overlapping ``rng`` as rules see them. A period excluded from anything is
-    ``excluded`` for the rules (conservative: it is not normal behaviour)."""
+    """Periods overlapping ``rng``; CV rules respect the optimisation exclusion flag."""
     out: list[RuleSpecialPeriod] = []
     for p in SqlSpecialPeriodRepository(session).in_range(rng.start, rng.end):
         end = rng.end if p.end_ts is None else p.end_ts
@@ -124,9 +119,7 @@ def rule_periods(session: Session, rng: TimeRange) -> tuple[RuleSpecialPeriod, .
             RuleSpecialPeriod(
                 range=TimeRange(p.start_ts, end),
                 kind=p.kind,
-                excluded=p.exclude_from_baseline
-                or p.exclude_from_comparisons
-                or p.exclude_from_ch_conclusions,
+                excluded=p.exclude_from_ch_conclusions,
             )
         )
     return tuple(out)

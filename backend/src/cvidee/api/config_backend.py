@@ -6,6 +6,7 @@ them with ``CVIDEE_STUB_DATA``). Every change queues a recompute of the affected
 
 from __future__ import annotations
 
+import math
 import re
 import time
 from collections.abc import Callable
@@ -32,7 +33,7 @@ from cvidee.api.schemas.installation import (
     Specification,
 )
 from cvidee.installation import SqlInstallationProfileRepository
-from cvidee.installation.specs import MODULATION_TO_KW, SPEC_BY_KEY
+from cvidee.installation.specs import MODULATION_TO_KW, PUMP_SETTING, SPEC_BY_KEY
 from cvidee.periods import SqlSpecialPeriodRepository
 from cvidee.runner.service import AnalysisRunner
 from cvidee.store.enums import CircuitKind, EmitterType, SpecStatus
@@ -129,7 +130,9 @@ class ConfigBackend:
                 raise _invalid(f"Mengverdeler '{circuit.id}' heeft een aantal groepen nodig.")
             for room in circuit.rooms:
                 if room not in room_keys:
-                    raise _invalid(f"Circuit '{circuit.id}' verwijst naar onbekende ruimte '{room}'.")
+                    raise _invalid(
+                        f"Circuit '{circuit.id}' verwijst naar onbekende ruimte '{room}'."
+                    )
                 if room in room_circuit:
                     raise _invalid(f"Ruimte '{room}' hangt aan meerdere circuits.")
                 room_circuit[room] = circuit.id
@@ -140,9 +143,7 @@ class ConfigBackend:
             note=None,
             details={
                 "boiler": body.boiler.model_dump(),
-                "circuits": {
-                    c.id: {"loops": c.loops, "note": c.note} for c in body.circuits
-                },
+                "circuits": {c.id: {"loops": c.loops, "note": c.note} for c in body.circuits},
                 "rooms": {
                     r.key: {
                         "has_sensor": r.has_sensor,
@@ -191,15 +192,21 @@ class ConfigBackend:
             info = SPEC_BY_KEY.get(spec.key)
             if info is None:
                 raise _invalid(f"Onbekende specificatie '{spec.key}'.")
+            if isinstance(spec.value, float) and not math.isfinite(spec.value):
+                raise _invalid(f"'{spec.key}' vraagt een eindige waarde.")
             if spec.status is SpecStatus.KNOWN:
                 if spec.value is None:
                     raise _invalid(f"'{spec.key}' is bekend maar heeft geen waarde.")
+                if spec.key != PUMP_SETTING and isinstance(spec.value, str):
+                    raise _invalid(f"'{spec.key}' vraagt een numerieke waarde.")
                 if spec.key == MODULATION_TO_KW and (
                     isinstance(spec.value, str) or spec.value <= 0
                 ):
                     raise _invalid("Modulatie → kW vraagt een positieve numerieke omrekening.")
             elif spec.value is not None:
-                raise _invalid(f"'{spec.key}' is {spec.status.value}; een waarde is niet toegestaan.")
+                raise _invalid(
+                    f"'{spec.key}' is {spec.status.value}; een waarde is niet toegestaan."
+                )
             change_pk: int | None = None
             if spec.change_id is not None:
                 change_pk = session.scalar(
@@ -225,7 +232,17 @@ class ConfigBackend:
     @staticmethod
     def _to_schema(session: Session, profile: ProfileRow) -> InstallationProfile:
         details: dict[str, Any] = profile.details
-        boiler = BoilerInfo.model_validate(details["boiler"])
+        boiler = BoilerInfo.model_validate(
+            details.get(
+                "boiler",
+                {
+                    "model": "Onbekend",
+                    "control": "Onbekend",
+                    "data_source": "Onbekend",
+                    "heat_demand_source": "Onbekend",
+                },
+            )
+        )
         circuit_details = details.get("circuits", {})
         room_details = details.get("rooms", {})
         circuits = [
@@ -274,9 +291,7 @@ class ConfigBackend:
             )
         order = {key: i for i, key in enumerate(SPEC_BY_KEY)}
         specs.sort(key=lambda s: order.get(s.key, len(order)))
-        summary = ", ".join(
-            f"{_EMITTER_TEXT[c.emitter]} {c.name.lower()}" for c in circuits
-        )
+        summary = ", ".join(f"{_EMITTER_TEXT[c.emitter]} {c.name.lower()}" for c in circuits)
         return InstallationProfile(
             boiler=boiler,
             circuits=circuits,
@@ -300,7 +315,9 @@ class ConfigBackend:
         with self._sessions.begin() as session:
             row = SqlSpecialPeriodRepository(session).add(_period_row(PeriodRow(), body, now))
             result = _period_schema(row)
-        self._recompute(_ms(body.start), None if body.end is None else _ms(body.end), "period_added")
+        self._recompute(
+            _ms(body.start), None if body.end is None else _ms(body.end), "period_added"
+        )
         return result
 
     def update_period(self, period_id: str, body: SpecialPeriodIn) -> SpecialPeriod:
@@ -334,9 +351,7 @@ def _signature(profile: ProfileRow) -> dict[str, Any]:
     return {
         "details": profile.details,
         "circuits": sorted((c.key, c.name, c.kind, c.emitter) for c in profile.circuits),
-        "rooms": sorted(
-            (r.key, r.name, r.circuit_key, r.has_thermostat) for r in profile.rooms
-        ),
+        "rooms": sorted((r.key, r.name, r.circuit_key, r.has_thermostat) for r in profile.rooms),
         "specs": sorted(
             (s.key, s.status, s.value_num, s.value_text, s.unit, s.note or "", s.change_id)
             for s in profile.specs

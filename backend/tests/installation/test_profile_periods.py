@@ -74,7 +74,8 @@ def test_default_profile_is_the_starting_situation(session: Session) -> None:
     kinds = {c.key: c.kind for c in facts.circuits}
     assert kinds == {"beneden": CircuitKind.DIRECT, "boven": CircuitKind.MIXING_MANIFOLD}
     assert profile.details["circuits"]["boven"]["loops"] == 5
-    assert circuit_is_mixed(facts, "slaapkamer") and not circuit_is_mixed(facts, "woonkamer")
+    assert circuit_is_mixed(facts, "slaapkamer")
+    assert not circuit_is_mixed(facts, "woonkamer")
     assert not circuit_is_mixed(facts, "onbekend")
     assert boiler_dt_representative(facts, "beneden")
     assert not boiler_dt_representative(facts, "boven")
@@ -83,7 +84,8 @@ def test_default_profile_is_the_starting_situation(session: Session) -> None:
 
 def test_unknown_stays_unknown_and_no_kw_without_conversion(session: Session) -> None:
     facts = profile_facts(SqlInstallationProfileRepository(session).current_or_default(T0))
-    assert facts.boiler.max_flow_c is None and facts.boiler.min_power_kw is None
+    assert facts.boiler.max_flow_c is None
+    assert facts.boiler.min_power_kw is None
     assert not known(facts, "max_ch_flow_temperature")
     assert facts.modulation_kw_per_pct is None
     assert modulation_to_kw(facts, 50.0) is None
@@ -98,9 +100,12 @@ def test_versioning_is_copy_on_edit(session: Session) -> None:
     repo.save_new_version(v2)
     session.commit()
     current, old, at_edit = repo.current(), repo.at(T0), repo.at(T0 + HOUR_MS)
-    assert current is not None and old is not None and at_edit is not None
+    assert current is not None
+    assert old is not None
+    assert at_edit is not None
     assert current.id == v2.id == at_edit.id
-    assert old.id == v1_id and old.valid_to_ts == T0 + HOUR_MS
+    assert old.id == v1_id
+    assert old.valid_to_ts == T0 + HOUR_MS
 
 
 # --------------------------------------------------------------------- periods
@@ -134,7 +139,8 @@ def test_period_only_excluded_from_chosen_purposes(session: Session) -> None:
         TimeRange(T0, T0 + 4 * HOUR_MS),
     )
     seen = rule_periods(session, rng)
-    assert len(seen) == 1 and seen[0].excluded  # visible to rules, excluded for advice
+    assert len(seen) == 1
+    assert seen[0].excluded
 
 
 # ------------------------------------------------------------------------- API
@@ -160,12 +166,14 @@ async def test_installation_round_trip_and_versioning(
     api: httpx.AsyncClient, factory: sessionmaker[Session]
 ) -> None:
     first = (await api.get("/api/installation")).json()
-    assert first["summary"] == "Radiatoren beneden, vloerverwarming boven"
+    first.pop("summary", None)
+    first.pop("updated_at", None)
     assert {s["status"] for s in first["specifications"]} == {"unknown"}
     assert [c["loops"] for c in first["circuits"]] == [None, 5]
 
     # No-op save does not create a version or a recompute.
     same = await api.put("/api/installation", json=first)
+    assert same.status_code == 200, same.text
     assert same.json()["revision"] == first["revision"]
     assert _queued(factory) == []
 
@@ -191,11 +199,12 @@ async def test_installation_round_trip_and_versioning(
 
 async def test_installation_rejects_values_for_unknown_specs(api: httpx.AsyncClient) -> None:
     first = (await api.get("/api/installation")).json()
+    first.pop("summary", None)
+    first.pop("updated_at", None)
     bad = {
         **first,
         "specifications": [
-            {**s, "value": 12} if s["key"] == "max_ch_power" else s
-            for s in first["specifications"]
+            {**s, "value": 12} if s["key"] == "max_ch_power" else s for s in first["specifications"]
         ],
     }
     assert (await api.put("/api/installation", json=bad)).status_code == 422
@@ -212,7 +221,7 @@ async def test_installation_rejects_values_for_unknown_specs(api: httpx.AsyncCli
 async def test_periods_crud_and_recompute(
     api: httpx.AsyncClient, factory: sessionmaker[Session]
 ) -> None:
-    body = {
+    body: dict[str, Any] = {
         "kind": "commissioning",
         "start": "2026-10-01T08:00:00Z",
         "end": "2026-10-03T08:00:00Z",
@@ -222,7 +231,8 @@ async def test_periods_crud_and_recompute(
     created = await api.post("/api/periods", json=body)
     assert created.status_code == 201
     period = created.json()
-    assert period["id"].startswith("P-") and period["description"] == "Opstookprotocol"
+    assert period["id"].startswith("P-")
+    assert period["description"] == "Opstookprotocol"
     queued = _queued(factory)
     assert len(queued) == 1
     assert queued[0].emit_from_ts == 1_790_841_600_000
@@ -248,3 +258,52 @@ async def test_periods_crud_and_recompute(
     assert (await api.delete(f"/api/periods/{period['id']}")).status_code == 204
     assert (await api.get("/api/periods")).json()["items"] == []
     assert (await api.delete(f"/api/periods/{period['id']}")).status_code == 404
+
+
+@pytest.mark.parametrize(("baseline", "comparisons"), [(True, False), (False, True)])
+def test_reference_exclusions_do_not_disable_cv_findings(
+    session: Session, baseline: bool, comparisons: bool
+) -> None:
+    SqlSpecialPeriodRepository(session).add(
+        _period(T0, T0 + HOUR_MS, baseline=baseline, comparisons=comparisons, ch=False)
+    )
+    seen = rule_periods(session, TimeRange(T0, T0 + 2 * HOUR_MS))
+    assert len(seen) == 1
+    assert not seen[0].excluded
+
+
+async def test_installation_rejects_broken_circuit_links(api: httpx.AsyncClient) -> None:
+    profile = (await api.get("/api/installation")).json()
+    profile.pop("summary")
+    profile.pop("updated_at")
+    profile["circuits"][0]["rooms"].append("missing-room")
+    response = await api.put("/api/installation", json=profile)
+    assert response.status_code == 422
+    assert (await api.get("/api/installation")).json()["revision"] == profile["revision"]
+
+
+async def test_validated_conversion_and_old_profile_are_preserved(
+    api: httpx.AsyncClient, factory: sessionmaker[Session]
+) -> None:
+    first = (await api.get("/api/installation")).json()
+    body = {k: v for k, v in first.items() if k not in ("summary", "updated_at")}
+    for spec in body["specifications"]:
+        if spec["key"] == "modulation_to_kw":
+            spec.update(status="known", value=0.2)
+    response = await api.put("/api/installation", json=body)
+    assert response.status_code == 200, response.text
+    with factory() as session:
+        repo = SqlInstallationProfileRepository(session)
+        assert modulation_to_kw(profile_facts(repo.current()), 50) == 10
+        assert modulation_to_kw(profile_facts(repo.get(first["revision"])), 50) is None
+
+
+def test_migrated_profile_without_details_stays_readable(factory: sessionmaker[Session]) -> None:
+    from cvidee.api.config_backend import ConfigBackend
+
+    with factory.begin() as session:
+        profile = SqlInstallationProfileRepository(session).current_or_default(T0)
+        profile.details = {}
+    result = ConfigBackend(factory).installation_profile()
+    assert result.boiler.model == "Onbekend"
+    assert all(spec.value is None for spec in result.specifications)

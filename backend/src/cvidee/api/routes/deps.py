@@ -9,9 +9,9 @@ from typing import Annotated, Protocol
 from fastapi import Depends, Query, Request
 from sqlalchemy.orm import Session, sessionmaker
 
+from cvidee.api.config_backend import ConfigBackend
 from cvidee.api.findings_read import FindingsReadModel
 from cvidee.api.problems import ProblemError
-from cvidee.api.config_backend import ConfigBackend
 from cvidee.api.schemas.common import UtcDateTime
 from cvidee.api.schemas.data import SpecialPeriod, SpecialPeriodIn, SpecialPeriodList
 from cvidee.api.schemas.findings import FindingDetail, FindingList

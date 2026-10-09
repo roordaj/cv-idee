@@ -50,8 +50,9 @@ def default_profile(now_ts: int) -> InstallationProfile:
             },
             "circuits": {
                 "beneden": {
+                    "loops": None,
                     "note": "Radiatoren hangen direct aan de ketel, dus ketelaanvoer en "
-                    "-retour zijn hier representatief."
+                    "-retour zijn hier representatief.",
                 },
                 "boven": {
                     "loops": 5,

@@ -47,7 +47,8 @@ class SqlInstallationProfileRepository:
             select(InstallationProfile)
             .where(
                 InstallationProfile.valid_from_ts <= ts,
-                (InstallationProfile.valid_to_ts.is_(None)) | (InstallationProfile.valid_to_ts > ts),
+                (InstallationProfile.valid_to_ts.is_(None))
+                | (InstallationProfile.valid_to_ts > ts),
             )
             .order_by(InstallationProfile.valid_from_ts.desc(), InstallationProfile.id.desc())
             .options(*_LOAD)
