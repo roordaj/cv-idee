@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from cvidee.api.problems import not_found
 from cvidee.api.schemas.common import TimeRange
 from cvidee.api.schemas.findings import (
+    BundledEvidence,
     Evidence,
     EvidenceDisplay,
     EvidenceLink,
@@ -104,6 +105,10 @@ def _duration_text(ms: int) -> str:
 
 def _evidence(f: Finding) -> Evidence:
     sup: dict[str, Any] = f.support
+    return _support_evidence(sup)
+
+
+def _support_evidence(sup: dict[str, Any]) -> Evidence:
     coverage = sup.get("coverage")
     unknown_ms = int(sup.get("unknown_ms") or 0)
     relevant, pattern = sup.get("relevant_cycles"), sup.get("pattern_cycles")
@@ -225,7 +230,13 @@ class FindingsReadModel:
         if f is None:
             raise not_found("Bevinding", human_id)
         rec = self._status(f)
-        links = [_link(e) for e in sorted(f.evidence, key=_link_order)]
+        links = [
+            _link(e)
+            for e in sorted(f.evidence, key=_link_order)
+            if e.kind is not EvidenceKind.BUNDLED_CANDIDATE
+        ]
+        links = list({link.model_dump_json(): link for link in links}.values())
+        bundled = f.support.get("bundled_candidates", [])
         has_cycles = any(link.kind == "cycle" for link in links)
         explanation: dict[str, Any] = f.priority_explanation or {}
         priority = (
@@ -257,10 +268,48 @@ class FindingsReadModel:
             evidence=_evidence(f),
             recommendation=_recommendation(rec, f) if rec is not None else None,
             no_advice_text=f.no_advice_text,
-            bundle=[],
+            bundle=[
+                BundledEvidence(
+                    text=source["observation"],
+                    source=f"{_source_name(source['rule_id'])} · v{source['rule_version']}",
+                    rule=RuleRef(id=source["rule_id"], version=source["rule_version"]),
+                    scope_key=source["scope_key"],
+                    period=TimeRange(start=_dt(source["start_ts"]), end=_dt(source["end_ts"])),
+                    certainty=source["certainty"],
+                    evidence=_support_evidence(source["evidence"]),
+                    interpretation=source["interpretation"],
+                    signals=source["signals"],
+                    hypotheses=[
+                        HypothesisOut(
+                            number=index,
+                            name=h["name"],
+                            evidence_for=h["evidence_for"],
+                            missing=h["missing"],
+                            distinguishing_measurement=h["distinguishing_measurement"],
+                        )
+                        for index, h in enumerate(source["hypotheses"], start=1)
+                    ],
+                    parameters=source["parameters"],
+                    recommendation=None
+                    if source["recommendation"] is None
+                    else RecommendationOut.model_validate(
+                        {
+                            key: value
+                            for key, value in source["recommendation"].items()
+                            if key in RecommendationOut.model_fields
+                        }
+                    ),
+                    source_finding_id=source["source_finding_id"],
+                )
+                for source in bundled
+            ],
+            superseded_by=f.support.get("superseded_by"),
             glossary=[],
             timeline_range=(
-                TimeRange(start=_dt(f.period_start_ts), end=_dt(f.period_end_ts))
+                TimeRange(
+                    start=_dt(min([f.period_start_ts, *(s["start_ts"] for s in bundled)])),
+                    end=_dt(max([f.period_end_ts, *(s["end_ts"] for s in bundled)])),
+                )
                 if has_cycles
                 else None
             ),
@@ -274,3 +323,11 @@ class FindingsReadModel:
 
 def _link_order(e: FindingEvidence) -> tuple[str, int, int]:
     return (str(e.kind), e.cycle_start_ts or e.start_ts or 0, e.id or 0)
+
+
+def _source_name(rule_id: str) -> str:
+    return {
+        "stop-tijdens-vraag": "Stop tijdens vraag",
+        "temperatuurverloop": "Temperatuurverloop",
+        "hydraulisch": "Hydraulisch",
+    }.get(rule_id, rule_id)

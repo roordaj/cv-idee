@@ -423,7 +423,10 @@ function FindingDetailView({
             {finding.bundle.map((b) => (
               <div key={`${b.text}|${b.source}`} className={styles.bundleItem}>
                 <span>{b.text}</span>
-                <span>{b.source}</span>
+                <span className={styles.bundleSource}>{b.source}</span>
+                {b.recommendation?.kind === 'measurement' ? (
+                  <span>{b.recommendation.action}</span>
+                ) : null}
               </div>
             ))}
           </div>

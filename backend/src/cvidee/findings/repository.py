@@ -43,6 +43,16 @@ class SqlFindingRepository:
             )
         ).first()
 
+    def latest_by_key(self, rule_id: str, scope_key: str) -> Finding | None:
+        return self._session.scalars(
+            select(Finding)
+            .where(
+                Finding.rule_id == rule_id,
+                Finding.scope_key == scope_key,
+            )
+            .order_by(Finding.id.desc())
+        ).first()
+
     def active_for_rule(self, rule_id: str) -> list[Finding]:
         return list(
             self._session.scalars(

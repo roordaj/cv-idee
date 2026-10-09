@@ -896,6 +896,25 @@ export interface components {
        * @description Rule and version, e.g. 'Stop tijdens vraag · v1.1'.
        */
       source: string;
+      rule?: components['schemas']['RuleRef'] | null;
+      /** Scope Key */
+      scope_key?: string | null;
+      period?: components['schemas']['TimeRange'] | null;
+      certainty?: components['schemas']['Certainty'] | null;
+      evidence?: components['schemas']['Evidence'] | null;
+      /** Interpretation */
+      interpretation?: string | null;
+      /** Hypotheses */
+      hypotheses?: components['schemas']['HypothesisOut'][];
+      /** Signals */
+      signals?: string[];
+      /** Parameters */
+      parameters?: {
+        [key: string]: unknown;
+      };
+      recommendation?: components['schemas']['RecommendationOut'] | null;
+      /** Source Finding Id */
+      source_finding_id?: string | null;
     };
     /**
      * Category
@@ -1398,6 +1417,11 @@ export interface components {
        * @description E.g. 'vandaag 06:00-10:10' or 'sinds 21 sep'.
        */
       when_text: string;
+      /**
+       * Superseded By
+       * @description Parent finding after bundling.
+       */
+      superseded_by?: string | null;
       rule: components['schemas']['RuleRef'];
       /** Observation */
       observation: string;

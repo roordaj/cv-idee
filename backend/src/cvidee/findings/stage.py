@@ -25,6 +25,7 @@ from cvidee.analysis.types import (
 )
 from cvidee.api.findings_read import FindingsReadModel
 from cvidee.api.schemas.settings import AnalysisSettings
+from cvidee.findings.bundling import bundle_signature
 from cvidee.findings.engine import EngineResult, FindingsEngine, RecoverySettings
 from cvidee.findings.repository import SqlFindingRepository
 from cvidee.installation import SqlInstallationProfileRepository, profile_facts
@@ -175,10 +176,18 @@ class FindingsStage:
                     .order_by(RecommendationSnapshot.id.desc())
                     .limit(1)
                 )
+                rendered = (
+                    FindingsReadModel(session, lambda: now)
+                    .finding(human_id)
+                    .model_dump(mode="json")
+                )
+
                 if (
                     previous is not None
                     and previous.config_hash == config.config_hash
                     and previous.rule_params == finding.rule_params
+                    and previous.profile_id == int(profile.version)
+                    and bundle_signature(previous.content) == bundle_signature(rendered)
                 ):
                     continue
                 session.add(
@@ -200,9 +209,7 @@ class FindingsStage:
                         settings_revision_id=None if run is None else run.settings_revision_id,
                         config_hash=config.config_hash,
                         settings=settings_values.model_dump(mode="json"),
-                        content=FindingsReadModel(session, lambda: now)
-                        .finding(human_id)
-                        .model_dump(mode="json"),
+                        content=rendered,
                     )
                 )
         return outcome

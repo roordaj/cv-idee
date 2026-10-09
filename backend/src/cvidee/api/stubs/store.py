@@ -67,6 +67,7 @@ from cvidee.api.schemas.system import (
 )
 from cvidee.api.stubs import fixtures as fx
 from cvidee.api.stubs.sim import GAP, at, build_sim
+from cvidee.findings.priority import prioritise
 from cvidee.store.enums import (
     EvaluationVerdict,
     ImportStatus,
@@ -175,7 +176,7 @@ class StubStore:
 
     def overview(self) -> OverviewResponse:
         st = build_sim().stats
-        items = [_summary(f) for f in self.findings.values()]
+        items = [_summary(f) for f in self._ordered_findings()]
         action_required = sum(
             1
             for f in self.findings.values()
@@ -351,8 +352,23 @@ class StubStore:
 
     def finding_list(self) -> FindingList:
         return FindingList(
-            items=[_summary(f) for f in self.findings.values()],
+            items=[_summary(f) for f in self._ordered_findings()],
             open_count=self.open_findings(),
+        )
+
+    def _ordered_findings(self) -> list[FindingDetail]:
+        return sorted(
+            self.findings.values(),
+            key=lambda finding: (
+                -prioritise(
+                    finding.severity,
+                    finding.certainty,
+                    finding.relevance,
+                    round((finding.period.end or self.now).timestamp() * 1000),
+                    round(self.now.timestamp() * 1000),
+                ).score,
+                finding.id,
+            ),
         )
 
     def finding(self, finding_id: str) -> FindingDetail:

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import Field
 
@@ -95,6 +95,17 @@ class BundledEvidence(ApiModel):
 
     text: str
     source: str = Field(description="Rule and version, e.g. 'Stop tijdens vraag · v1.1'.")
+    rule: RuleRef | None = None
+    scope_key: str | None = None
+    period: TimeRange | None = None
+    certainty: Certainty | None = None
+    evidence: Evidence | None = None
+    interpretation: str | None = None
+    hypotheses: list[HypothesisOut] = Field(default_factory=list)
+    signals: list[str] = Field(default_factory=list)
+    parameters: dict[str, Any] = Field(default_factory=dict)
+    recommendation: RecommendationOut | None = None
+    source_finding_id: str | None = None
 
 
 class GlossaryTerm(ApiModel):
@@ -135,6 +146,7 @@ class PriorityOut(ApiModel):
 
 
 class FindingDetail(FindingSummary):
+    superseded_by: str | None = Field(default=None, description="Parent finding after bundling.")
     rule: RuleRef
     observation: str
     period_text: str

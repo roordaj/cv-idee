@@ -168,6 +168,37 @@ describe('Findings screen', () => {
     );
   });
 
+  it('keeps an additional measurement visible inside a bundled finding', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: Request) => {
+        const path = new URL(input.url).pathname;
+        if (path.endsWith('/api/findings')) {
+          return Promise.resolve(json({ items: [finding('B-014')], open_count: 1 }));
+        }
+        return Promise.resolve(
+          json(
+            finding('B-014', {
+              bundle: [
+                {
+                  text: 'Lokale verdelermetingen ontbreken.',
+                  source: 'Hydraulisch · v1.0.0',
+                  recommendation: {
+                    kind: 'measurement',
+                    action: 'Plaats sensoren op de verdeler boven.',
+                  },
+                },
+              ],
+            }),
+          ),
+        );
+      }),
+    );
+    renderAt('/bevindingen/B-014');
+    expect(await screen.findByText('Plaats sensoren op de verdeler boven.')).toBeInTheDocument();
+    expect(screen.getByText('Hydraulisch · v1.0.0')).toBeInTheDocument();
+  });
+
   it('opens the timeline with range and cycle', async () => {
     renderAt('/bevindingen/B-014');
     await userEvent.click(await screen.findByRole('button', { name: /Toon in tijdlijn/ }));
