@@ -18,14 +18,15 @@ Rules emit :class:`~cvidee.rules.base.FindingCandidate` s; this module
 
 * **prioritises** deterministically (:mod:`cvidee.findings.priority`).
 
-Bundling of supporting candidates (FR-26) and advice follow-up (FR-27) are #35/#36.
+Supporting candidates are bundled before persistence (FR-26, #35); advice follow-up is #36.
 """
 
 from __future__ import annotations
 
+import json
 import logging
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from typing import Any
 
 from cvidee.analysis.types import (
@@ -35,6 +36,7 @@ from cvidee.analysis.types import (
     SignalRef,
     TimeRange,
 )
+from cvidee.findings.bundling import BundleMember, bundle_candidates
 from cvidee.findings.priority import prioritise
 from cvidee.findings.repository import SqlFindingRepository
 from cvidee.rules.base import (
@@ -52,7 +54,7 @@ from cvidee.rules.base import (
     SignalEvidence,
     signal_ref,
 )
-from cvidee.rules.registry import RuleOutcome, RuleRegistry
+from cvidee.rules.registry import RuleOutcome, RuleRegistry, canonical_json
 from cvidee.store.derived import parse_signal_ref
 from cvidee.store.enums import (
     EvidenceKind,
@@ -132,11 +134,101 @@ class FindingsEngine:
     def evaluate(self, ctx: RuleContext, run_id: int | None = None) -> EngineResult:
         """Evaluate every registered rule for ``ctx`` and apply the outcomes."""
         result = EngineResult()
-        for rule in self._registry:
-            params = self._params_for(rule.id)
-            outcome = self._registry.evaluate(rule.id, ctx, params)
+        outcomes = tuple(
+            self._registry.evaluate(rule.id, ctx, self._params_for(rule.id))
+            for rule in self._registry
+        )
+        protected = frozenset(
+            (finding.rule_id, finding.scope_key)
+            for finding in self._repo.list_findings()
+            if (rec := self._repo.recommendation_of(finding)) is not None
+            and (rec.status is not RecommendationStatus.OPEN or bool(rec.notes))
+        )
+        plan = bundle_candidates(outcomes, ctx.profile, protected)
+        # Persist roots first, before their formerly independent children are superseded.
+        for outcome in sorted(
+            plan.outcomes,
+            key=lambda o: (
+                not any(key[0] == o.snapshot.rule_id for key in plan.members),
+                o.snapshot.rule_id,
+            ),
+        ):
+            rule_id = outcome.snapshot.rule_id
+            for child_key, parent_key in plan.parents.items():
+                if child_key[0] != rule_id:
+                    continue
+                child = self._repo.active_by_key(*child_key)
+                parent = self._repo.active_by_key(*parent_key)
+                if child is not None and parent is not None:
+                    child.lifecycle = FindingLifecycle.RESOLVED
+                    child.resolution_reason = ResolutionReason.SUPERSEDED
+                    child.resolved_at_ts = ctx.now
+                    child.last_run_id = run_id
+                    child.support = {**child.support, "superseded_by": parent.human_id}
+                    result.resolved[child.human_id] = ResolutionReason.SUPERSEDED
             result.merge(self.apply(outcome, ctx, run_id))
+            for candidate in outcome.candidates:
+                members = plan.members.get((rule_id, candidate.scope_key), ())
+                if members:
+                    parent = self._repo.active_by_key(rule_id, candidate.scope_key)
+                    if parent is not None:
+                        self._store_bundle(parent, members)
         return result
+
+    def _store_bundle(self, parent: Finding, members: tuple[BundleMember, ...]) -> None:
+        payloads = []
+        for member in members:
+            child = member.candidate
+            previous = self._repo.latest_by_key(*member.key)
+            if (
+                previous is not None
+                and previous.lifecycle is FindingLifecycle.RESOLVED
+                and (
+                    previous.resolution_reason is not ResolutionReason.SUPERSEDED
+                    or previous.support.get("superseded_by") != parent.human_id
+                )
+            ):
+                previous = None
+            payload = {
+                "rule_id": member.snapshot.rule_id,
+                "rule_version": member.snapshot.version,
+                "parameters": member.snapshot.params,
+                "scope_key": child.scope_key,
+                "title": child.title,
+                "observation": child.observation,
+                "interpretation": child.interpretation,
+                "hypotheses": [asdict(hypothesis) for hypothesis in child.hypotheses],
+                "certainty": str(child.certainty),
+                "severity": str(child.severity),
+                "category": str(child.category),
+                "relevance": [str(r) for r in child.relevance],
+                "start_ts": child.period.start,
+                "end_ts": child.period.end,
+                "signals": [str(s) for s in child.signals],
+                "evidence": support_of(child.evidence),
+                "refs": [{"kind": type(ref).__name__, "value": asdict(ref)} for ref in child.refs],
+                "recommendation": None
+                if child.recommendation is None
+                else asdict(child.recommendation),
+                "no_advice_reason": child.no_advice_reason,
+                "source_finding_id": None if previous is None else previous.human_id,
+            }
+            payloads.append(json.loads(canonical_json(payload)))
+            parent.evidence.append(
+                FindingEvidence(
+                    kind=EvidenceKind.BUNDLED_CANDIDATE,
+                    rule_id=member.snapshot.rule_id,
+                    rule_version=member.snapshot.version,
+                    summary=child.observation,
+                    start_ts=child.period.start,
+                    end_ts=child.period.end,
+                )
+            )
+            for row in _evidence_rows(child):
+                row.rule_id = member.snapshot.rule_id
+                row.rule_version = member.snapshot.version
+                parent.evidence.append(row)
+        parent.support = {**parent.support, "bundled_candidates": payloads}
 
     def apply(self, outcome: RuleOutcome, ctx: RuleContext, run_id: int | None) -> EngineResult:
         """Upsert the candidates of one rule and close findings that qualify."""

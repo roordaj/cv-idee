@@ -408,7 +408,7 @@
 .bundleItem span:first-child {
   font-weight: 600;
 }
-.bundleItem span:last-child {
+.bundleSource {
   font-size: 11px;
   color: var(--color-text-muted);
 }

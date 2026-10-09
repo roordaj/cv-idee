@@ -2867,6 +2867,108 @@
             "type": "string",
             "title": "Source",
             "description": "Rule and version, e.g. 'Stop tijdens vraag · v1.1'."
+          },
+          "rule": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RuleRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scope_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scope Key"
+          },
+          "period": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TimeRange"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "certainty": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Certainty"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evidence": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Evidence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "interpretation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interpretation"
+          },
+          "hypotheses": {
+            "items": {
+              "$ref": "#/components/schemas/HypothesisOut"
+            },
+            "type": "array",
+            "title": "Hypotheses"
+          },
+          "signals": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Signals"
+          },
+          "parameters": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Parameters"
+          },
+          "recommendation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecommendationOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source_finding_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Finding Id"
           }
         },
         "additionalProperties": false,
@@ -4099,6 +4201,18 @@
             "type": "string",
             "title": "When Text",
             "description": "E.g. 'vandaag 06:00-10:10' or 'sinds 21 sep'."
+          },
+          "superseded_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Superseded By",
+            "description": "Parent finding after bundling."
           },
           "rule": {
             "$ref": "#/components/schemas/RuleRef"
