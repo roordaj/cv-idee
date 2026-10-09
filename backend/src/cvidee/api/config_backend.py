@@ -36,7 +36,7 @@ from cvidee.installation import SqlInstallationProfileRepository
 from cvidee.installation.specs import MODULATION_TO_KW, PUMP_SETTING, SPEC_BY_KEY
 from cvidee.periods import SqlSpecialPeriodRepository
 from cvidee.runner.service import AnalysisRunner
-from cvidee.store.enums import CircuitKind, EmitterType, SpecStatus
+from cvidee.store.enums import EmitterType, SpecStatus
 from cvidee.store.models import (
     Change,
     InstallationSpec,
@@ -126,8 +126,6 @@ class ConfigBackend:
             raise _invalid("Ruimtesleutels moeten uniek zijn.")
         room_circuit: dict[str, str] = {}
         for circuit in body.circuits:
-            if circuit.kind is CircuitKind.MIXING_MANIFOLD and circuit.loops is None:
-                raise _invalid(f"Mengverdeler '{circuit.id}' heeft een aantal groepen nodig.")
             for room in circuit.rooms:
                 if room not in room_keys:
                     raise _invalid(

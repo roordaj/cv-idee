@@ -307,3 +307,21 @@ def test_migrated_profile_without_details_stays_readable(factory: sessionmaker[S
     result = ConfigBackend(factory).installation_profile()
     assert result.boiler.model == "Onbekend"
     assert all(spec.value is None for spec in result.specifications)
+
+
+async def test_unknown_loop_count_and_numeric_pump_setting(
+    api: httpx.AsyncClient, factory: sessionmaker[Session]
+) -> None:
+    first = (await api.get("/api/installation")).json()
+    body = {k: v for k, v in first.items() if k not in ("summary", "updated_at")}
+    body["circuits"][1]["loops"] = None
+    for spec in body["specifications"]:
+        if spec["key"] == "pump_setting":
+            spec.update(status="known", value=3)
+    response = await api.put("/api/installation", json=body)
+    assert response.status_code == 200, response.text
+    assert response.json()["circuits"][1]["loops"] is None
+    with factory() as session:
+        facts = profile_facts(SqlInstallationProfileRepository(session).current())
+        assert facts.boiler.pump_setting == "3"
+        assert circuit_is_mixed(facts, "slaapkamer")

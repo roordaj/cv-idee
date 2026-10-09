@@ -31,7 +31,11 @@ def profile_facts(profile: InstallationProfile | None) -> InstallationFacts:
         max_flow_c=_num(specs.get(MAX_FLOW)),
         max_ch_power_kw=_num(specs.get(MAX_POWER)),
         min_power_kw=_num(specs.get(MIN_POWER)),
-        pump_setting=pump.value_text
+        pump_setting=(
+            pump.value_text
+            if pump.value_text is not None
+            else (f"{pump.value_num:g}" if pump.value_num is not None else None)
+        )
         if pump is not None and pump.status is SpecStatus.KNOWN
         else None,
     )
