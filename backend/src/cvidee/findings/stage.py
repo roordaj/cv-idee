@@ -27,9 +27,10 @@ from cvidee.findings.repository import SqlFindingRepository
 from cvidee.installation import SqlInstallationProfileRepository, profile_facts
 from cvidee.periods import rule_periods
 from cvidee.rules.availability import assess_analyses
-from cvidee.rules.base import RuleContext, SignalStatus
+from cvidee.rules.base import RuleContext
 from cvidee.rules.registry import RuleRegistry
 from cvidee.runner.sources import MappedSignal, SourceSettings, load_window_input
+from cvidee.signals.quality import signal_statuses
 from cvidee.store.derived import SqlDerivedDataRepository
 
 __all__ = ["FindingsStage", "StoreTimelines"]
@@ -102,10 +103,7 @@ class FindingsStage:
         period = TimeRange(now - max(history, 1), now)
         timelines = StoreTimelines(session, mapped, self._sources, config, now)
         built = timelines.build(period)
-        statuses = tuple(
-            SignalStatus(sig, min(1.0, _known_ms(tl, period) / period.duration_ms))
-            for sig, tl in sorted(built.items())
-        )
+        statuses = signal_statuses(session, mapped, built, period)
         profiles = SqlInstallationProfileRepository(session)
         profile = profile_facts(profiles.at(now) or profiles.current_or_default(now))
         derived = SqlDerivedDataRepository(session)

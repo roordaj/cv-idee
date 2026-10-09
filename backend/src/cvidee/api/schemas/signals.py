@@ -56,6 +56,9 @@ class Signal(ApiModel):
     median_update_interval_s: float | None = Field(
         default=None, ge=0, description="Actual median update interval over the last 24 h."
     )
+    expected_resolution_s: float | None = Field(default=None, ge=0.001, le=86400)
+    valid_from: UtcDateTime | None = None
+    value_map: dict[str, float | str | bool | None] | None = None
 
 
 class SignalList(ApiModel):
@@ -74,6 +77,9 @@ class SignalMappingUpdate(ApiModel):
     meaning: str | None = Field(default=None, max_length=280)
     max_age_s: int | None = Field(default=None, ge=5, le=86400)
     expects_regular_updates: bool | None = None
+    expected_resolution_s: float | None = Field(default=None, ge=0.001, le=86400)
+    valid_from: UtcDateTime | None = None
+    value_map: dict[str, float | str | bool | None] | None = None
 
 
 class HaEntity(ApiModel):
