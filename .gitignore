@@ -17,3 +17,4 @@ coverage/
 .claude/worktrees/
 /build/
 /data/
+/backend/data/
