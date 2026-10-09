@@ -186,6 +186,10 @@ class InstallationFacts:
     zones: tuple[str, ...] = ()
     version: str = ""
     """Profile version, part of the advice snapshot (FR-41)."""
+    known_specs: frozenset[str] = frozenset()
+    """Keys of boiler-level specifications with an explicitly known value (FR-03)."""
+    modulation_kw_per_pct: float | None = None
+    """kW per modulation percent; set only from a validated conversion, else ``None``."""
 
     @property
     def has_mixing_manifold(self) -> bool:

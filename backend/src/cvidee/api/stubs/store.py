@@ -238,6 +238,9 @@ class StubStore:
 
     # --- installation and special periods --------------------------------------------
 
+    def installation_profile(self) -> InstallationProfile:
+        return self.installation
+
     def put_installation(self, body: InstallationProfileIn) -> InstallationProfile:
         if body.revision != self.installation.revision:
             raise ProblemError(
