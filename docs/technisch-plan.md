@@ -199,7 +199,7 @@ GET  /api/signals | PUT /api/signals/{role}     (FR-01)
 GET  /api/ha/entities                  entiteitlijst voor koppelen
 GET  /api/analyses                     beschikbaarheid (FR-04)
 GET|PUT /api/installation              (FR-02/03/05)
-GET|POST|DELETE /api/periods           (FR-10)
+GET|POST /api/periods, PUT|DELETE /api/periods/{id}   (FR-10)
 GET  /api/quality?from&to              dekking, events, modusverdeling (FR-06–11)
 GET  /api/timeline?from&to             gesampelde reeksen + modi + cycli voor grafiek
 GET  /api/cycles?from&to               (FR-12/13)
