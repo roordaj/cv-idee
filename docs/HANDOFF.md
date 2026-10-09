@@ -1,6 +1,6 @@
 # Handoff: CV-idee
 
-Bijgewerkt op 9 oktober 2026 na zelfstandig hervatten. Na merge van PR #109 telt GitHub 44 gesloten en 26 open issues. Er draaien geen subagents. De detectieregels zijn toegevoegd in PR #109 (implementatie `004ffeb`).
+Bijgewerkt op 9 oktober 2026 na zelfstandig hervatten. Na merge van PR #110 telt GitHub 45 gesloten en 25 open issues. Er draaien geen subagents. De detectieregels zijn toegevoegd in PR #109 (implementatie `004ffeb`).
 
 ## Actuele voortgang
 
@@ -9,7 +9,9 @@ Bijgewerkt op 9 oktober 2026 na zelfstandig hervatten. Na merge van PR #109 telt
 - #22 afgerond en gemergd via [PR #107](https://github.com/roordaj/cv-idee/pull/107): instellingen met versiegeschiedenis en conflictcontrole, schemas uit geregistreerde regels, toepassing in runner en onveranderlijke configuratie-/advies-snapshots. Migratie 0005 bewaart onboarding-voltooiing.
 - PR #109 rondt #31, #32 en #33 af: zes nieuwe regels voor stops tijdens vraag, uitgelijnd temperatuurverloop, verbindingsverlies, expliciet onbeschikbare waarden, veroudering, tapwater en ontbrekende lokale hydraulische metingen. Drempels en regeldocumentatie zijn bijgewerkt.
 - PR's #105–#108 hadden groene backend-, frontend- en OpenAPI-checks. De volledige lokale controle voor de detectieregels: 561 backendtests en 94 frontendtests geslaagd, daarna 45 gerichte regressietests na twee reviewaanvullingen; 8 bestaande skips en 32 bestaande xfails. Lint, typechecks en productiebuild groen.
-- Volgende backendtaken: #35 (bundelen), #36 (aanbevelingen en opvolging), #37 (advieshistorie), vervolgens #38/#39 (wijzigingen en voor/na). #51 (analyse-instellingen en onboarding) kan nu op de echte instellingen-API bouwen. De overige prioriteiten staan hieronder.
+- #35 is uitgewerkt via [PR #110](https://github.com/roordaj/cv-idee/pull/110): declaratieve bundels met oorspronkelijke bron, versie, parameters, bewijs en meetadvies; opvolging en notities blijven beschermd. Scenario 2 heeft één cv-onderzoekspunt, naast zelfstandige tapwaterinformatie. Documentatie: [bevindingen bundelen](bevindingen-bundelen.md).
+- Statuslabels: bij oppakken `status:ready` → `status:in-progress`. Bij sluiten blijft `status:in-progress` staan als laatste werkstatus; geen `status:ready` op gesloten issues. Dit is expliciet zo door de opdrachtgever bepaald. De gesloten issues zijn gecontroleerd en hersteld, inclusief #23.
+- Volgende backendtaken: #36 (aanbevelingen en opvolging), #37 (advieshistorie), vervolgens #38/#39 (wijzigingen en voor/na). #51 (analyse-instellingen en onboarding) kan nu op de echte instellingen-API bouwen. De overige prioriteiten staan hieronder.
 - #5 blijft afhankelijk van inventarisatie van de eigen CAN/HA-signalen. De voorlopige defaults zijn geen bewijs voor werkelijke rapportage of modus-codes.
 - De opdrachtgever heeft de eerder aangeleverde AGENTS.md-instructies in deze sessie ingetrokken en zelfstandig afwerken van issues en PR's geautoriseerd. De historische werkafspraken hieronder beschrijven de oorspronkelijke overdracht.
 
