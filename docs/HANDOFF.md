@@ -1,14 +1,15 @@
 # Handoff: CV-idee
 
-Bijgewerkt op 9 oktober 2026 na zelfstandig hervatten. GitHub telt nu 41 gesloten en 29 open issues. Er draaien geen subagents. De laatste backendversie op `main` is `46d5937`.
+Bijgewerkt op 9 oktober 2026 na zelfstandig hervatten. Na merge van PR #109 telt GitHub 44 gesloten en 26 open issues. Er draaien geen subagents. De detectieregels zijn toegevoegd in PR #109 (implementatie `004ffeb`).
 
 ## Actuele voortgang
 
 - #20 en #21 afgerond en gemergd via [PR #105](https://github.com/roordaj/cv-idee/pull/105): profiel, perioden, versiebeheer, herberekening en runner-integratie. Reviewfixes: onbekend aantal groepen blijft toegestaan; numerieke pompstand bereikt de regels.
 - #18 en #25 afgerond en gemergd via [PR #106](https://github.com/roordaj/cv-idee/pull/106): 18 catalogusrollen, HA-validatie, versiebeheer van koppelingen, circuit-scopes, werkelijke dekking/resolutie en beschikbaarheidsroutes. Ontkoppelen beëindigt de geldigheid in de pipeline.
 - #22 afgerond en gemergd via [PR #107](https://github.com/roordaj/cv-idee/pull/107): instellingen met versiegeschiedenis en conflictcontrole, schemas uit geregistreerde regels, toepassing in runner en onveranderlijke configuratie-/advies-snapshots. Migratie 0005 bewaart onboarding-voltooiing.
-- Alle drie PR's hadden groene backend-, frontend- en OpenAPI-checks. De laatste volledige lokale controle: 544 backendtests en 94 frontendtests geslaagd; 8 bestaande skips en 32 bestaande xfails. Lint, typechecks en productiebuild groen.
-- Volgende backendtaken: #31 en #32 (detectieregels), daarna #33 (hydraulisch; profiel en beschikbaarheid zijn nu af). #51 (analyse-instellingen en onboarding) kan nu op de echte instellingen-API bouwen. De overige prioriteiten staan hieronder.
+- PR #109 rondt #31, #32 en #33 af: zes nieuwe regels voor stops tijdens vraag, uitgelijnd temperatuurverloop, verbindingsverlies, expliciet onbeschikbare waarden, veroudering, tapwater en ontbrekende lokale hydraulische metingen. Drempels en regeldocumentatie zijn bijgewerkt.
+- PR's #105–#108 hadden groene backend-, frontend- en OpenAPI-checks. De volledige lokale controle voor de detectieregels: 561 backendtests en 94 frontendtests geslaagd, daarna 45 gerichte regressietests na twee reviewaanvullingen; 8 bestaande skips en 32 bestaande xfails. Lint, typechecks en productiebuild groen.
+- Volgende backendtaken: #35 (bundelen), #36 (aanbevelingen en opvolging), #37 (advieshistorie), vervolgens #38/#39 (wijzigingen en voor/na). #51 (analyse-instellingen en onboarding) kan nu op de echte instellingen-API bouwen. De overige prioriteiten staan hieronder.
 - #5 blijft afhankelijk van inventarisatie van de eigen CAN/HA-signalen. De voorlopige defaults zijn geen bewijs voor werkelijke rapportage of modus-codes.
 - De opdrachtgever heeft de eerder aangeleverde AGENTS.md-instructies in deze sessie ingetrokken en zelfstandig afwerken van issues en PR's geautoriseerd. De historische werkafspraken hieronder beschrijven de oorspronkelijke overdracht.
 

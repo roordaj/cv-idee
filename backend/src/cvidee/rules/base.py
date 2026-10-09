@@ -422,6 +422,8 @@ class RuleContext:
     """Evaluation period ``[now - history, horizon)``; rules take sub-windows of it."""
     profile: InstallationFacts
     signals: tuple[SignalStatus, ...] = ()
+    gateway_signals: tuple[SignalRef, ...] = ()
+    """Mapped signals explicitly configured as arriving through the CAN gateway."""
     """Status of every mapped signal over the evaluation period."""
     availability: tuple[AnalysisAvailability, ...] = ()
     cycles: tuple[BurnerCycle, ...] = ()

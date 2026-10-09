@@ -214,6 +214,21 @@ def rule_set_hash(snapshots: Iterable[RuleSnapshot]) -> str:
 
 def default_registry() -> RuleRegistry:
     """The production rules (the MVP rules land one by one: #30-#33, #39)."""
+    from cvidee.rules.data_quality import DataLossRule, StaleSensorRule
+    from cvidee.rules.dhw import DhwExcludedRule
+    from cvidee.rules.hydraulic import HydraulicRule
     from cvidee.rules.short_cycling import ShortCyclingRule
+    from cvidee.rules.stop_during_demand import StopDuringDemandRule
+    from cvidee.rules.temperature import TemperatureRule
 
-    return RuleRegistry((ShortCyclingRule(),))
+    return RuleRegistry(
+        (
+            ShortCyclingRule(),
+            StopDuringDemandRule(),
+            TemperatureRule(),
+            DataLossRule(),
+            StaleSensorRule(),
+            DhwExcludedRule(),
+            HydraulicRule(),
+        )
+    )
