@@ -126,6 +126,7 @@ class FindingsStage:
             period=period,
             profile=profile,
             signals=statuses,
+            gateway_signals=tuple(sorted(s.signal for s in config.signals if s.via_can_gateway)),
             availability=assess_analyses(
                 statuses,
                 profile,

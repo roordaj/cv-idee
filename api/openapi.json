@@ -2390,6 +2390,48 @@
       },
       "AnalysisSettings": {
         "properties": {
+          "min_stop_cycles": {
+            "type": "integer",
+            "maximum": 30.0,
+            "minimum": 2.0,
+            "title": "Minimum aantal stops tijdens vraag",
+            "description": "Minimum aantal herhaalde stops voor een patroonmelding.",
+            "default": 4,
+            "x-group": "short_cycles",
+            "x-rule": [
+              "stop-tijdens-vraag"
+            ],
+            "x-step": 1,
+            "x-unit": "cycli"
+          },
+          "min_temperature_cycles": {
+            "type": "integer",
+            "maximum": 30.0,
+            "minimum": 2.0,
+            "title": "Minimum aantal temperatuurafwijkingen",
+            "description": "Minimum aantal cycli met een waargenomen afwijking.",
+            "default": 4,
+            "x-group": "short_cycles",
+            "x-rule": [
+              "temperatuurverloop"
+            ],
+            "x-step": 1,
+            "x-unit": "cycli"
+          },
+          "overshoot_margin_c": {
+            "type": "number",
+            "maximum": 20.0,
+            "minimum": 0.0,
+            "title": "Marge voor doorschieten",
+            "description": "Aanvoer boven gewenst plus deze marge; geen universele schadelijkheidsgrens.",
+            "default": 0,
+            "x-group": "short_cycles",
+            "x-rule": [
+              "temperatuurverloop"
+            ],
+            "x-step": 0.5,
+            "x-unit": "°C"
+          },
           "short_cycle_min": {
             "type": "number",
             "maximum": 15.0,

@@ -59,6 +59,40 @@ _DA, _RC, _CO, _DI = (
 class AnalysisSettings(ApiModel):
     """All user-adjustable analysis settings with their defaults (proposals, §7 q4)."""
 
+    min_stop_cycles: int = setting(
+        4,
+        title="Minimum aantal stops tijdens vraag",
+        description="Minimum aantal herhaalde stops voor een patroonmelding.",
+        group=_SC,
+        unit="cycli",
+        step=1,
+        ge=2,
+        le=30,
+        rules=("stop-tijdens-vraag",),
+    )
+    min_temperature_cycles: int = setting(
+        4,
+        title="Minimum aantal temperatuurafwijkingen",
+        description="Minimum aantal cycli met een waargenomen afwijking.",
+        group=_SC,
+        unit="cycli",
+        step=1,
+        ge=2,
+        le=30,
+        rules=("temperatuurverloop",),
+    )
+    overshoot_margin_c: float = setting(
+        0,
+        title="Marge voor doorschieten",
+        description="Aanvoer boven gewenst plus deze marge; geen universele schadelijkheidsgrens.",
+        group=_SC,
+        unit="°C",
+        step=0.5,
+        ge=0,
+        le=20,
+        rules=("temperatuurverloop",),
+    )
+
     # Korte cycli
     short_cycle_min: float = setting(
         3.0,

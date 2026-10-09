@@ -674,6 +674,24 @@ export interface components {
      */
     AnalysisSettings: {
       /**
+       * Minimum aantal stops tijdens vraag
+       * @description Minimum aantal herhaalde stops voor een patroonmelding.
+       * @default 4
+       */
+      min_stop_cycles: number;
+      /**
+       * Minimum aantal temperatuurafwijkingen
+       * @description Minimum aantal cycli met een waargenomen afwijking.
+       * @default 4
+       */
+      min_temperature_cycles: number;
+      /**
+       * Marge voor doorschieten
+       * @description Aanvoer boven gewenst plus deze marge; geen universele schadelijkheidsgrens.
+       * @default 0
+       */
+      overshoot_margin_c: number;
+      /**
        * Kortecyclusgrens
        * @description Een cv-cyclus die korter duurt dan deze grens én stopt terwijl de thermostaat nog warmte vraagt, telt als korte cyclus.
        * @default 3
