@@ -21,7 +21,6 @@ from cvidee.analysis.types import (
     ValueKind,
 )
 from cvidee.api.problems import ProblemError, not_found
-from cvidee.api.schemas.settings import AnalysisSettings
 from cvidee.api.schemas.signals import (
     AnalysisList,
     AnalysisOut,
@@ -38,6 +37,7 @@ from cvidee.rules.availability import AvailabilityPolicy, assess_analyses
 from cvidee.rules.base import AvailabilityStatus, InstallationFacts, IssueKind, signal_ref
 from cvidee.runner.service import AnalysisRunner
 from cvidee.runner.sources import SourceSettings, build_pipeline_config, load_mapped_signals
+from cvidee.settings.repository import current_revision, effective_values
 from cvidee.signals.catalog import (
     ANALYSIS_NAMES,
     BY_ROLE,
@@ -48,7 +48,7 @@ from cvidee.signals.catalog import (
 )
 from cvidee.signals.quality import signal_statuses
 from cvidee.store.enums import ObservationOrigin
-from cvidee.store.models import SettingsRevision, SignalMapping, SourceEntity
+from cvidee.store.models import SignalMapping, SourceEntity
 from cvidee.store.observations import SqlObservationRepository
 from cvidee.store.records import ObservationRecord
 
@@ -347,12 +347,7 @@ class SignalsBackend:
             mapped = load_mapped_signals(session)
             config = build_pipeline_config(session, mapped, SourceSettings())
             built = StoreTimelines(session, mapped, SourceSettings(), config, now).build(rng)
-            settings_row = session.scalar(
-                select(SettingsRevision).order_by(SettingsRevision.id.desc())
-            )
-            settings = AnalysisSettings.model_validate(
-                {} if settings_row is None else settings_row.values
-            )
+            settings = effective_values(current_revision(session))
             policy = AvailabilityPolicy(
                 settings.min_assessment_coverage_pct / 100, settings.flame_resolution_s * 1000
             )

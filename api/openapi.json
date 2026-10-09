@@ -2256,6 +2256,43 @@
           }
         }
       }
+    },
+    "/api/settings/history": {
+      "get": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "Settings History",
+        "description": "Immutable settings revisions, newest first, with the supplied actor and note.",
+        "operationId": "settings_history",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsHistory"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not implemented (start the backend with CVIDEE_STUB_DATA=1 for example data)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -6663,6 +6700,23 @@
         "title": "ScopeKind",
         "description": "What a parametrised signal role is scoped to."
       },
+      "SettingsHistory": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SettingsRevisionOut"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "SettingsHistory"
+      },
       "SettingsIn": {
         "properties": {
           "revision": {
@@ -6687,6 +6741,30 @@
               }
             ],
             "title": "Onboarding Completed At"
+          },
+          "changed_by": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Changed By"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
           }
         },
         "additionalProperties": false,
@@ -6703,16 +6781,23 @@
           "revision": {
             "type": "string",
             "title": "Revision",
-            "description": "Config hash; recorded with runs and snapshots."
+            "description": "Version token, including the configuration hash."
           },
           "updated_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Updated At",
-            "description": "ISO 8601 timestamp in UTC.",
-            "examples": [
-              "2026-10-04T10:00:00Z"
-            ]
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 timestamp in UTC.",
+                "examples": [
+                  "2026-10-04T10:00:00Z"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
           },
           "values": {
             "$ref": "#/components/schemas/AnalysisSettings"
@@ -6756,6 +6841,63 @@
           "json_schema"
         ],
         "title": "SettingsResponse"
+      },
+      "SettingsRevisionOut": {
+        "properties": {
+          "revision": {
+            "type": "string",
+            "title": "Revision"
+          },
+          "config_hash": {
+            "type": "string",
+            "title": "Config Hash"
+          },
+          "saved_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Saved At",
+            "description": "ISO 8601 timestamp in UTC.",
+            "examples": [
+              "2026-10-04T10:00:00Z"
+            ]
+          },
+          "changed_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Changed By"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "values": {
+            "$ref": "#/components/schemas/AnalysisSettings"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "revision",
+          "config_hash",
+          "saved_at",
+          "changed_by",
+          "note",
+          "values"
+        ],
+        "title": "SettingsRevisionOut"
       },
       "SetupState": {
         "properties": {

@@ -39,6 +39,7 @@ from cvidee.analysis.types import (
     TimestampMs,
     floor_to_grid,
 )
+from cvidee.api.schemas.settings import AnalysisSettings
 from cvidee.findings.engine import RecoverySettings
 from cvidee.findings.stage import FindingsStage
 from cvidee.rules.registry import RuleRegistry, default_registry
@@ -46,10 +47,12 @@ from cvidee.runner.sources import (
     MappedSignal,
     SourceSettings,
     build_pipeline_config,
+    config_hash,
     earliest_data_ts,
     load_mapped_signals,
     load_window_input,
 )
+from cvidee.settings.repository import current_revision, effective_values, pipeline_settings
 from cvidee.store.derived import SqlAnalysisRunRepository, SqlDerivedDataRepository
 from cvidee.store.enums import RunStatus, RunTrigger
 from cvidee.store.models import AnalysisRun
@@ -104,6 +107,11 @@ class AnalysisRunner:
         self._clock = clock
         self._after_run = tuple(after_run)
         self._lock = threading.Lock()
+
+    @property
+    def registry(self) -> RuleRegistry:
+        """The immutable registry used by this runner and its settings schema."""
+        return self._findings.registry
 
     # ------------------------------------------------------------------ public API
 
@@ -174,6 +182,10 @@ class AnalysisRunner:
 
     def _settings_config(self) -> PipelineConfig:
         base = self.settings.pipeline
+        with self._sessions() as session:
+            row = current_revision(session)
+            if row is not None:
+                return pipeline_settings(base, effective_values(row))
         return base if base is not None else PipelineConfig(signals=())
 
     def _run_chunks(
@@ -187,13 +199,29 @@ class AnalysisRunner:
             mapped = load_mapped_signals(session)
             if not mapped:
                 return []
+            settings_row = current_revision(session)
+            settings_values = None if settings_row is None else effective_values(settings_row)
+            settings_id = None if settings_row is None else settings_row.id
             config = build_pipeline_config(
                 session,
                 mapped,
                 self.settings.sources,
-                base=self.settings.pipeline,
+                base=self.settings.pipeline
+                if settings_values is None
+                else pipeline_settings(self.settings.pipeline, settings_values),
                 rule_versions=self.settings.rule_versions,
             )
+            if settings_row is not None:
+                config = replace(
+                    config,
+                    config_hash=config_hash(
+                        config,
+                        {
+                            "settings": settings_row.config_hash,
+                            "base_hash": config.config_hash,
+                        },
+                    ),
+                )
             runs = SqlAnalysisRunRepository(session)
             last = runs.last_succeeded()
             config_changed = last is not None and last.config_hash != config.config_hash
@@ -214,7 +242,14 @@ class AnalysisRunner:
         while horizon < final_horizon:
             horizon = min(final_horizon, horizon + self.settings.chunk_ms)
             run = self._run_once(
-                config, mapped, horizon + config.settle_ms, trigger, import_job_id, watermark
+                config,
+                mapped,
+                horizon + config.settle_ms,
+                trigger,
+                import_job_id,
+                watermark,
+                settings_values,
+                settings_id,
             )
             done.append(run)
             if run.status is not RunStatus.SUCCEEDED:
@@ -229,6 +264,8 @@ class AnalysisRunner:
         trigger: RunTrigger,
         import_job_id: int | None,
         initial_watermark: TimestampMs,
+        settings_values: AnalysisSettings | None = None,
+        settings_id: int | None = None,
     ) -> AnalysisRun:
         started = self._clock()
         with self._sessions.begin() as session:
@@ -259,6 +296,7 @@ class AnalysisRunner:
                     started_at_ts=started,
                     rule_versions=dict(self.settings.rule_versions),
                     config_hash=config.config_hash,
+                    settings_revision_id=settings_id,
                     import_job_id=import_job_id,
                 )
             )
@@ -274,13 +312,16 @@ class AnalysisRunner:
                 attached = session.merge(run)
                 for hook in self._after_run:
                     hook(session, result, attached)
-                self._findings(session, result, run_id, mapped, config)
+                self._findings(session, result, run_id, mapped, config, settings_values)
                 repo = SqlAnalysisRunRepository(session)
                 repo.supersede(covered, by_run=run_id, now_ts=self._clock())
                 attached.status = RunStatus.SUCCEEDED
                 attached.watermark_ts = result.next_watermark
                 attached.finished_at_ts = self._clock()
                 attached.stats = {
+                    "settings": {}
+                    if settings_values is None
+                    else settings_values.model_dump(mode="json"),
                     "observations": len(observations),
                     "connection_events": len(events),
                     "cycles": len(result.cycles),

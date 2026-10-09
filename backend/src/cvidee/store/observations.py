@@ -231,7 +231,7 @@ def resolve_retention_days(settings_values: Mapping[str, Any] | None, default_da
     Values outside 30-730 days (ADR-001 §7) or of the wrong type fall back to the default.
     """
     if settings_values is not None:
-        raw = settings_values.get(RETENTION_SETTING_KEY)
+        raw = settings_values.get("retention_days", settings_values.get(RETENTION_SETTING_KEY))
         if (
             isinstance(raw, int)
             and not isinstance(raw, bool)
