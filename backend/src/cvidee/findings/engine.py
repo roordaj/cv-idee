@@ -38,6 +38,7 @@ from cvidee.analysis.types import (
 )
 from cvidee.findings.bundling import BundleMember, bundle_candidates
 from cvidee.findings.priority import prioritise
+from cvidee.findings.recommendations import has_deteriorated, reopen, reopen_if_due
 from cvidee.findings.repository import SqlFindingRepository
 from cvidee.rules.base import (
     CycleRef,
@@ -134,6 +135,10 @@ class FindingsEngine:
     def evaluate(self, ctx: RuleContext, run_id: int | None = None) -> EngineResult:
         """Evaluate every registered rule for ``ctx`` and apply the outcomes."""
         result = EngineResult()
+        for finding in self._repo.list_findings():
+            rec = self._repo.recommendation_of(finding)
+            if rec is not None:
+                reopen_if_due(rec, ctx.now)
         outcomes = tuple(
             self._registry.evaluate(rule.id, ctx, self._params_for(rule.id))
             for rule in self._registry
@@ -285,6 +290,13 @@ class FindingsEngine:
     ) -> None:
         finding.last_seen_ts = ctx.now
         self._fill(finding, outcome, c, ctx, run_id)
+        rec = self._repo.recommendation_of(finding)
+        if (
+            rec is not None
+            and rec.status is RecommendationStatus.POSTPONED
+            and has_deteriorated(rec, finding)
+        ):
+            reopen(rec, ctx.now)
         self._sync_recommendation(finding, outcome, c.recommendation, ctx)
 
     def _fill(

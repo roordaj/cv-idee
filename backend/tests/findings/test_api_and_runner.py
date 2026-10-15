@@ -123,3 +123,93 @@ def test_runner_evaluates_registry_and_persists(tmp_path: Path) -> None:
         assert finding.human_id == "B-001"  # deduped over several runs
         assert finding.last_run_id is not None
         assert finding.last_seen_ts > finding.first_seen_ts
+
+
+async def test_follow_up_and_notes_survive_new_requests(
+    client: httpx.AsyncClient, factory: sessionmaker[Session]
+) -> None:
+    persist(factory, Emit(certainty=Certainty.INSUFFICIENT_EVIDENCE))
+    for status in ("accepted", "postponed", "done", "rejected", "open"):
+        response = await client.post("/api/findings/B-001/status", json={"status": status})
+        assert response.status_code == 200
+        assert response.json()["status"] == status
+        detail = (await client.get("/api/findings/B-001")).json()
+        assert detail["status"] == status
+        assert (detail["postponed_until"] is not None) == (status == "postponed")
+    response = await client.post("/api/findings/B-001/notes", json={"text": "  Eerst meten.  "})
+    assert response.status_code == 201
+    note = response.json()
+    assert note["text"] == "Eerst meten."
+    assert (await client.get("/api/findings/B-001")).json()["notes"] == [note]
+
+
+async def test_follow_up_rejects_invalid_input_and_missing_advice(
+    client: httpx.AsyncClient, factory: sessionmaker[Session]
+) -> None:
+    persist(factory, Emit(certainty=Certainty.INSUFFICIENT_EVIDENCE), Emit("without"))
+    for payload in (
+        {"status": "postponed", "postponed_until": "2020-01-01T00:00:00Z"},
+        {"status": "accepted", "postponed_until": "2099-01-01T00:00:00Z"},
+        {"status": "rollback_triggered"},
+    ):
+        response = await client.post("/api/findings/B-001/status", json=payload)
+        assert response.status_code == 422
+        assert response.headers["content-type"] == "application/problem+json"
+    assert (await client.post("/api/findings/B-001/notes", json={"text": "   "})).status_code == 422
+    for ident, expected in (("B-999", 404), ("B-002", 422)):
+        assert (
+            await client.post(f"/api/findings/{ident}/status", json={"status": "accepted"})
+        ).status_code == expected
+        assert (
+            await client.post(f"/api/findings/{ident}/notes", json={"text": "Meten"})
+        ).status_code == expected
+    assert (await client.get("/api/findings/B-001")).json()["status"] == "open"
+
+
+async def test_expired_postponement_reopens_without_new_data(
+    client: httpx.AsyncClient, factory: sessionmaker[Session]
+) -> None:
+    from cvidee.store.enums import RecommendationStatus
+
+    persist(factory, Emit(certainty=Certainty.INSUFFICIENT_EVIDENCE))
+    with factory.begin() as session:
+        repo = SqlFindingRepository(session)
+        finding = repo.by_human_id("B-001")
+        assert finding is not None
+        rec = repo.recommendation_of(finding)
+        assert rec is not None
+        rec.status = RecommendationStatus.POSTPONED
+        rec.postponed_until_ts = NOW
+    body = (await client.get("/api/findings")).json()
+    assert body["open_count"] == 1
+    assert body["items"][0]["status"] == "open"
+    with factory() as session:
+        repo = SqlFindingRepository(session)
+        finding = repo.by_human_id("B-001")
+        assert finding is not None
+        rec = repo.recommendation_of(finding)
+        assert rec is not None
+        assert rec.status is RecommendationStatus.OPEN
+        assert rec.postponed_until_ts is None
+
+
+async def test_runner_reopens_postponed_advice_on_new_severity(
+    client: httpx.AsyncClient, factory: sessionmaker[Session]
+) -> None:
+    persist(factory, Emit(certainty=Certainty.INSUFFICIENT_EVIDENCE))
+    response = await client.post(
+        "/api/findings/B-001/status",
+        json={"status": "postponed", "postponed_until": "2099-01-01T00:00:00Z"},
+    )
+    assert response.status_code == 200
+    await client.post("/api/findings/B-001/notes", json={"text": "Meten na onderhoud."})
+    DummyRule.emit = (Emit(severity=Severity.HIGH, certainty=Certainty.INSUFFICIENT_EVIDENCE),)
+    with factory.begin() as session:
+        FindingsEngine(RuleRegistry([DummyRule()]), SqlFindingRepository(session)).evaluate(
+            make_ctx(NOW + HOUR_MS), run_id=None
+        )
+    body = (await client.get("/api/findings/B-001")).json()
+    assert body["status"] == "open"
+    assert body["postponed_until"] is None
+    assert body["notes"][0]["text"] == "Meten na onderhoud."
+    assert (await client.get("/api/findings")).json()["open_count"] == 1

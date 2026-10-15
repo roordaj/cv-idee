@@ -1,6 +1,6 @@
 # Handoff: CV-idee
 
-Bijgewerkt op 9 oktober 2026 na zelfstandig hervatten. Na merge van PR #110 telt GitHub 45 gesloten en 25 open issues. Er draaien geen subagents. De detectieregels zijn toegevoegd in PR #109 (implementatie `004ffeb`).
+Bijgewerkt op 15 oktober 2026 na zelfstandig hervatten. Na merge van PR #110 telt GitHub 45 gesloten en 25 open issues. Er draaien geen subagents. De detectieregels zijn toegevoegd in PR #109 (implementatie `004ffeb`).
 
 ## Actuele voortgang
 
@@ -11,7 +11,8 @@ Bijgewerkt op 9 oktober 2026 na zelfstandig hervatten. Na merge van PR #110 telt
 - PR's #105–#108 hadden groene backend-, frontend- en OpenAPI-checks. De volledige lokale controle voor de detectieregels: 561 backendtests en 94 frontendtests geslaagd, daarna 45 gerichte regressietests na twee reviewaanvullingen; 8 bestaande skips en 32 bestaande xfails. Lint, typechecks en productiebuild groen.
 - #35 is uitgewerkt via [PR #110](https://github.com/roordaj/cv-idee/pull/110): declaratieve bundels met oorspronkelijke bron, versie, parameters, bewijs en meetadvies; opvolging en notities blijven beschermd. Scenario 2 heeft één cv-onderzoekspunt, naast zelfstandige tapwaterinformatie. Documentatie: [bevindingen bundelen](bevindingen-bundelen.md).
 - Statuslabels: bij oppakken `status:ready` → `status:in-progress`. Bij sluiten blijft `status:in-progress` staan als laatste werkstatus; geen `status:ready` op gesloten issues. Dit is expliciet zo door de opdrachtgever bepaald. De gesloten issues zijn gecontroleerd en hersteld, inclusief #23.
-- Volgende backendtaken: #36 (aanbevelingen en opvolging), #37 (advieshistorie), vervolgens #38/#39 (wijzigingen en voor/na). #51 (analyse-instellingen en onboarding) kan nu op de echte instellingen-API bouwen. De overige prioriteiten staan hieronder.
+- #36 is uitgewerkt op `feat/36-recommendation-follow-up`: echte status- en notitieroutes, persistente uitsteldatum en heropening op datum of bij nieuwe, voldoende gedekte verslechtering. Bestaande profielgebonden adviezen en de UI-link van uitgevoerd naar wijzigingen blijven in gebruik. Documentatie: [aanbevelingen en opvolging](aanbevelingen-opvolging.md). Volledige controle: 588 backendtests en 95 frontendtests geslaagd, 8 bestaande skips en 32 bestaande xfails; lint, typechecks, productiebuild en OpenAPI-generatie groen. Na de laatste verfijning van de instelbare dekkingsgrens zijn de gerichte tests en typecheck opnieuw uitgevoerd.
+- Volgende backendtaken: #37 (advieshistorie, inclusief snapshots bij statusovergangen), vervolgens #38/#39 (wijzigingen en voor/na). #51 (analyse-instellingen en onboarding) kan nu op de echte instellingen-API bouwen. De overige prioriteiten staan hieronder.
 - #5 blijft afhankelijk van inventarisatie van de eigen CAN/HA-signalen. De voorlopige defaults zijn geen bewijs voor werkelijke rapportage of modus-codes.
 - De opdrachtgever heeft de eerder aangeleverde AGENTS.md-instructies in deze sessie ingetrokken en zelfstandig afwerken van issues en PR's geautoriseerd. De historische werkafspraken hieronder beschrijven de oorspronkelijke overdracht.
 
