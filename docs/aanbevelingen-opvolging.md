@@ -9,10 +9,11 @@ Notities worden ontdaan van omringende witruimte; lege notities zijn ongeldig.
 Een aanbeveling kan open, geaccepteerd, uitgesteld, uitgevoerd of afgewezen zijn.
 Bij uitstellen geldt de ingestelde standaardtermijn, tenzij een toekomstige
 uitsteldatum is opgegeven. Een uitsteldatum bij een andere status is ongeldig.
-Bij uitgevoerd blijft de uitkomst onbeslist totdat effectmeting beschikbaar is.
+Bij uitgevoerd blijft de uitkomst eerst onbeslist; de
+[voor/na-evaluatie](voor-na-evaluatie.md) beoordeelt het effect.
 De bestaande UI verwijst dan naar het vastleggen van een wijziging. De beschreven
-succes- en terugdraaicriteria blijven zichtbaar; effectmeting en het automatisch
-activeren van terugdraaien volgen in #39.
+succes- en terugdraaicriteria blijven zichtbaar; effectmeting kan het ingestelde
+terugdraaicriterium activeren, met behoud van de oorspronkelijke adviessnapshot.
 
 Uitstel eindigt op de ingestelde datum, ook als er geen nieuwe meetgegevens zijn:
 zowel de bevindingenroutes als de runner controleren dit. Het probleem zelf wordt

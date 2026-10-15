@@ -33,11 +33,12 @@ def observed_resolution_ms(
             if row.state not in ("unknown", "unavailable")
         }
     )
+    gaps = timeline.unknowns
     intervals = [
         right - left
         for left, right in pairwise(times)
         if rng.start <= left < right <= rng.end
-        and not any(gap.start < right and left < gap.end for gap in timeline.unknowns)
+        and not any(gap.start < right and left < gap.end for gap in gaps)
     ]
     return max(1, round(statistics.median(intervals))) if intervals else None
 

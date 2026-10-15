@@ -18,7 +18,7 @@ from cvidee.rules.changelog import changes_since
 from cvidee.rules.registry import RuleRegistry
 from cvidee.settings.repository import current_revision, effective_values, rule_params
 from cvidee.store.enums import SnapshotTrigger
-from cvidee.store.models import AnalysisRun, Finding, RecommendationSnapshot
+from cvidee.store.models import AnalysisRun, Finding, Recommendation, RecommendationSnapshot
 
 
 def latest_snapshot(session: Session, recommendation_id: int) -> RecommendationSnapshot | None:
@@ -53,7 +53,13 @@ def profile_settings(session: Session, profile_id: int | None) -> dict[str, Any]
 
 
 def snapshot_transition(
-    session: Session, finding: Finding, now: int, *, refresh_advice: bool = False
+    session: Session,
+    finding: Finding,
+    now: int,
+    *,
+    refresh_advice: bool = False,
+    trigger: SnapshotTrigger = SnapshotTrigger.STATUS_CHANGED,
+    extra_content: dict[str, Any] | None = None,
 ) -> None:
     """Record current open advice, or preserve advice already in follow-up."""
     from cvidee.api.findings_read import FindingsReadModel
@@ -70,6 +76,7 @@ def snapshot_transition(
     )
     run = None if finding.last_run_id is None else session.get(AnalysisRun, finding.last_run_id)
     if previous is None:
+        rendered.update(deepcopy(extra_content or {}))
         # Legacy findings may predate snapshots. Only use recorded run provenance.
         settings = {} if run is None else deepcopy(run.stats.get("settings", {}))
         profile = SqlInstallationProfileRepository(session).at(finding.period_end_ts)
@@ -80,7 +87,7 @@ def snapshot_transition(
                 recommendation_id=rec.id,
                 finding_id=finding.id,
                 taken_at_ts=now,
-                trigger=SnapshotTrigger.STATUS_CHANGED,
+                trigger=trigger,
                 status=rec.status,
                 outcome=rec.outcome,
                 measurement_start_ts=finding.period_start_ts,
@@ -101,6 +108,7 @@ def snapshot_transition(
         session.flush()
         return
     content = rendered if refresh_advice else deepcopy(previous.content)
+    content.update(deepcopy(extra_content or {}))
     for key in ("status", "status_text", "postponed_until", "notes"):
         content[key] = rendered[key]
     session.add(
@@ -108,7 +116,7 @@ def snapshot_transition(
             recommendation_id=rec.id,
             finding_id=finding.id,
             taken_at_ts=now,
-            trigger=SnapshotTrigger.STATUS_CHANGED,
+            trigger=trigger,
             status=rec.status,
             outcome=rec.outcome,
             measurement_start_ts=finding.period_start_ts
@@ -181,6 +189,19 @@ class HistoryReadModel:
                         f"{label}{scope}: {value}"
                         + (f" {spec['unit']}" if spec["unit"] and spec["value"] is not None else "")
                     )
+            evaluation_params = row.content.get("evaluation_parameters", {})
+            if evaluation_params:
+                evaluation_limit = evaluation_params.get(
+                    "effective_rollback_limit_h_week", evaluation_params["comfort_limit_h_week"]
+                )
+                labels.extend(
+                    [
+                        f"Evaluatieperiode: {_value(evaluation_params['days'])} dagen",
+                        "Comfortgrens evaluatie: "
+                        f"{_value(evaluation_params['comfort_deficit_c'])} °C",
+                        f"Terugdraaigrens evaluatie: {_value(evaluation_limit)} u/week",
+                    ]
+                )
             if row.rule_id not in self.registry:
                 since = (
                     "Deze regel is niet meer beschikbaar; "
@@ -203,6 +224,31 @@ class HistoryReadModel:
                             f"→ {_value(params.get(key))}."
                         )
                 since = " ".join(changes) or "Regelversie en parameters zijn ongewijzigd."
+            policy_fields = {
+                "days": "comparison_days",
+                "min_coverage": "min_period_coverage_pct",
+                "weather_delta_c": "comparable_weather_c",
+                "limited_weather_delta_c": "limited_weather_c",
+                "comfort_deficit_c": "comfort_margin_c",
+                "comfort_limit_h_week": "allowed_comfort_loss_h_per_week",
+                "short_cycle_s": "short_cycle_min",
+                "min_observation_hours": "min_observation_hours",
+            }
+            current_values = values.model_dump()
+            current_values["min_period_coverage_pct"] /= 100
+            current_values["short_cycle_min"] *= 60
+            if evaluation_params and any(
+                evaluation_params.get(key) != current_values[field]
+                for key, field in policy_fields.items()
+            ):
+                since += " De instellingen voor de voor/na-evaluatie zijn sindsdien gewijzigd."
+            current_recommendation = self.session.get(Recommendation, row.recommendation_id)
+            if (
+                evaluation_params
+                and current_recommendation is not None
+                and evaluation_params.get("rollback_spec") != current_recommendation.rollback_spec
+            ):
+                since += " Het terugdraaicriterium bij dit advies is sindsdien gewijzigd."
             finding = self.session.get(Finding, row.finding_id)
             advice = row.content.get("recommendation") or {}
             items.append(
@@ -233,6 +279,7 @@ class HistoryReadModel:
                                 row.content.get("observation"),
                                 row.content.get("interpretation"),
                                 advice.get("reason"),
+                                (row.content.get("change_evaluation") or {}).get("summary"),
                             ],
                         )
                     ),
@@ -241,6 +288,8 @@ class HistoryReadModel:
                     parameters=deepcopy(row.rule_params),
                     config_hash=row.config_hash or None,
                     profile_version=None if row.profile_id is None else str(row.profile_id),
+                    change_evaluation=row.content.get("change_evaluation"),
+                    evaluation_parameters=row.content.get("evaluation_parameters", {}),
                 )
             )
         return Page[HistoryEntry](items=items, total=total, limit=limit, offset=offset)

@@ -1,7 +1,7 @@
 """Persist changes made by people; never send device commands (FR-29)."""
 
 from collections.abc import Callable
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
@@ -10,11 +10,9 @@ from cvidee.api.findings_read import FindingsReadModel
 from cvidee.api.problems import ProblemError, not_found
 from cvidee.api.schemas.changes import Change as ChangeOut
 from cvidee.api.schemas.changes import ChangeCreate, ChangeEvaluation, ChangeList
-from cvidee.api.schemas.common import TimeRange
 from cvidee.api.schemas.data import ChangeMarker, ChangeRef
 from cvidee.api.schemas.findings import FindingStatusUpdate
 from cvidee.findings.repository import SqlFindingRepository
-from cvidee.settings.repository import current_revision, effective_values
 from cvidee.store.enums import EvaluationVerdict
 from cvidee.store.models import Change, ChangeItem, Recommendation
 
@@ -142,19 +140,6 @@ class ChangeLog:
         row = self.session.scalar(select(Change).where(Change.human_id == change_id))
         if row is None:
             raise not_found("Wijziging", change_id)
-        days = effective_values(current_revision(self.session)).comparison_days
-        at = datetime.fromtimestamp(row.changed_at_ts / 1000, UTC)
-        due = at + timedelta(days=days)
-        return ChangeEvaluation(
-            change_id=row.human_id,
-            verdict=EvaluationVerdict.PENDING,
-            verdict_text=VERDICTS[EvaluationVerdict.PENDING],
-            summary="De voor/na-evaluatie is nog niet berekend.",
-            before=TimeRange(start=at - timedelta(days=days), end=at),
-            after=TimeRange(start=at, end=due),
-            before_text="",
-            after_text="",
-            conditions=[],
-            metrics=[],
-            result_expected_at=due,
-        )
+        from cvidee.changes.evaluation import evaluate_stored_change, render_evaluation
+
+        return render_evaluation(evaluate_stored_change(self.session, row, self.clock()))

@@ -6,6 +6,7 @@ from typing import Any, Literal
 
 from pydantic import Field
 
+from cvidee.api.schemas.changes import ChangeEvaluation
 from cvidee.api.schemas.common import ApiModel, TimeRange, UtcDateTime
 from cvidee.rules.base import Category, RecommendationKind, Relevance
 from cvidee.store.enums import (
@@ -202,4 +203,6 @@ class HistoryEntry(ApiModel):
     parameters: dict[str, Any] = Field(default_factory=dict)
     config_hash: str | None = None
     profile_version: str | None = None
+    change_evaluation: ChangeEvaluation | None = None
+    evaluation_parameters: dict[str, Any] = Field(default_factory=dict)
     rule_now_text: str = Field(description="What changed in the rule since the snapshot.")

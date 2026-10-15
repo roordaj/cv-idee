@@ -29,6 +29,6 @@ en ontbrekende modus of warmtevraag wordt onbekend. Opgeslagen cycli en
 bijzondere perioden blijven zichtbaar. Zonder tijdvak geldt de laatste 24 uur;
 het maximale tijdvak is 31 dagen.
 
-De evaluatieroute toont voorlopig het referentie- en observatievenster op
-basis van de ingestelde vergelijkingsduur. De berekening en het oordeel worden
-in #39 aangesloten; er wordt geen verbetering of besparing verzonnen.
+De evaluatieroute berekent de referentie- en observatieperiode op echte gegevens.
+Zie [voor/na-evaluatie](voor-na-evaluatie.md) voor de kengetallen,
+vergelijkbaarheidscontroles, oordelen en terugdraaicriteria.

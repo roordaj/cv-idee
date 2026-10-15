@@ -209,6 +209,8 @@ class GeneratorSpec:
     counter_resets_h: tuple[float, ...] = ()
     duplicate_rate: float = 0.0
     """Probability that an observation is delivered twice (exact duplicate)."""
+    flame_heartbeat_s: int | None = 10
+    """Explicit flame reporting cadence; ``None`` keeps flame change-only."""
     heartbeat_s: int | None = None
     """Report unchanged values every ``heartbeat_s`` (``CONFIRM``) and configure staleness
     (``max_age`` = 3 x heartbeat)."""
@@ -457,7 +459,9 @@ def generate(spec: GeneratorSpec) -> GeneratedData:
                 emit(sig, ts, value, ObservationKind.POLL)
             elif value != last_value[sig]:
                 emit(sig, ts, value, ObservationKind.CHANGE)
-            elif spec.heartbeat_s and ts - last_emit[sig] >= spec.heartbeat_s * 1000:
+            elif (
+                heartbeat_s := spec.flame_heartbeat_s if sig == FLAME else spec.heartbeat_s
+            ) and ts - last_emit[sig] >= heartbeat_s * 1000:
                 emit(sig, ts, value, ObservationKind.CONFIRM)
 
     duplicates = [o for o in obs if rng.random() < spec.duplicate_rate]
@@ -517,13 +521,14 @@ def _truth(
 def _config(spec: GeneratorSpec, signals: Sequence[SignalRef]) -> PipelineConfig:
     configs: list[SignalConfig] = []
     for sig in signals:
-        heartbeat = spec.heartbeat_s is not None and sig != OPERATING_MODE
+        heartbeat_s = spec.flame_heartbeat_s if sig == FLAME else spec.heartbeat_s
+        heartbeat = heartbeat_s is not None and sig != OPERATING_MODE
         configs.append(
             SignalConfig(
                 sig,
                 Provenance(ValueKind.MEASURED, f"sensor.synthetic_{sig.role}"),
                 heartbeat_expected=heartbeat,
-                max_age_ms=spec.heartbeat_s * 3000 if heartbeat and spec.heartbeat_s else None,
+                max_age_ms=heartbeat_s * 3000 if heartbeat and heartbeat_s else None,
                 via_can_gateway=sig in GATEWAY_SIGNALS,
                 cumulative=sig == GAS,
             )

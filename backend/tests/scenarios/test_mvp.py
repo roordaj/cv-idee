@@ -202,3 +202,21 @@ def test_synthetic_targets_are_configurable_and_do_not_change_burner_cycles() ->
     assert {o.value for o in changed.observations if o.signal == LIVING_ROOM_SETPOINT} == {21.5}
     missing = generate(GeneratorSpec(hours=2, include=frozenset({FLAME})))
     assert {o.signal for o in missing.observations} == {FLAME}
+
+
+def test_flame_resolution_is_backed_by_actual_confirmations() -> None:
+    from itertools import pairwise
+    from statistics import median
+
+    from cvidee.analysis.types import ObservationKind
+    from cvidee.testing.generator import FLAME, GeneratorSpec, generate
+
+    data = generate(GeneratorSpec(hours=2))
+    reports = [o for o in data.observations if o.signal == FLAME]
+    assert any(o.kind is ObservationKind.CONFIRM for o in reports)
+    assert median(right.ts - left.ts for left, right in pairwise(reports)) == 10_000
+    change_only = generate(GeneratorSpec(hours=2, flame_heartbeat_s=None))
+    assert not any(
+        o.kind is ObservationKind.CONFIRM for o in change_only.observations if o.signal == FLAME
+    )
+    assert change_only.truth_cycles == data.truth_cycles
