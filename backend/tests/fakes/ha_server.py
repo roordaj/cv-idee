@@ -41,6 +41,9 @@ def make_state(
 class FakeHAServer:
     def __init__(self) -> None:
         self.states: dict[str, dict[str, Any]] = {}
+        self.history_states: dict[str, list[dict[str, Any]]] = {}
+        self.history_requests: list[dict[str, str]] = []
+        self.history_fail_at: int | None = None
         self.fired_events: list[dict[str, Any]] = []
         self.service_calls: list[dict[str, Any]] = []
         self.connection_count = 0
@@ -61,6 +64,7 @@ class FakeHAServer:
                 self._port = s.getsockname()[1]
         app = web.Application()
         app.router.add_get("/api/websocket", self._ws)
+        app.router.add_get("/api/history/period/{start}", self._rest_history)
         app.router.add_get("/api/states", self._rest_states)
         app.router.add_get("/api/states/{entity_id}", self._rest_state)
         self._runner = web.AppRunner(app)
@@ -155,3 +159,25 @@ class FakeHAServer:
         if state is None:
             return web.Response(status=404)
         return web.json_response(state)
+
+    async def _rest_history(self, request: web.Request) -> web.Response:
+        if request.headers.get("Authorization") != f"Bearer {TOKEN}":
+            return web.Response(status=401)
+        self.history_requests.append(dict(request.query))
+        if self.history_fail_at == len(self.history_requests):
+            return web.Response(status=503)
+        start = datetime.fromisoformat(request.match_info["start"])
+        end = datetime.fromisoformat(request.query["end_time"])
+        entity = request.query["filter_entity_id"]
+        rows = self.history_states.get(entity, [])
+        before = [r for r in rows if datetime.fromisoformat(r["last_changed"]) <= start]
+        inside = [r for r in rows if start < datetime.fromisoformat(r["last_changed"]) < end]
+        chosen = ([before[-1]] if before else []) + inside
+        if "minimal_response" in request.query:
+            chosen = [
+                r
+                if index in (0, len(chosen) - 1)
+                else {"state": r["state"], "last_changed": r["last_changed"]}
+                for index, r in enumerate(chosen)
+            ]
+        return web.json_response([chosen] if chosen else [])

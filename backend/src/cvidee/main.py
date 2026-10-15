@@ -20,6 +20,7 @@ from cvidee.api.spa import create_spa_router
 from cvidee.api.stubs.store import StubStore
 from cvidee.config import Settings, get_settings
 from cvidee.ingest.ha_client import AiohttpHAClient
+from cvidee.ingest.history_import import HistoryImport
 from cvidee.ingest.service import FileAliveStore, IngestService, sql_tracked_entities
 from cvidee.runner.service import AnalysisRunner, RunnerSettings
 from cvidee.signals.catalog import sync_catalogue
@@ -105,9 +106,17 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     if ingest is not None:
         await ingest.start()
     started = _start_runner(app, settings)
+    imports = HistoryImport(
+        app.state.session_factory,
+        app.state.ha_client,
+        app.state.runner or AnalysisRunner(app.state.session_factory),
+    )
+    app.state.history_import = imports
+    await imports.recover()
     try:
         yield
     finally:
+        await imports.stop()
         if started is not None:
             _, stop, task = started
             stop.set()

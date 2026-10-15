@@ -16,6 +16,9 @@ from cvidee.api.problems import ProblemError
 from cvidee.api.schemas.changes import Change, ChangeCreate, ChangeEvaluation, ChangeList
 from cvidee.api.schemas.common import Page, UtcDateTime
 from cvidee.api.schemas.data import (
+    ImportJob,
+    ImportList,
+    ImportRequest,
     SpecialPeriod,
     SpecialPeriodIn,
     SpecialPeriodList,
@@ -183,3 +186,34 @@ def get_timeline(request: Request) -> Iterator[TimelineBackend]:
 
 Changes = Annotated[ChangesBackend, Depends(get_changes)]
 Timeline = Annotated[TimelineBackend, Depends(get_timeline)]
+
+
+class ImportsBackend(Protocol):
+    def import_list(self) -> ImportList: ...
+    def start_import(self, body: ImportRequest) -> ImportJob: ...
+    def poll_import(self, ident: str) -> ImportJob: ...
+    def cancel_import(self, ident: str) -> ImportJob: ...
+
+
+def get_imports(request: Request) -> ImportsBackend:
+    from cvidee.ingest.history_import import HistoryImport
+    from cvidee.runner.service import AnalysisRunner
+
+    stub: StubStore | None = getattr(request.app.state, "stub_store", None)
+    if stub is not None:
+        return stub
+    service: HistoryImport | None = getattr(request.app.state, "history_import", None)
+    if service is None:
+        factory: sessionmaker[Session] | None = getattr(request.app.state, "session_factory", None)
+        if factory is None:
+            raise get_stub_store_problem()
+        service = HistoryImport(
+            factory,
+            getattr(request.app.state, "ha_client", None),
+            getattr(request.app.state, "runner", None) or AnalysisRunner(factory),
+        )
+        request.app.state.history_import = service
+    return service
+
+
+Imports = Annotated[ImportsBackend, Depends(get_imports)]

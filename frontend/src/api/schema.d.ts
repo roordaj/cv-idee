@@ -305,13 +305,13 @@ export interface paths {
     };
     /**
      * List Imports
-     * @description Imports, newest first, plus how far back the HA recorder goes.
+     * @description Imports, newest first; unknown recorder retention stays null.
      */
     get: operations['list_imports'];
     put?: never;
     /**
      * Start Import
-     * @description Start a historical import (max one at a time, ``409`` otherwise).
+     * @description Import recorder history, resuming an interrupted identical request when possible.
      */
     post: operations['start_import'];
     delete?: never;
@@ -329,7 +329,7 @@ export interface paths {
     };
     /**
      * Get Import
-     * @description Import progress; poll every 2 s while active.
+     * @description Stored progress; polling does not advance the job.
      */
     get: operations['get_import'];
     put?: never;
@@ -351,7 +351,7 @@ export interface paths {
     put?: never;
     /**
      * Cancel Import
-     * @description Stop a running import; what was fetched is kept.
+     * @description Cancel a job while keeping committed observations and checkpoints.
      */
     post: operations['cancel_import'];
     delete?: never;
@@ -3627,6 +3627,16 @@ export interface operations {
       };
       /** @description Not implemented (start the backend with CVIDEE_STUB_DATA=1 for example data) */
       501: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+      /** @description Error */
+      503: {
         headers: {
           [name: string]: unknown;
         };
