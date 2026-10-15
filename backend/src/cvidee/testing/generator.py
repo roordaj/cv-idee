@@ -63,6 +63,8 @@ MODE_MAPPING: tuple[tuple[str, Mode], ...] = (
 
 LIVING_ROOM = SignalRef(Role.ROOM_TEMPERATURE, Scope(ScopeKind.ROOM, "woonkamer"))
 BEDROOM = SignalRef(Role.ROOM_TEMPERATURE, Scope(ScopeKind.ROOM, "slaapkamer"))
+LIVING_ROOM_SETPOINT = SignalRef(Role.ROOM_SETPOINT, Scope(ScopeKind.ROOM, "woonkamer"))
+BEDROOM_SETPOINT = SignalRef(Role.ROOM_SETPOINT, Scope(ScopeKind.ROOM, "slaapkamer"))
 FLAME = SignalRef(Role.FLAME)
 OPERATING_MODE = SignalRef(Role.OPERATING_MODE)
 HEAT_DEMAND = SignalRef(Role.HEAT_DEMAND)
@@ -86,11 +88,21 @@ ALL_SIGNALS: tuple[SignalRef, ...] = (
     GAS,
     LIVING_ROOM,
     BEDROOM,
+    LIVING_ROOM_SETPOINT,
+    BEDROOM_SETPOINT,
     OUTDOOR,
 )
-GATEWAY_SIGNALS = frozenset(ALL_SIGNALS) - {LIVING_ROOM, BEDROOM, OUTDOOR}
+GATEWAY_SIGNALS = frozenset(ALL_SIGNALS) - {
+    LIVING_ROOM,
+    BEDROOM,
+    LIVING_ROOM_SETPOINT,
+    BEDROOM_SETPOINT,
+    OUTDOOR,
+}
 """Signals that reach HA through the CAN gateway (lost during a ``can`` data gap)."""
-_SLOW_SIGNALS = frozenset({LIVING_ROOM, BEDROOM, OUTDOOR, GAS})
+_SLOW_SIGNALS = frozenset(
+    {LIVING_ROOM, BEDROOM, LIVING_ROOM_SETPOINT, BEDROOM_SETPOINT, OUTDOOR, GAS}
+)
 """Reported once a minute instead of every step."""
 
 
@@ -122,6 +134,9 @@ class Behaviour:
     room_c: float = 20.5
     """Living-room temperature the regime settles at (comfort)."""
     bedroom_offset_c: float = -2.0
+    room_setpoint_c: float = 20.5
+    bedroom_setpoint_c: float = 18.5
+    """Explicit synthetic comfort targets; never runtime defaults for real installations."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -414,6 +429,8 @@ def generate(spec: GeneratorSpec) -> GeneratedData:
             PUMP: bool(flame or demand or off in afterrun),
             LIVING_ROOM: _quantise(room_l, 0.1),
             BEDROOM: _quantise(room_b, 0.1),
+            LIVING_ROOM_SETPOINT: beh.room_setpoint_c,
+            BEDROOM_SETPOINT: beh.bedroom_setpoint_c,
             OUTDOOR: _quantise(outdoor, 0.1),
             GAS: round(gas_total - gas_offset, 3),
         }
