@@ -1712,6 +1712,11 @@ export interface components {
       config_hash?: string | null;
       /** Profile Version */
       profile_version?: string | null;
+      change_evaluation?: components['schemas']['ChangeEvaluation'] | null;
+      /** Evaluation Parameters */
+      evaluation_parameters?: {
+        [key: string]: unknown;
+      };
       /**
        * Rule Now Text
        * @description What changed in the rule since the snapshot.

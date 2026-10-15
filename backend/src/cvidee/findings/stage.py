@@ -25,6 +25,7 @@ from cvidee.analysis.types import (
 )
 from cvidee.api.findings_read import FindingsReadModel
 from cvidee.api.schemas.settings import AnalysisSettings
+from cvidee.changes.evaluation import evaluate_changes
 from cvidee.findings.bundling import bundle_signature
 from cvidee.findings.engine import EngineResult, FindingsEngine, RecoverySettings
 from cvidee.findings.history import profile_settings
@@ -146,6 +147,7 @@ class FindingsStage:
             special_periods=rule_periods(session, period),
             timelines=timelines,
             config_hash=config.config_hash,
+            change_evaluations=evaluate_changes(session, now, settings_values, config),
         )
         recovery = (
             self.recovery

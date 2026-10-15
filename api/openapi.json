@@ -5014,6 +5014,21 @@
             ],
             "title": "Profile Version"
           },
+          "change_evaluation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChangeEvaluation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evaluation_parameters": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Evaluation Parameters"
+          },
           "rule_now_text": {
             "type": "string",
             "title": "Rule Now Text",

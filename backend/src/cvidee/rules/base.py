@@ -25,6 +25,7 @@ from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from cvidee.analysis.change_evaluation import EvaluationFact
 from cvidee.analysis.types import (
     BOILER,
     OUTDOOR,
@@ -433,6 +434,7 @@ class RuleContext:
     special_periods: tuple[SpecialPeriod, ...] = ()
     timelines: TimelineSource = field(default_factory=StaticTimelines)
     config_hash: str = ""
+    change_evaluations: tuple[EvaluationFact, ...] = ()
     tz: str = LOCAL_TZ
 
     # -- signals -------------------------------------------------------------------------
