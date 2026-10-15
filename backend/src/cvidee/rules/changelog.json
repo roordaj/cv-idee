@@ -1,0 +1,37 @@
+{
+  "dataverlies": {
+    "1.0.0": [
+      "Eerste versie, met scenario- en uitsluitingstests."
+    ]
+  },
+  "hydraulisch": {
+    "1.0.0": [
+      "Eerste versie, met scenario- en uitsluitingstests."
+    ]
+  },
+  "kort-branden": {
+    "1.0.0": [
+      "Eerste versie."
+    ]
+  },
+  "sensor-verouderd": {
+    "1.0.0": [
+      "Eerste versie, met scenario- en uitsluitingstests."
+    ]
+  },
+  "stop-tijdens-vraag": {
+    "1.0.0": [
+      "Eerste versie, met scenario- en uitsluitingstests."
+    ]
+  },
+  "tapwater-uitgesloten": {
+    "1.0.0": [
+      "Eerste versie, met scenario- en uitsluitingstests."
+    ]
+  },
+  "temperatuurverloop": {
+    "1.0.0": [
+      "Eerste versie, met scenario- en uitsluitingstests."
+    ]
+  }
+}

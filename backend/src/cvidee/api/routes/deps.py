@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from cvidee.api.config_backend import ConfigBackend
 from cvidee.api.findings_read import FindingsReadModel
 from cvidee.api.problems import ProblemError
-from cvidee.api.schemas.common import UtcDateTime
+from cvidee.api.schemas.common import Page, UtcDateTime
 from cvidee.api.schemas.data import SpecialPeriod, SpecialPeriodIn, SpecialPeriodList
 from cvidee.api.schemas.findings import (
     FindingDetail,
@@ -20,6 +20,7 @@ from cvidee.api.schemas.findings import (
     FindingNote,
     FindingNoteCreate,
     FindingStatusUpdate,
+    HistoryEntry,
 )
 from cvidee.api.schemas.installation import InstallationProfile, InstallationProfileIn
 from cvidee.api.stubs.store import StubStore
@@ -107,3 +108,27 @@ From = Annotated[
 To = Annotated[UtcDateTime | None, Query(alias="to", description="End (ISO 8601); default: now.")]
 Limit = Annotated[int, Query(ge=1, le=500, description="Page size.")]
 Offset = Annotated[int, Query(ge=0, description="Items to skip.")]
+
+
+class HistoryBackend(Protocol):
+    def history(self, limit: int, offset: int) -> Page[HistoryEntry]: ...
+
+
+def get_history(request: Request) -> Iterator[HistoryBackend]:
+    from cvidee.findings.history import HistoryReadModel
+    from cvidee.rules.registry import default_registry
+
+    stub: StubStore | None = getattr(request.app.state, "stub_store", None)
+    if stub is not None:
+        yield stub
+        return
+    factory: sessionmaker[Session] | None = getattr(request.app.state, "session_factory", None)
+    if factory is None:
+        raise get_stub_store_problem()
+    runner = getattr(request.app.state, "runner", None)
+    registry = default_registry() if runner is None else runner.registry
+    with factory() as session:
+        yield HistoryReadModel(session, registry)
+
+
+History = Annotated[HistoryBackend, Depends(get_history)]

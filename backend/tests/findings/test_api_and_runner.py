@@ -213,3 +213,28 @@ async def test_runner_reopens_postponed_advice_on_new_severity(
     assert body["postponed_until"] is None
     assert body["notes"][0]["text"] == "Meten na onderhoud."
     assert (await client.get("/api/findings")).json()["open_count"] == 1
+
+
+def test_runner_records_initial_advice_without_settings_revision(tmp_path: Path) -> None:
+    from sqlalchemy import select
+
+    from cvidee.store.enums import SnapshotTrigger
+    from cvidee.store.models import RecommendationSnapshot
+
+    factory = make_db(tmp_path, "default-history")
+    seed(factory)
+    DummyRule.emit = (Emit(certainty=Certainty.INSUFFICIENT_EVIDENCE),)
+    runner = AnalysisRunner(
+        factory, RunnerSettings(chunk_ms=HUGE, registry=RuleRegistry([DummyRule()]))
+    )
+    runs = runner.tick(END + settle_of(runner))
+    assert all(run.status.value == "succeeded" for run in runs)
+    with factory() as session:
+        snapshot = session.scalar(select(RecommendationSnapshot))
+        assert snapshot is not None
+        assert snapshot.trigger is SnapshotTrigger.CREATED
+        assert snapshot.rule_params == {"threshold": 3}
+        assert snapshot.settings_revision_id is None
+        assert snapshot.settings["short_cycle_min"] == 3
+        assert snapshot.settings["postpone_days"] == 7
+        assert snapshot.settings["installation_profile"]["version"] == str(snapshot.profile_id)

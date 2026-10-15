@@ -31,4 +31,5 @@ Notities blijven behouden. Geaccepteerde, uitgevoerde en afgewezen adviezen word
 niet automatisch herschreven. De detectieregels blijven verantwoordelijk voor
 profielgebonden advies en aanvullende metingen bij ontbrekende gegevens.
 
-Advieshistorie en snapshots bij statusovergangen zijn het vervolg in #37.
+Advieshistorie en snapshots bij statusovergangen staan beschreven in
+[advieshistorie](advieshistorie.md).

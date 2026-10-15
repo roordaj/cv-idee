@@ -199,4 +199,7 @@ class HistoryEntry(ApiModel):
     status_text: str
     reasoning: str
     note: str | None
+    parameters: dict[str, Any] = Field(default_factory=dict)
+    config_hash: str | None = None
+    profile_version: str | None = None
     rule_now_text: str = Field(description="What changed in the rule since the snapshot.")

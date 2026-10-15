@@ -27,6 +27,7 @@ from cvidee.api.findings_read import FindingsReadModel
 from cvidee.api.schemas.settings import AnalysisSettings
 from cvidee.findings.bundling import bundle_signature
 from cvidee.findings.engine import EngineResult, FindingsEngine, RecoverySettings
+from cvidee.findings.history import profile_settings
 from cvidee.findings.repository import SqlFindingRepository
 from cvidee.installation import SqlInstallationProfileRepository, profile_facts
 from cvidee.periods import rule_periods
@@ -160,58 +161,63 @@ class FindingsStage:
             self.registry, SqlFindingRepository(session), recovery, params_for=params.__getitem__
         )
         outcome = engine.evaluate(ctx, run_id)
-        if settings_values is not None:
-            session.flush()
-            run = session.get(AnalysisRun, run_id)
-            for human_id in (*outcome.created, *outcome.updated):
-                finding = session.scalar(select(Finding).where(Finding.human_id == human_id))
-                if finding is None or not finding.recommendations:
-                    continue
-                recommendation = finding.recommendations[-1]
-                if recommendation.status is not RecommendationStatus.OPEN:
-                    continue
-                previous = session.scalar(
-                    select(RecommendationSnapshot)
-                    .where(RecommendationSnapshot.recommendation_id == recommendation.id)
-                    .order_by(RecommendationSnapshot.id.desc())
-                    .limit(1)
-                )
-                rendered = (
-                    FindingsReadModel(session, lambda: now)
-                    .finding(human_id)
-                    .model_dump(mode="json")
-                )
+        session.flush()
+        run = session.get(AnalysisRun, run_id)
+        for human_id in (*outcome.created, *outcome.updated):
+            finding = session.scalar(select(Finding).where(Finding.human_id == human_id))
+            if finding is None or not finding.recommendations:
+                continue
+            recommendation = finding.recommendations[-1]
+            if recommendation.status is not RecommendationStatus.OPEN:
+                continue
+            previous = session.scalar(
+                select(RecommendationSnapshot)
+                .where(RecommendationSnapshot.recommendation_id == recommendation.id)
+                .order_by(RecommendationSnapshot.id.desc())
+                .limit(1)
+            )
+            rendered = (
+                FindingsReadModel(session, lambda: now).finding(human_id).model_dump(mode="json")
+            )
 
-                if (
-                    previous is not None
-                    and previous.config_hash == config.config_hash
-                    and previous.rule_params == finding.rule_params
-                    and previous.profile_id == int(profile.version)
-                    and bundle_signature(previous.content) == bundle_signature(rendered)
-                ):
-                    continue
-                session.add(
-                    RecommendationSnapshot(
-                        recommendation_id=recommendation.id,
-                        finding_id=finding.id,
-                        taken_at_ts=now,
-                        trigger=SnapshotTrigger.CREATED
-                        if previous is None
-                        else SnapshotTrigger.CONTENT_UPDATED,
-                        status=recommendation.status,
-                        outcome=recommendation.outcome,
-                        measurement_start_ts=finding.period_start_ts,
-                        measurement_end_ts=finding.period_end_ts,
-                        rule_id=finding.rule_id,
-                        rule_version=finding.rule_version,
-                        rule_params=dict(finding.rule_params),
-                        profile_id=int(profile.version),
-                        settings_revision_id=None if run is None else run.settings_revision_id,
-                        config_hash=config.config_hash,
-                        settings=settings_values.model_dump(mode="json"),
-                        content=rendered,
-                    )
+            if (
+                previous is not None
+                and previous.config_hash == config.config_hash
+                and previous.rule_version == finding.rule_version
+                and previous.status == recommendation.status
+                and previous.rule_params == finding.rule_params
+                and previous.profile_id == int(profile.version)
+                and bundle_signature(previous.content) == bundle_signature(rendered)
+            ):
+                continue
+            session.add(
+                RecommendationSnapshot(
+                    recommendation_id=recommendation.id,
+                    finding_id=finding.id,
+                    taken_at_ts=now,
+                    trigger=SnapshotTrigger.CREATED
+                    if previous is None
+                    else SnapshotTrigger.CONTENT_UPDATED,
+                    status=recommendation.status,
+                    outcome=recommendation.outcome,
+                    measurement_start_ts=finding.period_start_ts,
+                    measurement_end_ts=finding.period_end_ts,
+                    rule_id=finding.rule_id,
+                    rule_version=finding.rule_version,
+                    rule_params=dict(finding.rule_params),
+                    profile_id=int(profile.version),
+                    settings_revision_id=None if run is None else run.settings_revision_id,
+                    config_hash=config.config_hash,
+                    settings={
+                        **(settings_values or AnalysisSettings()).model_dump(mode="json"),
+                        "installation_profile": profile_settings(session, int(profile.version)),
+                    },
+                    content=rendered,
+                    note=max(recommendation.notes, key=lambda n: (n.created_at_ts, n.id)).text
+                    if recommendation.notes
+                    else None,
                 )
+            )
         return outcome
 
 
