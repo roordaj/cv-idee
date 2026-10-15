@@ -14,7 +14,13 @@ from cvidee.api.findings_read import FindingsReadModel
 from cvidee.api.problems import ProblemError
 from cvidee.api.schemas.common import UtcDateTime
 from cvidee.api.schemas.data import SpecialPeriod, SpecialPeriodIn, SpecialPeriodList
-from cvidee.api.schemas.findings import FindingDetail, FindingList
+from cvidee.api.schemas.findings import (
+    FindingDetail,
+    FindingList,
+    FindingNote,
+    FindingNoteCreate,
+    FindingStatusUpdate,
+)
 from cvidee.api.schemas.installation import InstallationProfile, InstallationProfileIn
 from cvidee.api.stubs.store import StubStore
 
@@ -48,6 +54,10 @@ class FindingsBackend(Protocol):
 
     def finding(self, finding_id: str) -> FindingDetail: ...
 
+    def set_finding_status(self, finding_id: str, body: FindingStatusUpdate) -> FindingDetail: ...
+
+    def add_note(self, finding_id: str, body: FindingNoteCreate) -> FindingNote: ...
+
 
 def get_findings(request: Request) -> Iterator[FindingsBackend]:
     stub: StubStore | None = getattr(request.app.state, "stub_store", None)
@@ -58,7 +68,7 @@ def get_findings(request: Request) -> Iterator[FindingsBackend]:
     if factory is None:
         get_stub_store(request)  # raises the 501 problem
         return
-    with factory() as session:
+    with factory.begin() as session:
         yield FindingsReadModel(session, lambda: int(time.time() * 1000))
 
 

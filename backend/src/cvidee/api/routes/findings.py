@@ -32,7 +32,7 @@ async def get_finding(finding_id: str, store: Findings) -> FindingDetail:
     "/findings/{finding_id}/status", tags=["findings"], responses=problem_responses(404, 422)
 )
 async def set_finding_status(
-    finding_id: str, body: FindingStatusUpdate, store: Store
+    finding_id: str, body: FindingStatusUpdate, store: Findings
 ) -> FindingDetail:
     """Accept, postpone, mark done or reject the recommendation (FR-27)."""
     return store.set_finding_status(finding_id, body)
@@ -44,7 +44,9 @@ async def set_finding_status(
     status_code=status.HTTP_201_CREATED,
     responses=problem_responses(404, 422),
 )
-async def add_finding_note(finding_id: str, body: FindingNoteCreate, store: Store) -> FindingNote:
+async def add_finding_note(
+    finding_id: str, body: FindingNoteCreate, store: Findings
+) -> FindingNote:
     """Add a personal note to a finding."""
     return store.add_note(finding_id, body)
 

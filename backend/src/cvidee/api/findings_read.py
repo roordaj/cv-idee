@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 
 from sqlalchemy.orm import Session
 
-from cvidee.api.problems import not_found
+from cvidee.api.problems import ProblemError, not_found
 from cvidee.api.schemas.common import TimeRange
 from cvidee.api.schemas.findings import (
     BundledEvidence,
@@ -19,6 +19,9 @@ from cvidee.api.schemas.findings import (
     EvidenceLink,
     FindingDetail,
     FindingList,
+    FindingNote,
+    FindingNoteCreate,
+    FindingStatusUpdate,
     FindingSummary,
     HypothesisOut,
     PriorityFactor,
@@ -27,16 +30,19 @@ from cvidee.api.schemas.findings import (
     RuleRef,
 )
 from cvidee.api.stubs.fixtures import status_text
+from cvidee.findings.recommendations import follow_up_baseline, reopen_if_due
 from cvidee.findings.repository import SqlFindingRepository
 from cvidee.rules.base import Category, RecommendationKind, Relevance
+from cvidee.settings.repository import current_revision, effective_values
 from cvidee.store.enums import (
     Certainty,
     EvidenceKind,
     FindingLifecycle,
+    RecommendationOutcome,
     RecommendationStatus,
     Severity,
 )
-from cvidee.store.models import Finding, FindingEvidence, Recommendation
+from cvidee.store.models import Finding, FindingEvidence, Recommendation, RecommendationNote
 
 __all__ = ["FindingsReadModel"]
 
@@ -188,11 +194,64 @@ class FindingsReadModel:
     """``GET /api/findings`` and ``/api/findings/{id}`` over the database."""
 
     def __init__(self, session: Session, clock: Callable[[], int]) -> None:
+        self._session = session
         self._repo = SqlFindingRepository(session)
         self._clock = clock
 
     def _status(self, finding: Finding) -> Recommendation | None:
-        return self._repo.recommendation_of(finding)
+        rec = self._repo.recommendation_of(finding)
+        if rec is not None:
+            reopen_if_due(rec, self._clock())
+        return rec
+
+    def _require_recommendation(self, finding_id: str) -> tuple[Finding, Recommendation]:
+        finding = self._repo.by_human_id(finding_id)
+        if finding is None:
+            raise not_found("Bevinding", finding_id)
+        rec = self._status(finding)
+        if rec is None:
+            raise ProblemError(422, "Geen aanbeveling", "Deze bevinding heeft geen aanbeveling.")
+        return finding, rec
+
+    def set_finding_status(self, finding_id: str, body: FindingStatusUpdate) -> FindingDetail:
+        finding, rec = self._require_recommendation(finding_id)
+        now = self._clock()
+        values = effective_values(current_revision(self._session))
+        until = None
+        if body.status == "postponed":
+            days = values.postpone_days
+            until = (
+                int(body.postponed_until.timestamp() * 1000)
+                if body.postponed_until is not None
+                else now + days * 86_400_000
+            )
+            if until <= now:
+                raise ProblemError(422, "Ongeldige datum", "Kies een datum in de toekomst.")
+        elif body.postponed_until is not None:
+            raise ProblemError(422, "Ongeldige datum", "Een uitsteldatum hoort bij uitstellen.")
+        rec.status = RecommendationStatus(body.status)
+        rec.postponed_until_ts = until
+        rec.status_changed_at_ts = now
+        rec.success_spec = {
+            **(rec.success_spec or {}),
+            "follow_up_baseline": follow_up_baseline(
+                finding, values.min_assessment_coverage_pct / 100
+            ),
+        }
+        if rec.status is RecommendationStatus.DONE:
+            rec.outcome = RecommendationOutcome.UNDECIDED
+        self._session.flush()
+        return self.finding(finding_id)
+
+    def add_note(self, finding_id: str, body: FindingNoteCreate) -> FindingNote:
+        _, rec = self._require_recommendation(finding_id)
+        text = body.text.strip()
+        if not text:
+            raise ProblemError(422, "Ongeldige notitie", "Vul een notitie in.")
+        note = RecommendationNote(text=text, created_at_ts=self._clock())
+        rec.notes.append(note)
+        self._session.flush()
+        return FindingNote(id=str(note.id), text=note.text, created_at=_dt(note.created_at_ts))
 
     def _summary_fields(self, f: Finding, rec: Recommendation | None) -> dict[str, Any]:
         status = rec.status if rec is not None else RecommendationStatus.OPEN
@@ -316,6 +375,12 @@ class FindingsReadModel:
             postponed_until=_dt(rec.postponed_until_ts)
             if rec is not None and rec.postponed_until_ts
             else None,
+            notes=[]
+            if rec is None
+            else [
+                FindingNote(id=str(note.id), text=note.text, created_at=_dt(note.created_at_ts))
+                for note in sorted(rec.notes, key=lambda n: (n.created_at_ts, n.id))
+            ],
             evidence_links=links,
             priority=priority,
         )
