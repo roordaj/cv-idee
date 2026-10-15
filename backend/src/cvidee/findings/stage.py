@@ -209,11 +209,7 @@ class FindingsStage:
                     settings_revision_id=None if run is None else run.settings_revision_id,
                     config_hash=config.config_hash,
                     settings={
-                        **(
-                            {}
-                            if settings_values is None
-                            else settings_values.model_dump(mode="json")
-                        ),
+                        **(settings_values or AnalysisSettings()).model_dump(mode="json"),
                         "installation_profile": profile_settings(session, int(profile.version)),
                     },
                     content=rendered,

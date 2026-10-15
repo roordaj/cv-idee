@@ -235,4 +235,6 @@ def test_runner_records_initial_advice_without_settings_revision(tmp_path: Path)
         assert snapshot.trigger is SnapshotTrigger.CREATED
         assert snapshot.rule_params == {"threshold": 3}
         assert snapshot.settings_revision_id is None
+        assert snapshot.settings["short_cycle_min"] == 3
+        assert snapshot.settings["postpone_days"] == 7
         assert snapshot.settings["installation_profile"]["version"] == str(snapshot.profile_id)
