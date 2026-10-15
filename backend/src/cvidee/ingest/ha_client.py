@@ -21,6 +21,7 @@ from collections.abc import Awaitable, Callable, Collection, Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from typing import Any, Protocol
+from urllib.parse import urlencode
 
 import aiohttp
 
@@ -198,6 +199,30 @@ class AiohttpHAClient:
         except HANotFoundError:
             return None
         return HAState.from_json(raw)
+
+    async def history(
+        self, entity_id: str, start: int, end: int, *, heartbeat_expected: bool = False
+    ) -> list[Mapping[str, Any]]:
+        """Read recorder history; reduced rows inherit the requested entity id."""
+        params = {
+            "filter_entity_id": entity_id,
+            "end_time": datetime.fromtimestamp(end / 1000, UTC).isoformat(),
+        }
+        if not heartbeat_expected:
+            params.update({"minimal_response": "", "no_attributes": ""})
+        stamp = datetime.fromtimestamp(start / 1000, UTC).isoformat()
+        raw = await self._rest_get(f"/history/period/{stamp}?{urlencode(params)}")
+        if not isinstance(raw, list):
+            raise HAUnavailableError("Invalid history response")
+        rows: list[Mapping[str, Any]] = []
+        for group in raw:
+            if not isinstance(group, list):
+                raise HAUnavailableError("Invalid history group")
+            for item in group:
+                if not isinstance(item, dict) or item.get("entity_id", entity_id) != entity_id:
+                    raise HAUnavailableError("Invalid history state")
+                rows.append({**item, "entity_id": entity_id})
+        return rows
 
     async def call_service(self, domain: str, service: str, data: Mapping[str, Any]) -> None:
         if domain not in ALLOWED_SERVICE_DOMAINS:

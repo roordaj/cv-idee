@@ -1,14 +1,11 @@
 """Data quality, timeline, cycles and historical import (FR-06-13)."""
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter
 
 from cvidee.api.routes.deps import From, Limit, Offset, Store, Timeline, To
 from cvidee.api.schemas.common import problem_responses
 from cvidee.api.schemas.data import (
     CycleList,
-    ImportJob,
-    ImportList,
-    ImportRequest,
     QualityResponse,
     TimelineResponse,
 )
@@ -36,32 +33,3 @@ async def list_cycles(
     """Burner cycles with end reason and the KPI summary of the range (FR-12, FR-13)."""
     del from_, to
     return store.cycles(limit, offset)
-
-
-@router.get("/import", tags=["import"])
-async def list_imports(store: Store) -> ImportList:
-    """Imports, newest first, plus how far back the HA recorder goes."""
-    return store.import_list()
-
-
-@router.post(
-    "/import",
-    tags=["import"],
-    status_code=status.HTTP_202_ACCEPTED,
-    responses=problem_responses(409),
-)
-async def start_import(body: ImportRequest, store: Store) -> ImportJob:
-    """Start a historical import (max one at a time, ``409`` otherwise)."""
-    return store.start_import(body)
-
-
-@router.get("/import/{import_id}", tags=["import"], responses=problem_responses(404))
-async def get_import(import_id: str, store: Store) -> ImportJob:
-    """Import progress; poll every 2 s while active."""
-    return store.poll_import(import_id)
-
-
-@router.post("/import/{import_id}/cancel", tags=["import"], responses=problem_responses(404, 409))
-async def cancel_import(import_id: str, store: Store) -> ImportJob:
-    """Stop a running import; what was fetched is kept."""
-    return store.cancel_import(import_id)

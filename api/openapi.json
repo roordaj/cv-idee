@@ -1076,7 +1076,7 @@
           "import"
         ],
         "summary": "List Imports",
-        "description": "Imports, newest first, plus how far back the HA recorder goes.",
+        "description": "Imports, newest first; unknown recorder retention stays null.",
         "operationId": "list_imports",
         "responses": {
           "200": {
@@ -1126,7 +1126,7 @@
           "import"
         ],
         "summary": "Start Import",
-        "description": "Start a historical import (max one at a time, ``409`` otherwise).",
+        "description": "Import recorder history, resuming an interrupted identical request when possible.",
         "operationId": "start_import",
         "requestBody": {
           "content": {
@@ -1193,6 +1193,21 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         }
       }
@@ -1203,7 +1218,7 @@
           "import"
         ],
         "summary": "Get Import",
-        "description": "Import progress; poll every 2 s while active.",
+        "description": "Stored progress; polling does not advance the job.",
         "operationId": "get_import",
         "parameters": [
           {
@@ -1281,7 +1296,7 @@
           "import"
         ],
         "summary": "Cancel Import",
-        "description": "Stop a running import; what was fetched is kept.",
+        "description": "Cancel a job while keeping committed observations and checkpoints.",
         "operationId": "cancel_import",
         "parameters": [
           {
