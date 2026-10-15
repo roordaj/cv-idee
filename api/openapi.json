@@ -1665,7 +1665,7 @@
           "history"
         ],
         "summary": "List History",
-        "description": "Recommendation history as recorded at the time (FR-41), newest first.",
+        "description": "Advice history, newest first, with original parameters and subsequent rule changes.",
         "operationId": "list_history",
         "parameters": [
           {
@@ -1707,8 +1707,8 @@
               }
             }
           },
-          "501": {
-            "description": "Not implemented (start the backend with CVIDEE_STUB_DATA=1 for example data)",
+          "422": {
+            "description": "Validation error",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1722,8 +1722,8 @@
               }
             }
           },
-          "422": {
-            "description": "Validation error",
+          "501": {
+            "description": "Not implemented (start the backend with CVIDEE_STUB_DATA=1 for example data)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4971,6 +4971,33 @@
               }
             ],
             "title": "Note"
+          },
+          "parameters": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Parameters"
+          },
+          "config_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Config Hash"
+          },
+          "profile_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Version"
           },
           "rule_now_text": {
             "type": "string",

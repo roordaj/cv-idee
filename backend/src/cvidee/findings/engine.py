@@ -137,8 +137,8 @@ class FindingsEngine:
         result = EngineResult()
         for finding in self._repo.list_findings():
             rec = self._repo.recommendation_of(finding)
-            if rec is not None:
-                reopen_if_due(rec, ctx.now)
+            if rec is not None and reopen_if_due(rec, ctx.now):
+                self._repo.snapshot_status(finding, ctx.now)
         outcomes = tuple(
             self._registry.evaluate(rule.id, ctx, self._params_for(rule.id))
             for rule in self._registry
@@ -297,6 +297,7 @@ class FindingsEngine:
             and has_deteriorated(rec, finding)
         ):
             reopen(rec, ctx.now)
+            self._repo.snapshot_status(finding, ctx.now)
         self._sync_recommendation(finding, outcome, c.recommendation, ctx)
 
     def _fill(

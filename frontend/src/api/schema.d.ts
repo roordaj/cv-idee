@@ -449,7 +449,7 @@ export interface paths {
     };
     /**
      * List History
-     * @description Recommendation history as recorded at the time (FR-41), newest first.
+     * @description Advice history, newest first, with original parameters and subsequent rule changes.
      */
     get: operations['list_history'];
     put?: never;
@@ -1704,6 +1704,14 @@ export interface components {
       reasoning: string;
       /** Note */
       note: string | null;
+      /** Parameters */
+      parameters?: {
+        [key: string]: unknown;
+      };
+      /** Config Hash */
+      config_hash?: string | null;
+      /** Profile Version */
+      profile_version?: string | null;
       /**
        * Rule Now Text
        * @description What changed in the rule since the snapshot.

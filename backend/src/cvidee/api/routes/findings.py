@@ -2,15 +2,14 @@
 
 from fastapi import APIRouter, status
 
-from cvidee.api.routes.deps import Findings, Limit, Offset, Store
-from cvidee.api.schemas.common import Page, problem_responses
+from cvidee.api.routes.deps import Findings
+from cvidee.api.schemas.common import problem_responses
 from cvidee.api.schemas.findings import (
     FindingDetail,
     FindingList,
     FindingNote,
     FindingNoteCreate,
     FindingStatusUpdate,
-    HistoryEntry,
 )
 
 router = APIRouter(responses=problem_responses(501))
@@ -49,9 +48,3 @@ async def add_finding_note(
 ) -> FindingNote:
     """Add a personal note to a finding."""
     return store.add_note(finding_id, body)
-
-
-@router.get("/history", tags=["history"], responses=problem_responses(422))
-async def list_history(store: Store, limit: Limit = 50, offset: Offset = 0) -> Page[HistoryEntry]:
-    """Recommendation history as recorded at the time (FR-41), newest first."""
-    return store.history(limit, offset)

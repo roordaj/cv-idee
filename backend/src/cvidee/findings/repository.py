@@ -92,3 +92,8 @@ class SqlFindingRepository:
         self._session.add(recommendation)
         self._session.flush()
         return recommendation
+
+    def snapshot_status(self, finding: Finding, now: int) -> None:
+        from cvidee.findings.history import snapshot_transition
+
+        snapshot_transition(self._session, finding, now)

@@ -30,6 +30,7 @@ from cvidee.api.schemas.findings import (
     RuleRef,
 )
 from cvidee.api.stubs.fixtures import status_text
+from cvidee.findings.history import snapshot_transition
 from cvidee.findings.recommendations import follow_up_baseline, reopen_if_due
 from cvidee.findings.repository import SqlFindingRepository
 from cvidee.rules.base import Category, RecommendationKind, Relevance
@@ -193,15 +194,18 @@ def _recommendation(rec: Recommendation, finding: Finding) -> RecommendationOut:
 class FindingsReadModel:
     """``GET /api/findings`` and ``/api/findings/{id}`` over the database."""
 
-    def __init__(self, session: Session, clock: Callable[[], int]) -> None:
+    def __init__(
+        self, session: Session, clock: Callable[[], int], *, refresh_status: bool = True
+    ) -> None:
+        self._refresh_status = refresh_status
         self._session = session
         self._repo = SqlFindingRepository(session)
         self._clock = clock
 
     def _status(self, finding: Finding) -> Recommendation | None:
         rec = self._repo.recommendation_of(finding)
-        if rec is not None:
-            reopen_if_due(rec, self._clock())
+        if rec is not None and self._refresh_status and reopen_if_due(rec, self._clock()):
+            snapshot_transition(self._session, finding, self._clock())
         return rec
 
     def _require_recommendation(self, finding_id: str) -> tuple[Finding, Recommendation]:
@@ -229,6 +233,7 @@ class FindingsReadModel:
                 raise ProblemError(422, "Ongeldige datum", "Kies een datum in de toekomst.")
         elif body.postponed_until is not None:
             raise ProblemError(422, "Ongeldige datum", "Een uitsteldatum hoort bij uitstellen.")
+        changed = rec.status != RecommendationStatus(body.status) or rec.postponed_until_ts != until
         rec.status = RecommendationStatus(body.status)
         rec.postponed_until_ts = until
         rec.status_changed_at_ts = now
@@ -241,6 +246,8 @@ class FindingsReadModel:
         if rec.status is RecommendationStatus.DONE:
             rec.outcome = RecommendationOutcome.UNDECIDED
         self._session.flush()
+        if changed:
+            snapshot_transition(self._session, finding, now)
         return self.finding(finding_id)
 
     def add_note(self, finding_id: str, body: FindingNoteCreate) -> FindingNote:
