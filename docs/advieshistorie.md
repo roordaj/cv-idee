@@ -15,8 +15,9 @@ Elke daadwerkelijke opvolgstatuswijziging krijgt een nieuwe snapshot in dezelfde
 transactie, inclusief de laatste gebruikersnotitie. Dit geldt ook voor automatisch
 heropenen na uitstel of onderbouwde verslechtering. Het opnieuw aanbieden van
 dezelfde status zonder wijziging van uitsteldatum voegt geen duplicaat toe.
-De nieuwe status wordt vastgelegd bij de oorspronkelijke adviesonderbouwing:
-latere meetgegevens of instellingen vervangen die onderbouwing niet stilzwijgend.
+Bij de eerste opvolging van een open advies wordt de op dat moment zichtbare
+onderbouwing vastgelegd. Bij verdere opvolging blijft die adviesonderbouwing
+behouden; latere meetgegevens vervangen haar niet stilzwijgend.
 Notities die na een statusovergang worden toegevoegd staan bij een volgende
 statusovergang in de historie; het oude snapshot blijft intact.
 

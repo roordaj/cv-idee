@@ -52,8 +52,10 @@ def profile_settings(session: Session, profile_id: int | None) -> dict[str, Any]
     }
 
 
-def snapshot_transition(session: Session, finding: Finding, now: int) -> None:
-    """Record a status transition without replacing the advice's original provenance."""
+def snapshot_transition(
+    session: Session, finding: Finding, now: int, *, refresh_advice: bool = False
+) -> None:
+    """Record current open advice, or preserve advice already in follow-up."""
     from cvidee.api.findings_read import FindingsReadModel
     from cvidee.findings.repository import SqlFindingRepository
 
@@ -98,7 +100,7 @@ def snapshot_transition(session: Session, finding: Finding, now: int) -> None:
         )
         session.flush()
         return
-    content = deepcopy(previous.content)
+    content = rendered if refresh_advice else deepcopy(previous.content)
     for key in ("status", "status_text", "postponed_until", "notes"):
         content[key] = rendered[key]
     session.add(
@@ -109,8 +111,12 @@ def snapshot_transition(session: Session, finding: Finding, now: int) -> None:
             trigger=SnapshotTrigger.STATUS_CHANGED,
             status=rec.status,
             outcome=rec.outcome,
-            measurement_start_ts=previous.measurement_start_ts,
-            measurement_end_ts=previous.measurement_end_ts,
+            measurement_start_ts=finding.period_start_ts
+            if refresh_advice
+            else previous.measurement_start_ts,
+            measurement_end_ts=finding.period_end_ts
+            if refresh_advice
+            else previous.measurement_end_ts,
             rule_id=previous.rule_id,
             rule_version=previous.rule_version,
             rule_params=deepcopy(previous.rule_params),

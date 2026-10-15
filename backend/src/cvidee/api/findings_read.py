@@ -233,6 +233,7 @@ class FindingsReadModel:
                 raise ProblemError(422, "Ongeldige datum", "Kies een datum in de toekomst.")
         elif body.postponed_until is not None:
             raise ProblemError(422, "Ongeldige datum", "Een uitsteldatum hoort bij uitstellen.")
+        was_open = rec.status is RecommendationStatus.OPEN
         changed = rec.status != RecommendationStatus(body.status) or rec.postponed_until_ts != until
         rec.status = RecommendationStatus(body.status)
         rec.postponed_until_ts = until
@@ -247,7 +248,7 @@ class FindingsReadModel:
             rec.outcome = RecommendationOutcome.UNDECIDED
         self._session.flush()
         if changed:
-            snapshot_transition(self._session, finding, now)
+            snapshot_transition(self._session, finding, now, refresh_advice=was_open)
         return self.finding(finding_id)
 
     def add_note(self, finding_id: str, body: FindingNoteCreate) -> FindingNote:

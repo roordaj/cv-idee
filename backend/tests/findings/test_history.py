@@ -183,3 +183,32 @@ async def test_status_snapshot_keeps_original_profile_after_profile_edit(
     assert "45 °C" not in new["settings_text"]
     assert new["rule"]["version"] == "1.0.0"
     assert "1.0.0 naar 1.1.0" in new["rule_now_text"]
+
+
+async def test_accepting_open_advice_records_current_display_then_freezes_it(
+    client: httpx.AsyncClient,
+    history_setup: tuple[sessionmaker[Session], AnalysisRunner, SettingsBackend],
+) -> None:
+    factory, _, _ = history_setup
+    original = (await client.get("/api/history")).json()["items"][0]
+    ident = original["finding_id"]
+    with factory.begin() as session:
+        finding = SqlFindingRepository(session).by_human_id(ident)
+        assert finding is not None
+        finding.observation = "Nieuw meetvenster met aanvullende waarnemingen."
+        finding.period_end_ts += 1000
+    displayed = (await client.get(f"/api/findings/{ident}")).json()
+    await client.post(f"/api/findings/{ident}/status", json={"status": "accepted"})
+    accepted = (await client.get("/api/history")).json()["items"][0]
+    assert accepted["observation_period"] == displayed["period"]
+    assert displayed["observation"] in accepted["reasoning"]
+    assert accepted["observation_period"] != original["observation_period"]
+    with factory.begin() as session:
+        finding = SqlFindingRepository(session).by_human_id(ident)
+        assert finding is not None
+        finding.observation = "Latere meetgegevens horen niet bij dit geaccepteerde advies."
+        finding.period_end_ts += 1000
+    await client.post(f"/api/findings/{ident}/status", json={"status": "done"})
+    done = (await client.get("/api/history")).json()["items"][0]
+    assert done["observation_period"] == accepted["observation_period"]
+    assert done["reasoning"] == accepted["reasoning"]
