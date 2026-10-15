@@ -301,7 +301,10 @@ class StubStore:
             "dan 3 min betrouwbaar te detecteren.",
         )
 
-    def timeline(self) -> TimelineResponse:
+    def timeline(
+        self, start: datetime | None = None, end: datetime | None = None
+    ) -> TimelineResponse:
+        del start, end
         start, end = fx.WINDOW.start, fx.WINDOW.end or self.now
         inside = [c for c in self.changes if start <= c.at < end]
         before = sorted((c for c in self.changes if c.at < start), key=lambda c: c.at)

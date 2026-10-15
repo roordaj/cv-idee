@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import time
 from collections.abc import Iterator
+from datetime import datetime
 from typing import Annotated, Protocol
 
 from fastapi import Depends, Query, Request
@@ -12,8 +13,14 @@ from sqlalchemy.orm import Session, sessionmaker
 from cvidee.api.config_backend import ConfigBackend
 from cvidee.api.findings_read import FindingsReadModel
 from cvidee.api.problems import ProblemError
+from cvidee.api.schemas.changes import Change, ChangeCreate, ChangeEvaluation, ChangeList
 from cvidee.api.schemas.common import Page, UtcDateTime
-from cvidee.api.schemas.data import SpecialPeriod, SpecialPeriodIn, SpecialPeriodList
+from cvidee.api.schemas.data import (
+    SpecialPeriod,
+    SpecialPeriodIn,
+    SpecialPeriodList,
+    TimelineResponse,
+)
 from cvidee.api.schemas.findings import (
     FindingDetail,
     FindingList,
@@ -132,3 +139,47 @@ def get_history(request: Request) -> Iterator[HistoryBackend]:
 
 
 History = Annotated[HistoryBackend, Depends(get_history)]
+
+
+class ChangesBackend(Protocol):
+    def change_list(self) -> ChangeList: ...
+    def create_change(self, body: ChangeCreate) -> Change: ...
+    def evaluation(self, change_id: str) -> ChangeEvaluation: ...
+
+
+def get_changes(request: Request) -> Iterator[ChangesBackend]:
+    from cvidee.changes.log import ChangeLog
+
+    stub: StubStore | None = getattr(request.app.state, "stub_store", None)
+    if stub is not None:
+        yield stub
+        return
+    factory: sessionmaker[Session] | None = getattr(request.app.state, "session_factory", None)
+    if factory is None:
+        raise get_stub_store_problem()
+    with factory.begin() as session:
+        yield ChangeLog(session, lambda: int(time.time() * 1000))
+
+
+class TimelineBackend(Protocol):
+    def timeline(
+        self, start: datetime | None = None, end: datetime | None = None
+    ) -> TimelineResponse: ...
+
+
+def get_timeline(request: Request) -> Iterator[TimelineBackend]:
+    from cvidee.api.timeline_read import TimelineReadModel
+
+    stub: StubStore | None = getattr(request.app.state, "stub_store", None)
+    if stub is not None:
+        yield stub
+        return
+    factory: sessionmaker[Session] | None = getattr(request.app.state, "session_factory", None)
+    if factory is None:
+        raise get_stub_store_problem()
+    with factory() as session:
+        yield TimelineReadModel(session, lambda: int(time.time() * 1000))
+
+
+Changes = Annotated[ChangesBackend, Depends(get_changes)]
+Timeline = Annotated[TimelineBackend, Depends(get_timeline)]
