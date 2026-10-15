@@ -29,8 +29,15 @@ jobs:
         run: make lint-backend
       - name: Typecheck (mypy --strict)
         run: make typecheck-backend
+      - name: Start MQTT integration test broker
+        run: docker compose -f docker-compose.dev.yml up -d mosquitto
       - name: Test (pytest)
+        env:
+          CVIDEE_TEST_MQTT_HOST: 127.0.0.1
         run: make test-backend
+      - name: Stop MQTT integration test broker
+        if: always()
+        run: docker compose -f docker-compose.dev.yml down
 
   frontend:
     runs-on: ubuntu-latest

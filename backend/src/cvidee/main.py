@@ -19,6 +19,7 @@ from cvidee.api.problems import install_problem_handlers
 from cvidee.api.spa import create_spa_router
 from cvidee.api.stubs.store import StubStore
 from cvidee.config import Settings, get_settings
+from cvidee.ha_export.service import ExportService
 from cvidee.ingest.ha_client import AiohttpHAClient
 from cvidee.ingest.history_import import HistoryImport
 from cvidee.ingest.service import FileAliveStore, IngestService, sql_tracked_entities
@@ -113,9 +114,14 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     )
     app.state.history_import = imports
     await imports.recover()
+    export = ExportService(settings, app.state.session_factory)
+    app.state.ha_export = export
+    if not settings.stub_data:
+        await export.start()
     try:
         yield
     finally:
+        await export.stop()
         await imports.stop()
         if started is not None:
             _, stop, task = started

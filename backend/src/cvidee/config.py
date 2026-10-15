@@ -18,6 +18,7 @@ from enum import StrEnum
 from functools import lru_cache
 from pathlib import Path
 
+import aiohttp
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -75,6 +76,8 @@ class Settings(BaseSettings):
     analysis_interval_s: float = Field(default=60.0, gt=0, alias="CVIDEE_ANALYSIS_INTERVAL_S")
     stub_data: bool = Field(default=False, alias="CVIDEE_STUB_DATA")
     """Serve the design-v3 example data on all API routes (contract stubs, issue #11)."""
+
+    export_url: str | None = Field(default=None, alias="CVIDEE_EXPORT_URL")
 
     mqtt_host: str | None = Field(default=None, alias="MQTT_HOST")
     mqtt_port: int = Field(default=1883, alias="MQTT_PORT")
@@ -137,12 +140,27 @@ class Settings(BaseSettings):
 
 
 async def fetch_mqtt_settings_from_supervisor(settings: Settings) -> MqttSettings | None:
-    """Fetch broker details from the Supervisor (``GET /services/mqtt``) in add-on mode.
-
-    Stub: implemented together with the MQTT export (issue #40). Returns ``None`` until then.
-    """
-    del settings
-    return None
+    """Fetch the optional MQTT service; a missing service selects REST fallback."""
+    if settings.supervisor_token is None:
+        return None
+    headers = {"Authorization": f"Bearer {settings.supervisor_token.get_secret_value()}"}
+    async with (
+        aiohttp.ClientSession(headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as http,
+        http.get(f"{SUPERVISOR_API_URL}/services/mqtt") as response,
+    ):
+        if response.status in (400, 404):
+            return None
+        response.raise_for_status()
+        payload = await response.json()
+    if payload.get("result") != "ok":
+        raise ConfigurationError("Supervisor MQTT service lookup failed")
+    data = payload["data"]
+    return MqttSettings(
+        host=str(data["host"]),
+        port=int(data["port"]),
+        username=data.get("username"),
+        password=SecretStr(data["password"]) if data.get("password") else None,
+    )
 
 
 @lru_cache(maxsize=1)

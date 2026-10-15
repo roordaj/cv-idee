@@ -1,6 +1,8 @@
 """Notification policy, sent notifications and the HA export (FR-38, FR-39)."""
 
-from fastapi import APIRouter
+from typing import TYPE_CHECKING
+
+from fastapi import APIRouter, Request
 
 from cvidee.api.routes.deps import Limit, Offset, Store
 from cvidee.api.schemas.common import Page, problem_responses
@@ -10,6 +12,10 @@ from cvidee.api.schemas.notifications import (
     NotificationPolicy,
     NotificationPolicyIn,
 )
+
+if TYPE_CHECKING:
+    from cvidee.api.stubs.store import StubStore
+    from cvidee.ha_export.service import ExportService
 
 router = APIRouter(tags=["notifications"], responses=problem_responses(501))
 
@@ -37,6 +43,12 @@ async def list_notifications(
 
 
 @router.get("/ha/export")
-async def get_ha_export(store: Store) -> HaExport:
+async def get_ha_export(request: Request) -> HaExport:
     """Current values of the entities exported to Home Assistant."""
-    return store.ha_export()
+    stub: StubStore | None = getattr(request.app.state, "stub_store", None)
+    if stub is not None:
+        return stub.ha_export()
+    service: ExportService | None = getattr(request.app.state, "ha_export", None)
+    if service is None:
+        return HaExport(transport="none", connected=False, updated_at=None, entities=[])
+    return service.snapshot()
