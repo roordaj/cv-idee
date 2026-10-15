@@ -25,6 +25,8 @@ BEFORE = Behaviour(
     flow_setpoint_c=55.0,
     modulation_pct=19.0,
     room_c=20.5,
+    room_setpoint_c=20.5,
+    bedroom_setpoint_c=18.5,
 )
 AFTER = Behaviour(
     burn_s=(1200, 2100),
@@ -34,6 +36,8 @@ AFTER = Behaviour(
     flow_setpoint_c=45.0,
     modulation_pct=30.0,
     room_c=19.4,
+    room_setpoint_c=20.5,
+    bedroom_setpoint_c=18.5,
 )
 
 SPEC = GeneratorSpec(

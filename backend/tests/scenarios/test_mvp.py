@@ -160,3 +160,45 @@ def test_pipeline_outcomes(name: str, section: str) -> None:
         pytest.skip(f"{name} has no {section} expectations")
     assert hasattr(pipeline, "run_pipeline"), f"{section}: not implemented ({_PENDING[section]})"
     pytest.fail(f"{section}: not implemented ({_PENDING[section]})")
+
+
+def test_comfort_scenario_has_explicit_unchanged_room_setpoints() -> None:
+    from cvidee.testing.generator import BEDROOM_SETPOINT, LIVING_ROOM, LIVING_ROOM_SETPOINT
+
+    data, _, _ = _by_name("07-aanvoerwijziging-comfort")
+    assert {o.value for o in data.observations if o.signal == LIVING_ROOM_SETPOINT} == {20.5}
+    assert {o.value for o in data.observations if o.signal == BEDROOM_SETPOINT} == {18.5}
+    after = [o.value for o in data.observations if o.signal == LIVING_ROOM and o.ts > data.at(96)]
+    assert any(isinstance(value, float) and value < 20 for value in after)
+
+
+def test_synthetic_targets_are_configurable_and_do_not_change_burner_cycles() -> None:
+    from cvidee.testing.generator import (
+        FLAME,
+        LIVING_ROOM_SETPOINT,
+        Behaviour,
+        GeneratorSpec,
+        Period,
+        generate,
+    )
+
+    baseline = generate(GeneratorSpec(hours=2))
+    changed = generate(
+        GeneratorSpec(
+            hours=2,
+            periods=(
+                Period(
+                    0,
+                    2,
+                    Behaviour(
+                        room_setpoint_c=21.5,
+                        bedroom_setpoint_c=19.0,
+                    ),
+                ),
+            ),
+        )
+    )
+    assert changed.truth_cycles == baseline.truth_cycles
+    assert {o.value for o in changed.observations if o.signal == LIVING_ROOM_SETPOINT} == {21.5}
+    missing = generate(GeneratorSpec(hours=2, include=frozenset({FLAME})))
+    assert {o.signal for o in missing.observations} == {FLAME}
