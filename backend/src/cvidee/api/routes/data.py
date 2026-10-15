@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, status
 
-from cvidee.api.routes.deps import From, Limit, Offset, Store, To
+from cvidee.api.routes.deps import From, Limit, Offset, Store, Timeline, To
 from cvidee.api.schemas.common import problem_responses
 from cvidee.api.schemas.data import (
     CycleList,
@@ -24,10 +24,9 @@ async def get_quality(store: Store, from_: From = None, to: To = None) -> Qualit
 
 
 @router.get("/timeline", tags=["cycles"])
-async def get_timeline(store: Store, from_: From = None, to: To = None) -> TimelineResponse:
+async def get_timeline(store: Timeline, from_: From = None, to: To = None) -> TimelineResponse:
     """Sampled series, modes, demand, cycles, gaps, change markers and special periods."""
-    del from_, to
-    return store.timeline()
+    return store.timeline(from_, to)
 
 
 @router.get("/cycles", tags=["cycles"])
