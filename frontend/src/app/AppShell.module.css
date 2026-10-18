@@ -216,3 +216,12 @@
     padding: 4px var(--page-pad-narrow) 56px;
   }
 }
+
+@media (max-width: 959px) {
+  .onboarding {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .onboarding .sidebar {
+    display: none;
+  }
+}

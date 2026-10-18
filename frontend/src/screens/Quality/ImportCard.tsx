@@ -35,7 +35,13 @@ function etaText(seconds: number | null | undefined, blocksDone: number): string
   return seconds < 90 ? 'nog ca. 1 min' : `nog ca. ${String(Math.round(seconds / 60))} min`;
 }
 
-export function ImportCard({ minCoveragePct = 95 }: { minCoveragePct?: number }) {
+export function ImportCard({
+  minCoveragePct = 95,
+  defaultPreset = '7',
+}: {
+  minCoveragePct?: number;
+  defaultPreset?: Preset;
+}) {
   const queryClient = useQueryClient();
   const [now] = useState(() => Date.now());
   const list = useImports();
@@ -46,7 +52,7 @@ export function ImportCard({ minCoveragePct = 95 }: { minCoveragePct?: number })
   const job = polled.data ?? latest;
   const start = useStartImport();
   const cancel = useCancelImport();
-  const [preset, setPreset] = useState<Preset>('7');
+  const [preset, setPreset] = useState<Preset>(defaultPreset);
   const [from, setFrom] = useState(dateInput(new Date(now - 7 * DAY_MS)));
   const [to, setTo] = useState(dateInput(new Date()));
   const [stopping, setStopping] = useState(false);

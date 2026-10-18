@@ -1,5 +1,6 @@
 import { Calendar, Flame, Plug, ShieldCheck } from 'lucide-react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { STEPS, useOnboardingProgress } from '../screens/Onboarding/progress';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { ICON_SIZE } from '../components/icons.ts';
 import { HeaderPill, StatusPill, StubDataPill } from '../components/StatusPill.tsx';
 import { cx } from '../components/tone.ts';
@@ -73,11 +74,16 @@ function NavItem({ screen, data, rail }: { screen: ScreenDef; data: ShellData; r
 
 export function AppShell({ data, today = new Date() }: AppShellProps) {
   const rail = useMediaQuery(RAIL_QUERY);
+  const onboarding = useLocation().pathname === '/welkom';
+  const { step, setStep } = useOnboardingProgress();
   const analyse = SCREENS.filter((s) => s.section === 'analyse');
   const settings = SCREENS.filter((s) => s.section === 'instellingen');
 
   return (
-    <div className={cx(styles.shell, rail && styles.rail)} data-layout={rail ? 'rail' : 'full'}>
+    <div
+      className={cx(styles.shell, rail && styles.rail, onboarding && styles.onboarding)}
+      data-layout={rail ? 'rail' : 'full'}
+    >
       <aside className={styles.sidebar}>
         <div className={styles.brand}>
           <span className={styles.brandBadge} aria-hidden="true">
@@ -92,32 +98,52 @@ export function AppShell({ data, today = new Date() }: AppShellProps) {
             </span>
           )}
         </div>
-        <nav aria-label="Hoofdnavigatie" className={styles.nav}>
-          <div className={rail ? 'visually-hidden' : styles.sectionLabel} id="nav-analyse">
-            Analyse
-          </div>
-          <ul aria-labelledby="nav-analyse" className={styles.navList}>
-            {analyse.map((screen) => (
-              <li key={screen.key}>
-                <NavItem screen={screen} data={data} rail={rail} />
-              </li>
+        {onboarding ? (
+          <nav aria-label="Inrichtingsstappen" className={styles.nav}>
+            <div className={styles.sectionLabel}>Inrichten</div>
+            {STEPS.map((label, i) => (
+              <button
+                type="button"
+                key={label}
+                disabled={i + 1 > step}
+                aria-current={i + 1 === step ? 'step' : undefined}
+                className={cx(styles.navItem, i + 1 === step && styles.active)}
+                onClick={() => {
+                  setStep(i + 1);
+                }}
+              >
+                {i + 1 < step ? '✓' : i + 1} {label}
+              </button>
             ))}
-          </ul>
-          {rail ? <div className={styles.railDivider} aria-hidden="true" /> : null}
-          <div
-            className={rail ? 'visually-hidden' : cx(styles.sectionLabel, styles.sectionLabelGap)}
-            id="nav-instellingen"
-          >
-            Instellingen
-          </div>
-          <ul aria-labelledby="nav-instellingen" className={styles.navList}>
-            {settings.map((screen) => (
-              <li key={screen.key}>
-                <NavItem screen={screen} data={data} rail={rail} />
-              </li>
-            ))}
-          </ul>
-        </nav>
+          </nav>
+        ) : (
+          <nav aria-label="Hoofdnavigatie" className={styles.nav}>
+            <div className={rail ? 'visually-hidden' : styles.sectionLabel} id="nav-analyse">
+              Analyse
+            </div>
+            <ul aria-labelledby="nav-analyse" className={styles.navList}>
+              {analyse.map((screen) => (
+                <li key={screen.key}>
+                  <NavItem screen={screen} data={data} rail={rail} />
+                </li>
+              ))}
+            </ul>
+            {rail ? <div className={styles.railDivider} aria-hidden="true" /> : null}
+            <div
+              className={rail ? 'visually-hidden' : cx(styles.sectionLabel, styles.sectionLabelGap)}
+              id="nav-instellingen"
+            >
+              Instellingen
+            </div>
+            <ul aria-labelledby="nav-instellingen" className={styles.navList}>
+              {settings.map((screen) => (
+                <li key={screen.key}>
+                  <NavItem screen={screen} data={data} rail={rail} />
+                </li>
+              ))}
+            </ul>
+          </nav>
+        )}
         {rail ? null : (
           <div className={styles.readOnly}>
             <ShieldCheck size={ICON_SIZE} aria-hidden="true" className={styles.readOnlyIcon} />
