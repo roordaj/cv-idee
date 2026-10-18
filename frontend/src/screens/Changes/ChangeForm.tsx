@@ -104,7 +104,6 @@ export function ChangeForm({ onCreated }: { onCreated: (id: string) => void }) {
             type="datetime-local"
             className={cx(styles.input, errors.at && styles.invalid)}
             value={at}
-            max={amsterdamLocalTime(new Date())}
             aria-invalid={errors.at ? 'true' : undefined}
             aria-describedby={errors.at ? 'change-at-error' : undefined}
             onChange={(e) => {

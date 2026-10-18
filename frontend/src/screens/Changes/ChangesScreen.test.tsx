@@ -267,6 +267,29 @@ describe('ChangesScreen', () => {
     expect(posts[0]).toMatchObject({ at: '2026-10-25T01:30:00.000Z' });
   });
 
+  it('accepts a past first occurrence beyond the current wintertime wall clock', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-25T01:15:00Z'));
+    const posts: unknown[] = [];
+    stubApi(posts);
+    const user = userEvent.setup();
+    renderScreen();
+    const timestamp = screen.getByLabelText('Tijdstip (Europe/Amsterdam)');
+    expect(timestamp).not.toHaveAttribute('max');
+    fireEvent.change(timestamp, { target: { value: '2026-10-25T02:30' } });
+    await user.type(screen.getByLabelText('Oude waarde'), '70');
+    await user.type(screen.getByLabelText('Nieuwe waarde'), '60');
+    await user.selectOptions(
+      screen.getByLabelText('Tijd bij overgang naar wintertijd'),
+      '2026-10-25T00:30:00.000Z',
+    );
+    await user.click(screen.getByRole('button', { name: 'Vastleggen' }));
+    await waitFor(() => {
+      expect(posts).toHaveLength(1);
+    });
+    expect(posts[0]).toMatchObject({ at: '2026-10-25T00:30:00.000Z' });
+  });
+
   it('shows an empty state with the form still visible', async () => {
     vi.stubGlobal(
       'fetch',
