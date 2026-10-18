@@ -10,4 +10,4 @@ Drie AM012=3-perioden duren ongeveer 22, 116 en 61 seconden (start respectieveli
 
 Voor replay: lees de bronaliassen als afzonderlijke tijdlijnen, behoud grensrecords als carry-in en unknown als onbekend; kies expliciet een gevalideerde statusmapping. Gebruik nooit de app-default 1=CH/2=DHW voor deze AM012-opname (#123). Voor rapportcadans/actualiteit is aanvullend bewijs nodig; alleen recorderwijzigingen tonen geen heartbeat.
 
-Controle: `python3 fixtures/recordings/calenta-can-48h/verify.py`. Dit controleert integriteit en aanwezige statusevents, zonder daar brandercycli van te maken.
+Controle: `python3 fixtures/recordings/calenta-can-48h/verify.py`. Dit controleert integriteit en aanwezige statusevents, zonder daar brandercycli van te maken. De gewone backendtests voeren dezelfde verifier uit via `backend/tests/test_recording_integrity.py`, zodat CI de checksum en paginatellingen bewaakt.

@@ -101,7 +101,7 @@ Opvallend: MQTT retour rapporteert één korte meetserie en blijft daarna 28,18 
 
 ## Statuscodes
 
-Onderstaande betekenis komt **uit de omschrijvingsentiteiten van de gateway**, gekoppeld aan de numerieke records (zelfde volgorde en alle AM012-paren binnen 1 s). Dit is geen onafhankelijke validatie tegen Remeha-documentatie of firmwarebron. Vluchtovergangen tussen codes bestaan tot op millisecondenniveau.
+Onderstaande labels komen **uit de omschrijvingsentiteiten van de gateway**, gekoppeld aan de numerieke records (zelfde volgorde en alle AM012-paren binnen 1 s). De AM012-betekenissen zijn daarnaast gecontroleerd aan de officiële Remeha-handleiding, zoals onderaan beschreven. De gebruikte lokale CAN-decoder is nog niet tegen zijn firmwarebron gevalideerd. Vluchtovergangen tussen codes bestaan tot op millisecondenniveau.
 
 | AM012 | Gatewayomschrijving | Voorstel bij expliciet gevalideerde installatiemapping |
 |---:|---|---|
