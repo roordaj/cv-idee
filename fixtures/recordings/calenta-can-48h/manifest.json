@@ -1,0 +1,162 @@
+{
+  "format": "cvidee.recorder.relative.v1",
+  "duration_us": 172800000000,
+  "source": "Home Assistant recorder via read-only MCP",
+  "query": {
+    "minimal_response": true,
+    "significant_changes_only": false,
+    "order": "asc",
+    "page_limit": 1000
+  },
+  "anonymization": "Entity aliases and relative microseconds; values and state order unchanged. No location, device identifiers, context IDs or absolute timestamps.",
+  "limitations": [
+    "Recorder state history is not a raw CAN frame capture or a complete report/heartbeat log.",
+    "First state per entity is the recorder boundary state, not a newly observed report.",
+    "No validated flame signal; short CH-status intervals are not established burner cycles.",
+    "No CAN or broker disconnection was observed."
+  ],
+  "row_count": 12690,
+  "entities": [
+    {
+      "entity": "binary_sensor.gateway_mqtt_can_verbinding_actief",
+      "count": 1,
+      "source_count": 1,
+      "unit": null,
+      "device_class": "connectivity"
+    },
+    {
+      "entity": "binary_sensor.gateway_mqtt_cv_bedrijf_actief",
+      "count": 51,
+      "source_count": 51,
+      "unit": null,
+      "device_class": "running"
+    },
+    {
+      "entity": "binary_sensor.gateway_mqtt_ventilator_actief",
+      "count": 49,
+      "source_count": 49,
+      "unit": null,
+      "device_class": "running"
+    },
+    {
+      "entity": "sensor.gateway_mqtt_aanvoertemperatuur",
+      "count": 4958,
+      "source_count": 4958,
+      "unit": "\u00b0C",
+      "device_class": "temperature"
+    },
+    {
+      "entity": "sensor.gateway_mqtt_actuele_pompsnelheid_am010",
+      "count": 2,
+      "source_count": 2,
+      "unit": "%",
+      "device_class": null
+    },
+    {
+      "entity": "sensor.gateway_mqtt_brandermodulatie",
+      "count": 3771,
+      "source_count": 3771,
+      "unit": "%",
+      "device_class": null
+    },
+    {
+      "entity": "sensor.gateway_mqtt_cv_waterdruk",
+      "count": 137,
+      "source_count": 137,
+      "unit": "bar",
+      "device_class": "pressure"
+    },
+    {
+      "entity": "sensor.gateway_mqtt_delta_t",
+      "count": 85,
+      "source_count": 85,
+      "unit": "\u00b0C",
+      "device_class": null
+    },
+    {
+      "entity": "sensor.gateway_mqtt_delta_t_experimenteel",
+      "count": 1,
+      "source_count": 1,
+      "unit": "\u00b0C",
+      "device_class": null
+    },
+    {
+      "entity": "sensor.gateway_mqtt_ketel_substatus_am014",
+      "count": 606,
+      "source_count": 606,
+      "unit": null,
+      "device_class": null
+    },
+    {
+      "entity": "sensor.gateway_mqtt_ketel_substatus_omschrijving",
+      "count": 606,
+      "source_count": 606,
+      "unit": null,
+      "device_class": null
+    },
+    {
+      "entity": "sensor.gateway_mqtt_ketelstatus_am012",
+      "count": 289,
+      "source_count": 289,
+      "unit": null,
+      "device_class": null
+    },
+    {
+      "entity": "sensor.gateway_mqtt_ketelstatus_omschrijving",
+      "count": 289,
+      "source_count": 289,
+      "unit": null,
+      "device_class": null
+    },
+    {
+      "entity": "sensor.gateway_mqtt_retourtemperatuur_am018",
+      "count": 63,
+      "source_count": 63,
+      "unit": "\u00b0C",
+      "device_class": "temperature"
+    },
+    {
+      "entity": "sensor.gateway_mqtt_retourtemperatuur_experimenteel",
+      "count": 1,
+      "source_count": 1,
+      "unit": "\u00b0C",
+      "device_class": "temperature"
+    },
+    {
+      "entity": "sensor.gateway_mqtt_temperatuur_setpoint",
+      "count": 1712,
+      "source_count": 1712,
+      "unit": "\u00b0C",
+      "device_class": "temperature"
+    },
+    {
+      "entity": "sensor.gateway_mqtt_vermogenscommando_can",
+      "count": 1,
+      "source_count": 1,
+      "unit": "%",
+      "device_class": null
+    },
+    {
+      "entity": "sensor.gateway_native_retourtemperatuur_am018",
+      "count": 64,
+      "source_count": 64,
+      "unit": "\u00b0C",
+      "device_class": "temperature"
+    },
+    {
+      "entity": "sensor.gateway_native_actuele_pompsnelheid_am010",
+      "count": 3,
+      "source_count": 3,
+      "unit": "%",
+      "device_class": null
+    },
+    {
+      "entity": "binary_sensor.gateway_native_can_verbinding_actief",
+      "count": 1,
+      "source_count": 1,
+      "unit": null,
+      "device_class": "connectivity"
+    }
+  ],
+  "sha256": "910e3d68025b3f66d5f13ef0db429169540e1d2c9219de6e110804e3a8fe41a6"
+}
