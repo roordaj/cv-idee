@@ -23,6 +23,7 @@ from cvidee.ha_export.service import ExportService
 from cvidee.ingest.ha_client import AiohttpHAClient
 from cvidee.ingest.history_import import HistoryImport
 from cvidee.ingest.service import FileAliveStore, IngestService, sql_tracked_entities
+from cvidee.notify.service import NotificationService
 from cvidee.runner.service import AnalysisRunner, RunnerSettings
 from cvidee.signals.catalog import sync_catalogue
 from cvidee.store.engine import create_db_engine, create_session_factory, database_url
@@ -116,11 +117,17 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     await imports.recover()
     export = ExportService(settings, app.state.session_factory)
     app.state.ha_export = export
+    notifications = NotificationService(
+        app.state.session_factory, app.state.ha_client, settings.notify_target
+    )
+    app.state.notifications = notifications
     if not settings.stub_data:
         await export.start()
+        await notifications.start()
     try:
         yield
     finally:
+        await notifications.stop()
         await export.stop()
         await imports.stop()
         if started is not None:

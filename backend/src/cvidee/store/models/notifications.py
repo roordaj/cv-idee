@@ -6,7 +6,13 @@ from sqlalchemy import Boolean, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from cvidee.store.base import Base, enum_column, ts_column
-from cvidee.store.enums import DeliveryStatus, NotificationChannel, NotificationKind, Severity
+from cvidee.store.enums import (
+    DeliveryStatus,
+    FindingLifecycle,
+    NotificationChannel,
+    NotificationKind,
+    Severity,
+)
 
 
 class NotificationPolicy(Base):
@@ -47,3 +53,16 @@ class Notification(Base):
     error: Mapped[str | None] = mapped_column(Text)
     created_at_ts: Mapped[int] = ts_column()
     sent_at_ts: Mapped[int | None] = ts_column(nullable=True)
+
+
+class NotificationState(Base):
+    """Durable observer cursor; restarting the scheduler never re-announces a finding."""
+
+    __tablename__ = "notification_states"
+
+    finding_id: Mapped[int] = mapped_column(
+        ForeignKey("findings.id", ondelete="CASCADE"), primary_key=True
+    )
+    severity: Mapped[Severity] = enum_column(Severity, "severity")
+    lifecycle: Mapped[FindingLifecycle] = enum_column(FindingLifecycle, "lifecycle")
+    updated_at_ts: Mapped[int] = ts_column()

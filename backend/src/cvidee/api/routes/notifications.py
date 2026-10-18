@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, Request
 
-from cvidee.api.routes.deps import Limit, Offset, Store
+from cvidee.api.routes.deps import Limit, Notifications, Offset
 from cvidee.api.schemas.common import Page, problem_responses
 from cvidee.api.schemas.notifications import (
     HaExport,
@@ -21,14 +21,14 @@ router = APIRouter(tags=["notifications"], responses=problem_responses(501))
 
 
 @router.get("/notifications/policy")
-async def get_notification_policy(store: Store) -> NotificationPolicy:
+async def get_notification_policy(store: Notifications) -> NotificationPolicy:
     """Channel per severity and noise suppression."""
     return store.policy
 
 
 @router.put("/notifications/policy", responses=problem_responses(422))
 async def update_notification_policy(
-    body: NotificationPolicyIn, store: Store
+    body: NotificationPolicyIn, store: Notifications
 ) -> NotificationPolicy:
     """Change channels and noise suppression."""
     return store.put_policy(body)
@@ -36,7 +36,7 @@ async def update_notification_policy(
 
 @router.get("/notifications", responses=problem_responses(422))
 async def list_notifications(
-    store: Store, limit: Limit = 50, offset: Offset = 0
+    store: Notifications, limit: Limit = 50, offset: Offset = 0
 ) -> Page[Notification]:
     """Recently sent notifications, newest first."""
     return store.notifications(limit, offset)
