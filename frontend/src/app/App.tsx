@@ -1,3 +1,6 @@
+import { OnboardingProvider } from '../screens/Onboarding/OnboardingProvider';
+import { SettingsScreen } from '../screens/Settings/SettingsScreen';
+import { OnboardingGate, OnboardingScreen } from '../screens/Onboarding/OnboardingScreen';
 import { lazy, Suspense } from 'react';
 import { Link, Navigate, Route, Routes } from 'react-router-dom';
 import { Card } from '../components/Card.tsx';
@@ -42,6 +45,8 @@ function NotFound() {
 
 function screenElement(screen: (typeof SCREENS)[number]) {
   switch (screen.key) {
+    case 'analyse-instellingen':
+      return <SettingsScreen />;
     case 'wijzigingen':
       return <ChangesScreen />;
     case 'cycli':
@@ -64,27 +69,31 @@ function screenElement(screen: (typeof SCREENS)[number]) {
 export function App({ shellData }: AppProps) {
   const fetched = useShellData();
   return (
-    <Routes>
-      <Route element={<AppShell data={shellData ?? fetched} />}>
-        <Route index element={<Navigate to="overzicht" replace />} />
-        <Route path="overzicht" element={<Overview />} />
-        <Route path="bevindingen" element={<Findings />} />
-        <Route path="bevindingen/:id" element={<Findings />} />
-        {SCREENS.filter((screen) => screen.key !== 'overzicht' && screen.key !== 'bevindingen').map(
-          (screen) => (
+    <OnboardingProvider>
+      {!shellData && <OnboardingGate />}
+      <Routes>
+        <Route element={<AppShell data={shellData ?? fetched} />}>
+          <Route path="welkom" element={<OnboardingScreen />} />
+          <Route index element={<Navigate to="overzicht" replace />} />
+          <Route path="overzicht" element={<Overview />} />
+          <Route path="bevindingen" element={<Findings />} />
+          <Route path="bevindingen/:id" element={<Findings />} />
+          {SCREENS.filter(
+            (screen) => screen.key !== 'overzicht' && screen.key !== 'bevindingen',
+          ).map((screen) => (
             <Route key={screen.key} path={screen.path} element={screenElement(screen)} />
-          ),
-        )}
-        <Route
-          path="dev/components"
-          element={
-            <Suspense fallback={null}>
-              <ComponentGallery />
-            </Suspense>
-          }
-        />
-        <Route path="*" element={<NotFound />} />
-      </Route>
-    </Routes>
+          ))}
+          <Route
+            path="dev/components"
+            element={
+              <Suspense fallback={null}>
+                <ComponentGallery />
+              </Suspense>
+            }
+          />
+          <Route path="*" element={<NotFound />} />
+        </Route>
+      </Routes>
+    </OnboardingProvider>
   );
 }

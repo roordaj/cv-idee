@@ -55,6 +55,7 @@ export function useUpdateSignal() {
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: signalKeys.all }),
+        queryClient.invalidateQueries({ queryKey: signalKeys.analyses }),
         queryClient.invalidateQueries({ queryKey: systemKeys.status }),
       ]);
     },
