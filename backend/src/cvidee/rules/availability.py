@@ -9,7 +9,7 @@ coverage and staleness, and their actual resolution. The result is structured
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from cvidee.analysis.types import DurationMs, Role, ScopeKind, SignalRef
 from cvidee.rules.base import (
@@ -110,7 +110,8 @@ def analysis_requirements(policy: AvailabilityPolicy) -> Mapping[AnalysisId, Sig
         ),
         AnalysisId.HYDRAULIC: SignalRequirement(
             required=(Role.FLOW_TEMPERATURE, Role.RETURN_TEMPERATURE),
-            required_any=(
+            # Boiler data permits a limited assessment, never a local diagnosis.
+            optional_any=(
                 AnyOf(
                     (
                         (Role.MANIFOLD_FLOW_TEMPERATURE, Role.MANIFOLD_RETURN_TEMPERATURE),
@@ -287,6 +288,54 @@ def assess_analyses(
     statuses = tuple(signals)
     table = analysis_requirements(policy)
     return tuple(
-        AnalysisAvailability(analysis, assess(table[analysis], statuses, profile, policy))
+        AnalysisAvailability(
+            analysis,
+            _assess_hydraulic(table[analysis], statuses, profile, policy)
+            if analysis is AnalysisId.HYDRAULIC
+            else assess(table[analysis], statuses, profile, policy),
+        )
         for analysis in AnalysisId
+    )
+
+
+def _assess_hydraulic(
+    requirement: SignalRequirement,
+    signals: tuple[SignalStatus, ...],
+    profile: InstallationFacts,
+    policy: AvailabilityPolicy,
+) -> Availability:
+    """Each mixing circuit needs its own usable temperatures or local flow rate.
+
+    The missing-data rule can run regardless of this analysis verdict. Missing local
+    evidence limits the analysis; missing boiler evidence still makes it unavailable.
+    A boiler flow meter or measurements of another circuit cannot fill the local gap.
+    """
+    base_requirement = (
+        replace(requirement, optional_any=()) if profile.has_mixing_manifold else requirement
+    )
+    verdicts = [assess(base_requirement, signals, profile, policy)]
+    local_requirement = SignalRequirement(optional_any=requirement.optional_any)
+    for circuit in profile.circuits:
+        if circuit.manifold is None:
+            continue
+        local_signals = tuple(
+            signal
+            for signal in signals
+            if (
+                signal.signal.role
+                in (Role.MANIFOLD_FLOW_TEMPERATURE, Role.MANIFOLD_RETURN_TEMPERATURE)
+                and signal.signal.scope.key == circuit.manifold
+            )
+            or (
+                signal.signal.role is Role.FLOW_RATE
+                and signal.signal.scope.kind is ScopeKind.CIRCUIT
+                and signal.signal.scope.key == circuit.key
+            )
+        )
+        verdicts.append(
+            assess(local_requirement, local_signals, replace(profile, circuits=(circuit,)), policy)
+        )
+    return Availability(
+        max((verdict.status for verdict in verdicts), key=lambda status: status.rank),
+        tuple(sorted({issue for verdict in verdicts for issue in verdict.issues})),
     )

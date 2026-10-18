@@ -147,10 +147,10 @@ def test_comfort_per_room() -> None:
 
 
 def test_hydraulic_without_manifold_data() -> None:
-    """Scenario 6: mixed installation without manifold measurements → unavailable, and the
+    """Scenario 6: mixed installation without manifold measurements → limited, and the
     note lists every option (manifold flow and return, or a flow rate)."""
     hydraulic = by_analysis(boiler_signals())[AnalysisId.HYDRAULIC]
-    assert hydraulic.status is UNAVAILABLE
+    assert hydraulic.status is LIMITED
     assert set(hydraulic.missing_signals) == {
         signal_ref(Role.MANIFOLD_FLOW_TEMPERATURE, "boven"),
         signal_ref(Role.MANIFOLD_RETURN_TEMPERATURE, "boven"),
@@ -166,7 +166,7 @@ def test_hydraulic_without_manifold_data() -> None:
     )
     assert by_analysis(manifold)[AnalysisId.HYDRAULIC].status is AVAILABLE
     half = (*boiler_signals(), status(Role.MANIFOLD_FLOW_TEMPERATURE, "boven"))
-    assert by_analysis(half)[AnalysisId.HYDRAULIC].status is UNAVAILABLE
+    assert by_analysis(half)[AnalysisId.HYDRAULIC].status is LIMITED
 
 
 def test_zones_need_demand_or_valve_per_zone() -> None:

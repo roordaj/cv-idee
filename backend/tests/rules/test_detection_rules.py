@@ -24,6 +24,7 @@ from cvidee.analysis.types import (
 from cvidee.rules.base import (
     Certainty,
     RuleContext,
+    Severity,
     SignalStatus,
     SpecialPeriod,
     SpecialPeriodKind,
@@ -213,6 +214,7 @@ def test_dhw_is_visible_but_never_a_temperature_pattern() -> None:
 
 def test_mixing_manifold_without_local_measurements_gets_measurement_only() -> None:
     (finding,) = HydraulicRule().evaluate(context(), HydraulicParams())
+    assert finding.severity is Severity.INFO
     assert finding.certainty is Certainty.INSUFFICIENT_EVIDENCE
     assert finding.scope_key == "circuit:boven:ch"
     assert finding.recommendation is not None
