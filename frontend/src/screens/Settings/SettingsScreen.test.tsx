@@ -49,18 +49,24 @@ const initial = {
     },
   },
 };
-function mount(fail = false) {
+function mount(fail = false, saveSuccessfully = false) {
   const writes: unknown[] = [];
   vi.stubGlobal(
     'fetch',
     vi.fn(async (request: Request) => {
       const path = new URL(request.url).pathname;
       if (request.method === 'PUT') {
-        writes.push(await request.json());
-        return new Response(JSON.stringify({ title: 'Conflict' }), {
-          status: 409,
-          headers: { 'content-type': 'application/json' },
-        });
+        const body: unknown = await request.json();
+        writes.push(body);
+        return new Response(
+          JSON.stringify(
+            saveSuccessfully ? { ...initial, revision: 'saved-revision' } : { title: 'Conflict' },
+          ),
+          {
+            status: saveSuccessfully ? 200 : 409,
+            headers: { 'content-type': 'application/json' },
+          },
+        );
       }
       const body =
         path === '/api/settings'
@@ -148,4 +154,28 @@ it('asks before discarding a draft through an in-app navigation link', async () 
   expect(screen.getByRole('dialog', { name: 'Wijzigingen niet opgeslagen' })).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: 'Blijven' }));
   expect(field).toHaveValue('4');
+});
+
+it('normalizes the numeric draft from the saved response and clears the unsaved guard', async () => {
+  mount(false, true);
+  const user = userEvent.setup();
+  const field = await screen.findByRole('textbox', { name: 'Kortecyclusgrens in min' });
+  await user.clear(field);
+  await user.type(field, '3,0');
+  await user.click(screen.getByRole('button', { name: 'Opslaan en herberekenen' }));
+  await user.click(
+    within(screen.getByRole('dialog')).getByRole('button', { name: 'Opslaan en herberekenen' }),
+  );
+  expect(
+    await screen.findByText('Opgeslagen. De analyse gebruikt de nieuwe instellingen.'),
+  ).toBeInTheDocument();
+  expect(field).toHaveValue('3');
+  expect(screen.queryByText(/wijzigingen niet opgeslagen/)).not.toBeInTheDocument();
+  const beforeUnload = new Event('beforeunload', { cancelable: true });
+  window.dispatchEvent(beforeUnload);
+  expect(beforeUnload.defaultPrevented).toBe(false);
+  await user.click(screen.getByRole('link', { name: 'Eerste start openen ›' }));
+  expect(
+    screen.queryByRole('dialog', { name: 'Wijzigingen niet opgeslagen' }),
+  ).not.toBeInTheDocument();
 });

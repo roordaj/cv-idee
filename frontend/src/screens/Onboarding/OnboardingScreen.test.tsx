@@ -1,8 +1,9 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { vi } from 'vitest';
+import { OnboardingProvider } from './OnboardingProvider';
 import { OnboardingGate, OnboardingScreen } from './OnboardingScreen';
 vi.mock('../Quality/ImportCard', () => ({ ImportCard: () => <p>Importpaneel</p> }));
 function mount({ connected = true, mapped = true, completed = false, gate = false } = {}) {
@@ -50,13 +51,23 @@ function mount({ connected = true, mapped = true, completed = false, gate = fals
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={[gate ? '/overzicht' : '/welkom']}>
-        {gate && <OnboardingGate />}
-        <Routes>
-          <Route path="/welkom" element={<OnboardingScreen />} />
-          <Route path="/overzicht" element={<h1>Overzicht</h1>} />
-        </Routes>
-      </MemoryRouter>
+      <OnboardingProvider>
+        <MemoryRouter initialEntries={[gate ? '/overzicht' : '/welkom']}>
+          {gate && <OnboardingGate />}
+          <Routes>
+            <Route path="/welkom" element={<OnboardingScreen />} />
+            <Route
+              path="/overzicht"
+              element={
+                <>
+                  <h1>Overzicht</h1>
+                  <Link to="/welkom">Opnieuw inrichten</Link>
+                </>
+              }
+            />
+          </Routes>
+        </MemoryRouter>
+      </OnboardingProvider>
     </QueryClientProvider>,
   );
   return writes;
@@ -98,4 +109,19 @@ it('respects persisted completion even if the flame mapping is absent', async ()
     expect(fetch).toHaveBeenCalled();
   });
   expect(screen.getByRole('heading', { name: 'Overzicht' })).toBeInTheDocument();
+});
+
+it('reopens the first connection step after deferral without deleting mappings', async () => {
+  mount();
+  const user = userEvent.setup();
+  await screen.findByText('Verbonden met Home Assistant');
+  await user.click(screen.getByRole('button', { name: 'Volgende →' }));
+  expect(await screen.findByText('binary_sensor.flame')).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Later afmaken ›' }));
+  await user.click(screen.getByRole('link', { name: 'Opnieuw inrichten' }));
+  expect(
+    await screen.findByRole('heading', { name: 'Verbinding met Home Assistant' }),
+  ).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Volgende →' }));
+  expect(await screen.findByText('binary_sensor.flame')).toBeInTheDocument();
 });

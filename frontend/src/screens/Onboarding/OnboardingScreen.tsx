@@ -46,6 +46,7 @@ export function OnboardingScreen() {
   const mapped = signals.data?.items.some((s) => s.role === 'flame' && s.entity_id);
   const active = signals.data?.items.find((s) => s.id === selected);
   const defer = () => {
+    setStep(1);
     sessionStorage.setItem('cv-idee.setup-deferred', '1');
     void navigate('/overzicht');
   };
@@ -59,6 +60,7 @@ export function OnboardingScreen() {
       },
       {
         onSuccess: () => {
+          setStep(1);
           sessionStorage.removeItem('cv-idee.setup-deferred');
           void navigate('/overzicht');
         },

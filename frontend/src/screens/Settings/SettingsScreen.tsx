@@ -127,8 +127,17 @@ function SettingsForm({ initial: source, reload }: { initial: Settings; reload: 
       {
         onSuccess: (response) => {
           setInitial(response);
-          explain.setExplain(values().show_explanations);
-          explain.setShowRequirementIds(values().show_requirement_ids);
+          setDraft(
+            Object.fromEntries(
+              Object.entries(response.values).map(([key, value]) => [
+                key,
+                typeof value === 'boolean' ? value : display(value),
+              ]),
+            ),
+          );
+          setErrors({});
+          explain.setExplain(response.values.show_explanations);
+          explain.setShowRequirementIds(response.values.show_requirement_ids);
           setConfirm(false);
           setSaved(true);
           void history.refetch();
