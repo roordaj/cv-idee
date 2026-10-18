@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -115,6 +115,7 @@ function renderScreen(path = '/wijzigingen') {
 describe('ChangesScreen', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
   it('renders the log and the first change with before/after and comparability', async () => {
@@ -169,6 +170,101 @@ describe('ChangesScreen', () => {
       actor: 'user',
     });
     expect(await screen.findByText('Wijziging vastgelegd')).toBeInTheDocument();
+  });
+
+  it('defaults to the current Amsterdam minute', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-07-02T12:34:56Z'));
+    stubApi();
+    renderScreen();
+    expect(screen.getByLabelText('Tijdstip (Europe/Amsterdam)')).toHaveValue('2026-07-02T14:34');
+    await screen.findByRole('list', { name: 'Wijzigingen' });
+  });
+
+  it('posts the actual past timestamp, reason, actor and selected advice together', async () => {
+    const posts: unknown[] = [];
+    const fetchMock = stubApi(posts);
+    fetchMock.mockImplementation(async (input) => {
+      const req = input as Request;
+      const url = new URL(req.url);
+      if (req.method === 'POST') {
+        posts.push(await req.json());
+        return json({ ...CHANGES[0], id: 'W-08' }, 201);
+      }
+      if (url.pathname === '/api/changes') return json({ items: CHANGES });
+      if (url.pathname === '/api/findings')
+        return json({ items: [{ id: 'B-009', title: 'Controleer de aanvoer' }], open_count: 1 });
+      return json(EVALUATIONS['W-07']);
+    });
+    const user = userEvent.setup();
+    renderScreen();
+    await screen.findByRole('option', { name: 'B-009 · Controleer de aanvoer' });
+    fireEvent.change(screen.getByLabelText('Tijdstip (Europe/Amsterdam)'), {
+      target: { value: '2026-01-02T13:34' },
+    });
+    await user.type(screen.getByLabelText('Oude waarde'), '70 °C');
+    await user.type(screen.getByLabelText('Nieuwe waarde'), '60 °C');
+    await user.type(screen.getByLabelText('Reden'), 'Advies samen met installateur uitgevoerd');
+    await user.selectOptions(screen.getByLabelText('Uitgevoerd door'), 'installer');
+    await user.selectOptions(screen.getByLabelText('Gekoppeld advies'), 'B-009');
+    await user.click(screen.getByRole('button', { name: 'Vastleggen' }));
+    await waitFor(() => {
+      expect(posts).toHaveLength(1);
+    });
+    expect(posts[0]).toMatchObject({
+      at: '2026-01-02T12:34:00.000Z',
+      actor: 'installer',
+      reason: 'Advies samen met installateur uitgevoerd',
+      finding_id: 'B-009',
+    });
+  });
+
+  it('blocks future and nonexistent timestamps without posting', async () => {
+    const posts: unknown[] = [];
+    stubApi(posts);
+    const user = userEvent.setup();
+    renderScreen();
+    await user.type(screen.getByLabelText('Oude waarde'), '70');
+    await user.type(screen.getByLabelText('Nieuwe waarde'), '60');
+    fireEvent.change(screen.getByLabelText('Tijdstip (Europe/Amsterdam)'), {
+      target: { value: '2099-01-02T12:00' },
+    });
+    await user.click(screen.getByRole('button', { name: 'Vastleggen' }));
+    expect(screen.getByText('Het tijdstip mag niet in de toekomst liggen.')).toBeVisible();
+    fireEvent.change(screen.getByLabelText('Tijdstip (Europe/Amsterdam)'), {
+      target: { value: '2026-03-29T02:30' },
+    });
+    await user.click(screen.getByRole('button', { name: 'Vastleggen' }));
+    expect(screen.getByText(/Deze tijd moet bestaan/)).toBeVisible();
+    expect(posts).toHaveLength(0);
+  });
+
+  it('requires an explicit choice for repeated wintertime and posts that occurrence', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-01T12:00:00Z'));
+    const posts: unknown[] = [];
+    stubApi(posts);
+    const user = userEvent.setup();
+    renderScreen();
+    await user.type(screen.getByLabelText('Oude waarde'), '70');
+    await user.type(screen.getByLabelText('Nieuwe waarde'), '60');
+    fireEvent.change(screen.getByLabelText('Tijdstip (Europe/Amsterdam)'), {
+      target: { value: '2026-10-25T02:30' },
+    });
+    await user.click(screen.getByRole('button', { name: 'Vastleggen' }));
+    expect(
+      screen.getByText('Kies welk tijdstip je bedoelt bij de overgang naar wintertijd.'),
+    ).toBeVisible();
+    expect(posts).toHaveLength(0);
+    await user.selectOptions(
+      screen.getByLabelText('Tijd bij overgang naar wintertijd'),
+      '2026-10-25T01:30:00.000Z',
+    );
+    await user.click(screen.getByRole('button', { name: 'Vastleggen' }));
+    await waitFor(() => {
+      expect(posts).toHaveLength(1);
+    });
+    expect(posts[0]).toMatchObject({ at: '2026-10-25T01:30:00.000Z' });
   });
 
   it('shows an empty state with the form still visible', async () => {
