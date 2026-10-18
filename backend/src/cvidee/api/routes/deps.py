@@ -33,6 +33,7 @@ from cvidee.api.schemas.findings import (
     HistoryEntry,
 )
 from cvidee.api.schemas.installation import InstallationProfile, InstallationProfileIn
+from cvidee.api.schemas.notifications import Notification, NotificationPolicy, NotificationPolicyIn
 from cvidee.api.stubs.store import StubStore
 
 
@@ -217,3 +218,25 @@ def get_imports(request: Request) -> ImportsBackend:
 
 
 Imports = Annotated[ImportsBackend, Depends(get_imports)]
+
+
+class NotificationsBackend(Protocol):
+    @property
+    def policy(self) -> NotificationPolicy: ...
+    def put_policy(self, body: NotificationPolicyIn) -> NotificationPolicy: ...
+    def notifications(self, limit: int, offset: int) -> Page[Notification]: ...
+
+
+def get_notifications(request: Request) -> NotificationsBackend:
+    from cvidee.notify.backend import NotificationBackend
+
+    stub: StubStore | None = getattr(request.app.state, "stub_store", None)
+    if stub is not None:
+        return stub
+    factory: sessionmaker[Session] | None = getattr(request.app.state, "session_factory", None)
+    if factory is None:
+        raise get_stub_store_problem()
+    return NotificationBackend(factory)
+
+
+Notifications = Annotated[NotificationsBackend, Depends(get_notifications)]

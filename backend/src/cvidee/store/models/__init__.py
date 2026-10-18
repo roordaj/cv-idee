@@ -21,7 +21,7 @@ from cvidee.store.models.findings import (
     RecommendationNote,
     RecommendationSnapshot,
 )
-from cvidee.store.models.notifications import Notification, NotificationPolicy
+from cvidee.store.models.notifications import Notification, NotificationPolicy, NotificationState
 from cvidee.store.models.observations import ConnectionEvent, Observation
 from cvidee.store.models.profile import (
     InstallationProfile,
@@ -52,6 +52,7 @@ __all__ = [
     "ModeSegment",
     "Notification",
     "NotificationPolicy",
+    "NotificationState",
     "Observation",
     "ProfileCircuit",
     "ProfileRoom",
