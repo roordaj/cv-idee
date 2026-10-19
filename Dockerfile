@@ -10,7 +10,9 @@
 ARG PYTHON_IMAGE=python:3.12-slim-bookworm
 
 # --- 1. Frontend build -------------------------------------------------------------------
-FROM node:22-alpine AS frontend
+# Frontend assets are platform-independent; build with native Node to avoid QEMU emulation
+# stalling npm dependency installation for ARM add-on images.
+FROM --platform=$BUILDPLATFORM node:22-alpine AS frontend
 WORKDIR /src/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci --no-audit --no-fund
