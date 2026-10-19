@@ -11,6 +11,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, replace
 
+from cvidee.analysis.change_evaluation import EvaluationFact
 from cvidee.analysis.types import DurationMs, Role, ScopeKind, SignalRef
 from cvidee.rules.base import (
     AnalysisAvailability,
@@ -128,6 +129,7 @@ def analysis_requirements(policy: AvailabilityPolicy) -> Mapping[AnalysisId, Sig
         AnalysisId.EFFICIENCY: SignalRequirement(
             required=(Role.GAS_CUMULATIVE, Role.HEAT_METER),
         ),
+        AnalysisId.BEFORE_AFTER: SignalRequirement(),
     }
 
 
@@ -282,20 +284,54 @@ def assess_analyses(
     signals: Iterable[SignalStatus],
     profile: InstallationFacts,
     policy: AvailabilityPolicy | None = None,
+    change_evaluations: Iterable[EvaluationFact] = (),
 ) -> tuple[AnalysisAvailability, ...]:
     """Availability of every analysis, in :class:`AnalysisId` order (design v3 table)."""
     policy = policy or AvailabilityPolicy()
     statuses = tuple(signals)
+    evaluations = tuple(change_evaluations)
     table = analysis_requirements(policy)
     return tuple(
         AnalysisAvailability(
             analysis,
-            _assess_hydraulic(table[analysis], statuses, profile, policy)
+            assess_before_after(evaluations)
+            if analysis is AnalysisId.BEFORE_AFTER
+            else _assess_hydraulic(table[analysis], statuses, profile, policy)
             if analysis is AnalysisId.HYDRAULIC
             else assess(table[analysis], statuses, profile, policy),
         )
         for analysis in AnalysisId
     )
+
+
+def assess_before_after(evaluations: Iterable[EvaluationFact]) -> Availability:
+    """Availability of production before/after evaluations, independent of verdict quality.
+
+    A measurable but uncomparable evaluation is limited. If no change can be evaluated, the
+    analysis is unavailable; verdicts themselves remain findings/evaluation outcomes.
+    """
+    facts = tuple(evaluations)
+    evaluable = tuple(fact for fact in facts if fact.verdict != "pending")
+    if not evaluable:
+        kind = IssueKind.NO_CHANGE_DATA if not facts else IssueKind.INSUFFICIENT_COMPARISON_EVIDENCE
+        return Availability(
+            UNAVAILABLE,
+            (AvailabilityIssue(kind),),
+        )
+    if all(fact.verdict == "insufficient_evidence" for fact in evaluable):
+        return Availability(
+            UNAVAILABLE,
+            (AvailabilityIssue(IssueKind.INSUFFICIENT_COMPARISON_EVIDENCE),),
+        )
+
+    issues: set[AvailabilityIssue] = set()
+    if any(fact.overlap_ids for fact in evaluable):
+        issues.add(AvailabilityIssue(IssueKind.OVERLAPPING_CHANGES))
+    if any(fact.weather != "yes" for fact in evaluable):
+        issues.add(AvailabilityIssue(IssueKind.WEATHER_NOT_COMPARABLE))
+    if any(fact.setpoints != "yes" for fact in evaluable):
+        issues.add(AvailabilityIssue(IssueKind.SETPOINTS_NOT_COMPARABLE))
+    return Availability(LIMITED if issues else AVAILABLE, tuple(sorted(issues)))
 
 
 def _assess_hydraulic(

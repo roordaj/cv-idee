@@ -3,14 +3,22 @@
 from pathlib import Path
 
 import httpx
+import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from cvidee.api.schemas.settings import SettingsIn
+from cvidee.changes.evaluation import evaluate_changes
 from cvidee.config import Settings
+from cvidee.installation import SqlInstallationProfileRepository, profile_facts
 from cvidee.main import create_app
+from cvidee.rules.availability import assess_analyses
+from cvidee.rules.base import AnalysisId, AvailabilityStatus
 from cvidee.runner.service import AnalysisRunner, RunnerSettings
+from cvidee.runner.sources import SourceSettings, build_pipeline_config, load_mapped_signals
 from cvidee.settings.backend import SettingsBackend
+from cvidee.settings.repository import current_revision, effective_values
+from cvidee.signals.backend import SignalsBackend
 from cvidee.signals.catalog import sync_catalogue
 from cvidee.store.enums import ChangeActor, ObservationOrigin, RecommendationStatus
 from cvidee.store.models import (
@@ -126,6 +134,36 @@ def seed_evaluation(
     assert runs
     assert all(run.status.value == "succeeded" for run in runs)
     return factory, runner, data
+
+
+@pytest.mark.parametrize(
+    ("name", "expected"),
+    [
+        ("07-aanvoerwijziging-comfort", AvailabilityStatus.AVAILABLE),
+        ("08-gelijktijdige-wijzigingen", AvailabilityStatus.LIMITED),
+        ("10-onvoldoende-gegevens", AvailabilityStatus.UNAVAILABLE),
+    ],
+)
+def test_before_after_analysis_availability_uses_production_evaluation(
+    tmp_path: Path, name: str, expected: AvailabilityStatus
+) -> None:
+    factory, runner, data = seed_evaluation(tmp_path, name)
+    with factory.begin() as session:
+        now = data.end_ms
+        profile = profile_facts(SqlInstallationProfileRepository(session).current_or_default(now))
+        settings = effective_values(current_revision(session))
+        mapped = load_mapped_signals(session)
+        config = build_pipeline_config(session, mapped, SourceSettings())
+        evaluations = evaluate_changes(session, now, settings, config)
+        statuses = assess_analyses((), profile, change_evaluations=evaluations)
+    before_after = next(item for item in statuses if item.analysis is AnalysisId.BEFORE_AFTER)
+    assert before_after.availability.status is expected
+    read_model = SignalsBackend(factory, runner=runner, clock=lambda: data.end_ms).analyses()
+    api_item = next(item for item in read_model.items if item.id is AnalysisId.BEFORE_AFTER)
+    assert api_item.status is expected
+    if expected is AvailabilityStatus.UNAVAILABLE and name.endswith("10-onvoldoende-gegevens"):
+        assert before_after.availability.issues
+        assert "geen wijziging vastgelegd" in api_item.note
 
 
 async def test_real_runner_and_api_show_trade_off_and_preserve_rollback_history(

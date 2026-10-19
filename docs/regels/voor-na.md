@@ -11,6 +11,13 @@ onvoldoende vergelijkbare gegevens zichtbaar. Minder starts met slechter comfort
 wordt nooit als onvoorwaardelijke verbetering beoordeeld. Een waargenomen verschil
 bewijst geen oorzaak of energiebesparing.
 
+De gebruikersgerichte analyse `before_after` is beschikbaar als er een wijzigingsevaluatie
+kan worden uitgevoerd. Overlappende wijzigingen, niet-vergelijkbaar weer of gewijzigde
+kamerdoelen maken de analyse beperkt. Zonder wijziging of met uitsluitend onvoldoende
+bewijs is de analyse niet beschikbaar; een `voor-na`-bevinding kan de ontbrekende gegevens
+wel uitleggen zonder de analyse als beschikbaar te presenteren. Deze status komt uit de
+productie-evaluatiefeiten, niet uit de conclusie van de bevinding.
+
 ## Toepasbaarheid
 
 De evaluatie geldt voor een vastgelegde wijziging, met even lange referentie- en

@@ -645,7 +645,8 @@ export interface components {
       | 'zones'
       | 'hydraulic'
       | 'consumption'
-      | 'efficiency';
+      | 'efficiency'
+      | 'before_after';
     /** AnalysisList */
     AnalysisList: {
       /** Items */

@@ -239,6 +239,7 @@ def analyses() -> list[AnalysisOut]:
         (AnalysisId.HYDRAULIC, "Hydraulisch", _U, "Ontbreekt: verdeleraanvoer, -retour, debiet.", [*_MANIFOLD, _PUMP]),
         (AnalysisId.CONSUMPTION, "Verbruik", _U, "Ontbreekt: cumulatief gasverbruik.", [_GAS]),
         (AnalysisId.EFFICIENCY, "Rendement", _U, "Ontbreekt: gasverbruik én warmtemeter.", [_GAS, _HEAT]),
+        (AnalysisId.BEFORE_AFTER, "Voor/na", _U, "Geen wijziging vastgelegd.", []),
     ]  # fmt: skip
     return [
         AnalysisOut(id=a, name=n, status=s, note=note, missing_signals=m)

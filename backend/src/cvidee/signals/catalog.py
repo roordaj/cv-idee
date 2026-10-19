@@ -134,6 +134,7 @@ ANALYSIS_NAMES = {
     AnalysisId.HYDRAULIC: "Hydraulisch",
     AnalysisId.CONSUMPTION: "Verbruik",
     AnalysisId.EFFICIENCY: "Rendement",
+    AnalysisId.BEFORE_AFTER: "Voor/na",
 }
 
 

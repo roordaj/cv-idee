@@ -31,11 +31,19 @@ from cvidee.api.schemas.signals import (
     SignalState,
     ValueKindName,
 )
+from cvidee.changes.evaluation import evaluate_changes
 from cvidee.findings.stage import StoreTimelines
 from cvidee.ingest.ha_client import HAClient, HAState, HAUnavailableError
 from cvidee.installation import SqlInstallationProfileRepository, profile_facts
 from cvidee.rules.availability import AvailabilityPolicy, assess_analyses
-from cvidee.rules.base import AvailabilityStatus, InstallationFacts, IssueKind, signal_ref
+from cvidee.rules.base import (
+    AnalysisId,
+    AvailabilityIssue,
+    AvailabilityStatus,
+    InstallationFacts,
+    IssueKind,
+    signal_ref,
+)
 from cvidee.runner.service import AnalysisRunner
 from cvidee.runner.sources import SourceSettings, build_pipeline_config, load_mapped_signals
 from cvidee.settings.repository import current_revision, effective_values
@@ -52,6 +60,26 @@ from cvidee.store.enums import ObservationOrigin
 from cvidee.store.models import SignalMapping, SourceEntity
 from cvidee.store.observations import SqlObservationRepository
 from cvidee.store.records import ObservationRecord
+
+_ISSUE_LABELS = {
+    IssueKind.NOT_MAPPED: "niet gekoppeld",
+    IssueKind.NO_DATA: "geen gegevens",
+    IssueKind.LOW_COVERAGE: "onvoldoende dekking",
+    IssueKind.STALE: "verouderd",
+    IssueKind.RESOLUTION: "meetresolutie te grof",
+    IssueKind.RESOLUTION_UNKNOWN: "meetresolutie onbekend",
+    IssueKind.NO_SCOPE_IN_PROFILE: "ontbreekt in installatieprofiel",
+    IssueKind.NO_CHANGE_DATA: "geen wijziging vastgelegd",
+    IssueKind.INSUFFICIENT_COMPARISON_EVIDENCE: "onvoldoende gegevens voor vergelijking",
+    IssueKind.OVERLAPPING_CHANGES: "wijzigingen overlappen",
+    IssueKind.WEATHER_NOT_COMPARABLE: "weer niet vergelijkbaar",
+    IssueKind.SETPOINTS_NOT_COMPARABLE: "kamerdoelen niet vergelijkbaar",
+}
+
+
+def _issue_text(issue: AvailabilityIssue) -> str:
+    label = _ISSUE_LABELS[issue.kind]
+    return label if issue.role is None else f"{label}: {BY_ROLE[issue.role].name}"
 
 
 def _clock() -> int:
@@ -372,28 +400,21 @@ class SignalsBackend:
             )
             statuses = signal_statuses(session, mapped, built, rng)
             items = []
-            for result in assess_analyses(statuses, profile, policy):
-                reasons = sorted(
-                    {
-                        {
-                            IssueKind.NOT_MAPPED: "niet gekoppeld",
-                            IssueKind.NO_DATA: "geen gegevens",
-                            IssueKind.LOW_COVERAGE: "onvoldoende dekking",
-                            IssueKind.STALE: "verouderd",
-                            IssueKind.RESOLUTION: "meetresolutie te grof",
-                            IssueKind.RESOLUTION_UNKNOWN: "meetresolutie onbekend",
-                            IssueKind.NO_SCOPE_IN_PROFILE: "ontbreekt in installatieprofiel",
-                        }[issue.kind]
-                        + ": "
-                        + BY_ROLE[issue.role].name
-                        for issue in result.availability.issues
-                    }
-                )
-                note = (
-                    "Beschikbaar op basis van de afgelopen 24 uur."
-                    if not reasons
-                    else "; ".join(reasons) + ". Beoordeling over de afgelopen 24 uur."
-                )
+            change_evaluations = evaluate_changes(session, now, settings, config)
+            for result in assess_analyses(statuses, profile, policy, change_evaluations):
+                reasons = sorted({_issue_text(issue) for issue in result.availability.issues})
+                if result.analysis is AnalysisId.BEFORE_AFTER:
+                    note = (
+                        "Gebaseerd op vastgelegde wijzigingsevaluaties."
+                        if not reasons
+                        else "; ".join(reasons) + ". Vergelijking van vastgelegde wijzigingen."
+                    )
+                else:
+                    note = (
+                        "Beschikbaar op basis van de afgelopen 24 uur."
+                        if not reasons
+                        else "; ".join(reasons) + ". Beoordeling over de afgelopen 24 uur."
+                    )
                 if (
                     result.analysis.value == "consumption"
                     and result.availability.status is AvailabilityStatus.UNAVAILABLE
