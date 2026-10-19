@@ -249,18 +249,34 @@ class StubStore:
                 "Installatieprofiel is intussen gewijzigd",
                 "Herlaad om de nieuwste gegevens te zien.",
             )
-        data = body.model_dump() | {
+        data = body.model_dump(mode="json") | {
             "revision": body.revision + 1,
             "updated_at": self.now,
             "summary": self.installation.summary,
         }
+        old_rooms = {room.key: room for room in self.installation.rooms}
+        for room in data["rooms"]:
+            if room["comfort"] is None:
+                existing = old_rooms.get(room["key"])
+                room["comfort"] = (
+                    {"status": "not_configured", "timezone": "Europe/Amsterdam", "windows": []}
+                    if existing is None or existing.comfort is None
+                    else existing.comfort.model_dump(mode="json")
+                )
         self.installation = InstallationProfile.model_validate(data)
         return self.installation
 
-    @staticmethod
-    def _check_period(body: SpecialPeriodIn) -> None:
+    def _check_period(self, body: SpecialPeriodIn) -> None:
         if body.end is not None and body.end <= body.start:
             raise ProblemError(422, "Ongeldige periode", "De eindtijd moet na de begintijd liggen.")
+        room_keys = {room.key for room in self.installation.rooms}
+        for override in body.room_overrides:
+            if override.room_key not in room_keys:
+                raise ProblemError(
+                    422,
+                    "Ongeldig installatieprofiel",
+                    f"Bijzondere periode verwijst naar onbekende ruimte '{override.room_key}'.",
+                )
 
     def period_list(self) -> SpecialPeriodList:
         return SpecialPeriodList(items=sorted(self.periods.values(), key=lambda p: p.start))

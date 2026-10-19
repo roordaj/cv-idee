@@ -53,6 +53,8 @@ from cvidee.api.schemas.installation import (
     Circuit,
     InstallationProfile,
     Room,
+    RoomComfort,
+    RoomComfortWindow,
     Specification,
 )
 from cvidee.api.schemas.notifications import (
@@ -604,7 +606,7 @@ def installation() -> InstallationProfile:
             Circuit(id="boven", name="Boven", kind=CircuitKind.MIXING_MANIFOLD, emitter=EmitterType.UNDERFLOOR, loops=5, rooms=["slaapkamer", "kinderkamer", "badkamer"], note="De mengverdeler mengt heet ketelwater met retourwater tot een lagere vloertemperatuur. Ketelmetingen zeggen daarom weinig over de vloer; zonder verdelersensoren geen advies per groep."),
         ],
         rooms=[
-            Room(key="woonkamer", name="Woonkamer", has_sensor=True, is_thermostat=True, schedule_text="07:00–22:30", setpoint=20.5, night_setpoint=17.0),
+            Room(key="woonkamer", name="Woonkamer", has_sensor=True, is_thermostat=True, schedule_text="07:00–22:30", setpoint=20.5, night_setpoint=17.0, comfort=RoomComfort(status="scheduled", windows=[RoomComfortWindow(weekdays=[0, 1, 2, 3, 4, 5, 6], start_time="07:00", end_time="22:30", target_temperature_c=20.5), RoomComfortWindow(kind="night", weekdays=[0, 1, 2, 3, 4, 5, 6], start_time="22:30", end_time="07:00", target_temperature_c=17.0)])),
             Room(key="keuken", name="Keuken", has_sensor=False, is_thermostat=False, schedule_text=None, setpoint=None, night_setpoint=None),
             Room(key="hal", name="Hal", has_sensor=False, is_thermostat=False, schedule_text=None, setpoint=None, night_setpoint=None),
             Room(key="slaapkamer", name="Slaapkamer", has_sensor=True, is_thermostat=False, schedule_text="21:00–07:30", setpoint=18.0, night_setpoint=None),

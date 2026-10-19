@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import math
 from datetime import date
 from enum import StrEnum
+from typing import Literal
 
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, model_validator
 
 from cvidee.api.schemas.common import ApiModel, TimeRange, UtcDateTime
 from cvidee.store.enums import (
@@ -188,12 +190,36 @@ class PeriodExclusions(ApiModel):
     ch_conclusions: bool = True
 
 
+class RoomComfortOverride(ApiModel):
+    """A room-specific expectation during an existing special period."""
+
+    room_key: str = Field(min_length=1, max_length=64)
+    kind: Literal["no_expectation", "normal_schedule", "temporary_target"]
+    target_temperature_c: float | None = Field(default=None, gt=0)
+
+    @model_validator(mode="after")
+    def validate_override(self) -> RoomComfortOverride:
+        if self.target_temperature_c is not None and not math.isfinite(self.target_temperature_c):
+            raise ValueError("Het tijdelijke comfortdoel moet een eindige temperatuur zijn.")
+        if (self.kind == "temporary_target") != (self.target_temperature_c is not None):
+            raise ValueError("Alleen een tijdelijk doel heeft een doeltemperatuur nodig.")
+        return self
+
+
 class SpecialPeriodIn(ApiModel):
     kind: SpecialPeriodKind
     start: UtcDateTime
     end: UtcDateTime | None = Field(default=None, description="null = still running.")
     description: str = Field(default="", max_length=140)
     excluded_from: PeriodExclusions = PeriodExclusions()
+    room_overrides: list[RoomComfortOverride] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def unique_room_overrides(self) -> SpecialPeriodIn:
+        keys = [override.room_key for override in self.room_overrides]
+        if len(keys) != len(set(keys)):
+            raise ValueError("Een ruimte mag per bijzondere periode één comfortoverride hebben.")
+        return self
 
 
 class SpecialPeriod(SpecialPeriodIn):

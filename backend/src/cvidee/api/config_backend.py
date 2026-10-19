@@ -20,6 +20,7 @@ from cvidee.analysis.types import TimestampMs
 from cvidee.api.problems import ProblemError, not_found
 from cvidee.api.schemas.data import (
     PeriodExclusions,
+    RoomComfortOverride,
     SpecialPeriod,
     SpecialPeriodIn,
     SpecialPeriodList,
@@ -30,6 +31,7 @@ from cvidee.api.schemas.installation import (
     InstallationProfile,
     InstallationProfileIn,
     Room,
+    RoomComfort,
     Specification,
 )
 from cvidee.installation import SqlInstallationProfileRepository
@@ -126,15 +128,31 @@ class ConfigBackend:
             raise _invalid("Ruimtesleutels moeten uniek zijn.")
         room_circuit: dict[str, str] = {}
         for circuit in body.circuits:
-            for room in circuit.rooms:
-                if room not in room_keys:
+            for room_key in circuit.rooms:
+                if room_key not in room_keys:
                     raise _invalid(
-                        f"Circuit '{circuit.id}' verwijst naar onbekende ruimte '{room}'."
+                        f"Circuit '{circuit.id}' verwijst naar onbekende ruimte '{room_key}'."
                     )
-                if room in room_circuit:
-                    raise _invalid(f"Ruimte '{room}' hangt aan meerdere circuits.")
-                room_circuit[room] = circuit.id
+                if room_key in room_circuit:
+                    raise _invalid(f"Ruimte '{room_key}' hangt aan meerdere circuits.")
+                room_circuit[room_key] = circuit.id
         old_rooms = {r.key: r for r in current.rooms}
+        old_room_details = current.details.get("rooms", {})
+        room_details: dict[str, dict[str, Any]] = {}
+        for room in body.rooms:
+            old_detail = old_room_details.get(room.key, {})
+            comfort = room.comfort
+            if comfort is None:
+                comfort = RoomComfort.model_validate(
+                    old_detail.get("comfort", {"status": "not_configured", "windows": []})
+                )
+            room_details[room.key] = {
+                "has_sensor": room.has_sensor,
+                "schedule_text": room.schedule_text,
+                "setpoint": room.setpoint,
+                "night_setpoint": room.night_setpoint,
+                "comfort": comfort.model_dump(mode="json"),
+            }
         return ProfileRow(
             valid_from_ts=now,
             created_at_ts=now,
@@ -142,15 +160,7 @@ class ConfigBackend:
             details={
                 "boiler": body.boiler.model_dump(),
                 "circuits": {c.id: {"loops": c.loops, "note": c.note} for c in body.circuits},
-                "rooms": {
-                    r.key: {
-                        "has_sensor": r.has_sensor,
-                        "schedule_text": r.schedule_text,
-                        "setpoint": r.setpoint,
-                        "night_setpoint": r.night_setpoint,
-                    }
-                    for r in body.rooms
-                },
+                "rooms": room_details,
             },
             circuits=[
                 ProfileCircuit(
@@ -264,6 +274,11 @@ class ConfigBackend:
                 schedule_text=room_details.get(r.key, {}).get("schedule_text"),
                 setpoint=room_details.get(r.key, {}).get("setpoint"),
                 night_setpoint=room_details.get(r.key, {}).get("night_setpoint"),
+                comfort=RoomComfort.model_validate(
+                    room_details.get(r.key, {}).get(
+                        "comfort", {"status": "not_configured", "windows": []}
+                    )
+                ),
             )
             for r in profile.rooms
         ]
@@ -308,9 +323,10 @@ class ConfigBackend:
             return SpecialPeriodList(items=[_period_schema(r) for r in rows])
 
     def create_period(self, body: SpecialPeriodIn) -> SpecialPeriod:
-        _check_period(body)
         now = self._clock()
         with self._sessions.begin() as session:
+            profile = SqlInstallationProfileRepository(session).current_or_default(now)
+            _check_period(body, {room.key for room in profile.rooms})
             row = SqlSpecialPeriodRepository(session).add(_period_row(PeriodRow(), body, now))
             result = _period_schema(row)
         self._recompute(
@@ -319,13 +335,14 @@ class ConfigBackend:
         return result
 
     def update_period(self, period_id: str, body: SpecialPeriodIn) -> SpecialPeriod:
-        _check_period(body)
         now = self._clock()
         with self._sessions.begin() as session:
             repo = SqlSpecialPeriodRepository(session)
             row = repo.get(_parse_period_id(period_id))
             if row is None:
                 raise not_found("Periode", period_id)
+            profile = SqlInstallationProfileRepository(session).current_or_default(now)
+            _check_period(body, {room.key for room in profile.rooms})
             old_start = row.start_ts
             _period_row(row, body, now)
             repo.update(row, now)
@@ -357,9 +374,15 @@ def _signature(profile: ProfileRow) -> dict[str, Any]:
     }
 
 
-def _check_period(body: SpecialPeriodIn) -> None:
+def _check_period(body: SpecialPeriodIn, room_keys: set[str] | None = None) -> None:
     if body.end is not None and body.end <= body.start:
         raise ProblemError(422, "Ongeldige periode", "De eindtijd moet na de begintijd liggen.")
+    if room_keys is not None:
+        for override in body.room_overrides:
+            if override.room_key not in room_keys:
+                raise _invalid(
+                    f"Bijzondere periode verwijst naar onbekende ruimte '{override.room_key}'."
+                )
 
 
 def _parse_period_id(period_id: str) -> int:
@@ -374,6 +397,7 @@ def _period_row(row: PeriodRow, body: SpecialPeriodIn, now: int) -> PeriodRow:
     row.start_ts = _ms(body.start)
     row.end_ts = None if body.end is None else _ms(body.end)
     row.description = body.description or None
+    row.room_overrides = [override.model_dump(mode="json") for override in body.room_overrides]
     row.exclude_from_baseline = body.excluded_from.normal_behaviour
     row.exclude_from_comparisons = body.excluded_from.comparisons
     row.exclude_from_ch_conclusions = body.excluded_from.ch_conclusions
@@ -390,6 +414,9 @@ def _period_schema(row: PeriodRow) -> SpecialPeriod:
         start=_dt(row.start_ts),
         end=None if row.end_ts is None else _dt(row.end_ts),
         description=row.description or "",
+        room_overrides=[
+            RoomComfortOverride.model_validate(override) for override in row.room_overrides
+        ],
         excluded_from=PeriodExclusions(
             normal_behaviour=row.exclude_from_baseline,
             comparisons=row.exclude_from_comparisons,

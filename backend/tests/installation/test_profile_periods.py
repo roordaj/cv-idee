@@ -197,6 +197,102 @@ async def test_installation_round_trip_and_versioning(
     assert conflict.status_code == 409
 
 
+async def test_room_comfort_schedules_are_versioned_and_noop_saves_are_skipped(
+    api: httpx.AsyncClient, factory: sessionmaker[Session]
+) -> None:
+    first = (await api.get("/api/installation")).json()
+    body = {key: value for key, value in first.items() if key not in ("summary", "updated_at")}
+    rooms = {room["key"]: room for room in body["rooms"]}
+    assert rooms["woonkamer"]["comfort"]["status"] == "not_configured"
+    assert rooms["keuken"]["comfort"]["status"] == "not_configured"
+    rooms["woonkamer"]["comfort"] = {
+        "status": "scheduled",
+        "timezone": "Europe/Amsterdam",
+        "windows": [
+            {
+                "kind": "comfort",
+                "weekdays": [0, 1, 2, 3, 4, 5, 6],
+                "start_time": "07:00",
+                "end_time": "22:30",
+                "target_temperature_c": 20.5,
+            },
+            {
+                "kind": "night",
+                "weekdays": [0, 1, 2, 3, 4, 5, 6],
+                "start_time": "22:30",
+                "end_time": "07:00",
+                "target_temperature_c": 17,
+            },
+        ],
+    }
+    # A saved preference does not depend on whether that room has a mapped sensor.
+    rooms["keuken"]["comfort"] = {
+        "status": "scheduled",
+        "timezone": "Europe/Amsterdam",
+        "windows": [
+            {
+                "kind": "comfort",
+                "weekdays": [0, 1, 2, 3, 4],
+                "start_time": "08:00",
+                "end_time": "18:00",
+                "target_temperature_c": 19,
+            }
+        ],
+    }
+    saved_response = await api.put("/api/installation", json=body)
+    assert saved_response.status_code == 200, saved_response.text
+    saved = saved_response.json()
+    assert saved["revision"] > first["revision"]
+    assert {room["key"]: room for room in saved["rooms"]}["keuken"]["comfort"]["windows"][0][
+        "target_temperature_c"
+    ] == 19
+
+    saved_body = {
+        key: value for key, value in saved.items() if key not in ("summary", "updated_at")
+    }
+    no_op = await api.put("/api/installation", json=saved_body)
+    assert no_op.status_code == 200, no_op.text
+    assert no_op.json()["revision"] == saved["revision"]
+
+    with factory() as session:
+        repo = SqlInstallationProfileRepository(session)
+        original = repo.get(first["revision"])
+        current = repo.get(saved["revision"])
+        assert original is not None
+        assert current is not None
+        assert original.details["rooms"]["woonkamer"]["comfort"]["status"] == "not_configured"
+        assert current.details["rooms"]["woonkamer"]["comfort"]["status"] == "scheduled"
+
+
+async def test_installation_rejects_overlapping_room_comfort_windows(
+    api: httpx.AsyncClient,
+) -> None:
+    first = (await api.get("/api/installation")).json()
+    body = {key: value for key, value in first.items() if key not in ("summary", "updated_at")}
+    room = next(room for room in body["rooms"] if room["key"] == "slaapkamer")
+    room["comfort"] = {
+        "status": "scheduled",
+        "timezone": "Europe/Amsterdam",
+        "windows": [
+            {
+                "weekdays": [0],
+                "start_time": "22:00",
+                "end_time": "07:00",
+                "target_temperature_c": 17,
+            },
+            {
+                "weekdays": [1],
+                "start_time": "06:00",
+                "end_time": "08:00",
+                "target_temperature_c": 19,
+            },
+        ],
+    }
+    response = await api.put("/api/installation", json=body)
+    assert response.status_code == 422
+    assert "overlappen" in response.text
+
+
 async def test_installation_rejects_values_for_unknown_specs(api: httpx.AsyncClient) -> None:
     first = (await api.get("/api/installation")).json()
     first.pop("summary", None)
@@ -258,6 +354,53 @@ async def test_periods_crud_and_recompute(
     assert (await api.delete(f"/api/periods/{period['id']}")).status_code == 204
     assert (await api.get("/api/periods")).json()["items"] == []
     assert (await api.delete(f"/api/periods/{period['id']}")).status_code == 404
+
+
+async def test_special_periods_round_trip_room_overrides_and_validate_room_keys(
+    api: httpx.AsyncClient,
+) -> None:
+    body: dict[str, Any] = {
+        "kind": "vacation",
+        "start": "2026-10-01T08:00:00Z",
+        "end": "2026-10-03T08:00:00Z",
+        "description": "Vakantie",
+        "excluded_from": {
+            "normal_behaviour": True,
+            "comparisons": True,
+            "ch_conclusions": True,
+        },
+        "room_overrides": [
+            {"room_key": "woonkamer", "kind": "temporary_target", "target_temperature_c": 18},
+            {"room_key": "slaapkamer", "kind": "normal_schedule"},
+        ],
+    }
+    created = await api.post("/api/periods", json=body)
+    assert created.status_code == 201, created.text
+    expected_overrides = [
+        {
+            "room_key": "woonkamer",
+            "kind": "temporary_target",
+            "target_temperature_c": 18.0,
+        },
+        {"room_key": "slaapkamer", "kind": "normal_schedule", "target_temperature_c": None},
+    ]
+    assert created.json()["room_overrides"] == expected_overrides
+    listed = (await api.get("/api/periods")).json()["items"]
+    assert listed[0]["room_overrides"] == expected_overrides
+
+    invalid = {
+        **body,
+        "room_overrides": [{"room_key": "missing-room", "kind": "no_expectation"}],
+    }
+    response = await api.post("/api/periods", json=invalid)
+    assert response.status_code == 422
+    assert "onbekende ruimte" in response.text
+
+    invalid_target = {
+        **body,
+        "room_overrides": [{"room_key": "woonkamer", "kind": "temporary_target"}],
+    }
+    assert (await api.post("/api/periods", json=invalid_target)).status_code == 422
 
 
 @pytest.mark.parametrize(("baseline", "comparisons"), [(True, False), (False, True)])
