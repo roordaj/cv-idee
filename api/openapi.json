@@ -4638,13 +4638,19 @@
           "connected": {
             "type": "boolean",
             "title": "Connected"
+          },
+          "clock_offset_ms": {
+            "type": "integer",
+            "title": "Clock Offset Ms",
+            "description": "Median app receipt time minus HA event time; positive means HA is behind."
           }
         },
         "additionalProperties": false,
         "type": "object",
         "required": [
           "configured",
-          "connected"
+          "connected",
+          "clock_offset_ms"
         ],
         "title": "HaConnectionStatus",
         "description": "``GET /api/ha/status``: whether HA is configured and the live connection is up."

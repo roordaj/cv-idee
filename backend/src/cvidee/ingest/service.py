@@ -58,6 +58,8 @@ class TrackedEntity:
     entity_id: str
     heartbeat_expected: bool = False
     max_age_ms: int | None = None
+    via_can_gateway: bool = False
+    gateway_connectivity: bool = False
 
 
 class AliveStore(Protocol):
@@ -88,25 +90,34 @@ class FileAliveStore:
 
 def sql_tracked_entities(
     session_factory: Callable[[], AbstractContextManager[Session]],
+    *,
+    gateway_entity_id: str | None = None,
+    gateway_roles: Iterable[str] = (),
 ) -> list[TrackedEntity]:
     """Entities in a current signal mapping (``valid_to_ts IS NULL``)."""
     with session_factory() as session:
         rows = session.execute(
             select(
-                SourceEntity.entity_id, SignalMapping.heartbeat_expected, SignalMapping.max_age_ms
+                SourceEntity.entity_id,
+                SignalMapping.heartbeat_expected,
+                SignalMapping.max_age_ms,
+                SignalMapping.role,
             )
             .join(SignalMapping, SignalMapping.source_entity_id == SourceEntity.id)
             .where(SignalMapping.valid_to_ts.is_(None))
         ).all()
     merged: dict[str, TrackedEntity] = {}
-    for entity_id, heartbeat, max_age in rows:
+    roles = set(gateway_roles)
+    for entity_id, heartbeat, max_age, role in rows:
         prev = merged.get(entity_id)
         if heartbeat:
             if prev is not None and prev.heartbeat_expected and prev.max_age_ms:
                 max_age = min(max_age, prev.max_age_ms)
-            merged[entity_id] = TrackedEntity(entity_id, True, max_age)
+            merged[entity_id] = TrackedEntity(entity_id, True, max_age, role in roles)
         elif prev is None:
-            merged[entity_id] = TrackedEntity(entity_id)
+            merged[entity_id] = TrackedEntity(entity_id, via_can_gateway=role in roles)
+    if gateway_entity_id:
+        merged[gateway_entity_id] = TrackedEntity(gateway_entity_id, gateway_connectivity=True)
     return list(merged.values())
 
 
@@ -200,6 +211,7 @@ class IngestService:
         alive_store: AliveStore | None = None,
         clock: Callable[[], int] = now_ms,
         confirm_interval_override_s: float | None = None,
+        gateway_recovery_delay_s: float = 30.0,
     ) -> None:
         self._client = client
         self._session_factory = session_factory
@@ -207,6 +219,9 @@ class IngestService:
         self._alive = alive_store
         self._clock = clock
         self._interval_override = confirm_interval_override_s
+        self._gateway_recovery_delay_s = gateway_recovery_delay_s
+        self._gateway_up = False
+        self._recovery_task: asyncio.Task[None] | None = None
         self._tracked: dict[str, TrackedEntity] = {}
         self._tasks: list[asyncio.Task[None]] = []
         self.refresh_tracked()
@@ -236,6 +251,10 @@ class IngestService:
         ]
 
     async def stop(self) -> None:
+        if self._recovery_task is not None:
+            self._recovery_task.cancel()
+            await asyncio.gather(self._recovery_task, return_exceptions=True)
+            self._recovery_task = None
         for task in self._tasks:
             task.cancel()
         await asyncio.gather(*self._tasks, return_exceptions=True)
@@ -270,31 +289,109 @@ class IngestService:
     async def on_connected(self, poll_ts: int, states: list[HAState]) -> None:
         self.refresh_tracked()
         received = self._clock()
+        corrected_poll_ts = poll_ts - getattr(self._client, "clock_offset_ms", 0)
         records = [
-            _record(s.entity_id, s.state, poll_ts, ObservationKind.POLL, received, s.last_reported)
+            _record(
+                s.entity_id,
+                s.state,
+                corrected_poll_ts,
+                ObservationKind.POLL,
+                received,
+                s.last_reported,
+            )
             for s in states
             if s.entity_id in self._tracked
         ]
         with self._session_factory() as session:
             repo = SqlObservationRepository(session)
-            repo.add_connection_events([ConnectionEvent(poll_ts, ConnectionSource.WS, True)])
+            repo.add_connection_events(
+                [ConnectionEvent(corrected_poll_ts, ConnectionSource.WS, True)]
+            )
             repo.add_observations(records)
             session.commit()
         logger.info("Home Assistant connected; %d states polled", len(records))
+        gateway = next(
+            (s for s in states if (e := self._tracked.get(s.entity_id)) and e.gateway_connectivity),
+            None,
+        )
+        if gateway is not None:
+            self._gateway_up = gateway.state == "on"
 
     async def on_disconnected(self, ts: int) -> None:
         with self._session_factory() as session:
             SqlObservationRepository(session).add_connection_events(
-                [ConnectionEvent(ts, ConnectionSource.WS, False)]
+                [
+                    ConnectionEvent(
+                        ts - getattr(self._client, "clock_offset_ms", 0), ConnectionSource.WS, False
+                    )
+                ]
             )
             session.commit()
         logger.warning("Home Assistant connection lost (last message at %d)", ts)
 
     async def on_state_changed(self, event: StateChangedEvent) -> None:
         records = map_state_changed(event, self._clock())
+        tracked = self._tracked.get(event.entity_id)
+        gateway_signal_resumed = False
+        if (
+            tracked is not None
+            and tracked.via_can_gateway
+            and tracked.heartbeat_expected
+            and tracked.max_age_ms
+        ):
+            with self._session_factory() as session:
+                last = SqlObservationRepository(session).last_before(
+                    event.entity_id, event.time_fired
+                )
+                gateway_signal_resumed = last is not None and (
+                    event.time_fired - last.ts > tracked.max_age_ms
+                )
         with self._session_factory() as session:
             SqlObservationRepository(session).add_observations(records)
             session.commit()
+        if tracked is not None and tracked.gateway_connectivity:
+            was_up, self._gateway_up = (
+                self._gateway_up,
+                event.new_state is not None and event.new_state.state == "on",
+            )
+            if self._gateway_up and not was_up:
+                self._schedule_gateway_recovery()
+            elif not self._gateway_up and self._recovery_task is not None:
+                self._recovery_task.cancel()
+                self._recovery_task = None
+        elif gateway_signal_resumed and self._gateway_up:
+            self._schedule_gateway_recovery()
+
+    def _schedule_gateway_recovery(self) -> None:
+        if self._recovery_task is not None:
+            self._recovery_task.cancel()
+        self._recovery_task = asyncio.create_task(
+            self._poll_gateway_signals(), name="gateway-recovery-poll"
+        )
+
+    async def _poll_gateway_signals(self) -> None:
+        await asyncio.sleep(self._gateway_recovery_delay_s)
+        if not self._gateway_up:
+            return
+        entities = [e for e in self._tracked.values() if e.via_can_gateway]
+        try:
+            states = await self._client.get_states()
+        except Exception:
+            logger.exception("Gateway recovery poll failed")
+            return
+        by_id = {s.entity_id: s for s in states}
+        received = self._clock()
+        poll_ts = received - getattr(self._client, "clock_offset_ms", 0)
+        records = [
+            _record(s.entity_id, s.state, poll_ts, ObservationKind.POLL, received, s.last_reported)
+            for e in entities
+            if (s := by_id.get(e.entity_id)) is not None
+        ]
+        if records:
+            with self._session_factory() as session:
+                SqlObservationRepository(session).add_observations(records)
+                session.commit()
+        logger.info("Gateway recovery poll completed; %d signals polled", len(records))
 
     # ------------------------------------------------------------ background
 

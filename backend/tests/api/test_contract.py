@@ -173,4 +173,8 @@ async def test_ha_routes_are_real_without_ha(client: httpx.AsyncClient) -> None:
     assert entities.status_code == 503
     assert entities.headers["content-type"] == "application/problem+json"
     status = await client.get("/api/ha/status")
-    assert status.json() == {"configured": False, "connected": False}
+    assert status.json() == {
+        "configured": False,
+        "connected": False,
+        "clock_offset_ms": 0,
+    }

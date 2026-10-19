@@ -24,7 +24,11 @@ map:
 options:
   log_level: info
   retentie_dagen: 180
+  can_gateway_entity_id: ""
+  can_gateway_roles: ""
 schema:
   log_level: list(trace|debug|info|notice|warning|error|fatal)
   retentie_dagen: int(7,3650)
+  can_gateway_entity_id: str?
+  can_gateway_roles: str?
   notify_doel: str?

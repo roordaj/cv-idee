@@ -12,7 +12,10 @@ if [[ -n "${SUPERVISOR_TOKEN:-}" ]]; then
 
     CVIDEE_LOG_LEVEL="$(bashio::config 'log_level' 'info')"
     CVIDEE_RETENTION_DAYS="$(bashio::config 'retentie_dagen' '180')"
+    CVIDEE_CAN_GATEWAY_ENTITY_ID="$(bashio::config 'can_gateway_entity_id' '')"
+    CVIDEE_CAN_GATEWAY_ROLES="$(bashio::config 'can_gateway_roles' '')"
     export CVIDEE_LOG_LEVEL CVIDEE_RETENTION_DAYS
+    export CVIDEE_CAN_GATEWAY_ENTITY_ID CVIDEE_CAN_GATEWAY_ROLES
     if bashio::config.has_value 'notify_doel'; then
         CVIDEE_NOTIFY_TARGET="$(bashio::config 'notify_doel')"
         export CVIDEE_NOTIFY_TARGET

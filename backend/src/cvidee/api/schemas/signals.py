@@ -114,6 +114,9 @@ class HaConnectionStatus(ApiModel):
 
     configured: bool
     connected: bool
+    clock_offset_ms: int = Field(
+        description="Median app receipt time minus HA event time; positive means HA is behind."
+    )
 
 
 class AnalysisOut(ApiModel):

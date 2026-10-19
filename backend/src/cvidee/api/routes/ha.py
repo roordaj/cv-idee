@@ -59,5 +59,7 @@ async def get_ha_status(request: Request) -> HaConnectionStatus:
     """Whether Home Assistant is configured and the live connection is up."""
     client = _client(request)
     return HaConnectionStatus(
-        configured=client is not None, connected=client is not None and client.connected
+        configured=client is not None,
+        connected=client is not None and client.connected,
+        clock_offset_ms=0 if client is None else getattr(client, "clock_offset_ms", 0),
     )

@@ -229,6 +229,17 @@ async def test_live_change_and_unchanged_report_confirm(rig: Rig) -> None:
     ]
 
 
+async def test_client_estimates_clock_offset_from_state_events(rig: Rig) -> None:
+    await rig.server.push_state_changed(
+        FLAME,
+        make_state(FLAME, "on", changed=T0 - 6_000),
+        make_state(FLAME, "off", changed=T0 - 7_000),
+        T0 - 6_000,
+    )
+    await until(lambda: rig.client.clock_offset_ms == 6_000)
+    assert rig.client.clock_offset_ms == 6_000
+
+
 async def test_untracked_entities_are_filtered(rig: Rig) -> None:
     await rig.server.push_state_changed(
         "sensor.other", make_state("sensor.other", "1", changed=T0 + 1), None, T0 + 1
@@ -352,6 +363,7 @@ async def test_entities_endpoint_lists_ha_entities(
         {"id": FLOW, "friendly_name": None, "unit": "°C", "device_class": None},
     ]
     assert status.json()["configured"] is True
+    assert status.json()["clock_offset_ms"] == 0
 
 
 async def test_entities_endpoint_503_without_ha(
@@ -369,6 +381,7 @@ async def test_entities_endpoint_503_without_ha(
         assert (await c.get("/api/ha/status")).json() == {
             "configured": False,
             "connected": False,
+            "clock_offset_ms": 0,
         }
 
 

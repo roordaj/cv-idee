@@ -13,6 +13,7 @@ from fastapi import FastAPI
 from fastapi.routing import APIRoute
 
 from cvidee import __version__
+from cvidee.analysis.types import Role
 from cvidee.api import router as api_router
 from cvidee.api.auth import ApiTokenMiddleware
 from cvidee.api.problems import install_problem_handlers
@@ -25,6 +26,7 @@ from cvidee.ingest.history_import import HistoryImport
 from cvidee.ingest.service import FileAliveStore, IngestService, sql_tracked_entities
 from cvidee.notify.service import NotificationService
 from cvidee.runner.service import AnalysisRunner, RunnerSettings
+from cvidee.runner.sources import SourceSettings
 from cvidee.signals.catalog import sync_catalogue
 from cvidee.store.engine import create_db_engine, create_session_factory, database_url
 from cvidee.store.schema import upgrade_to_head
@@ -69,7 +71,13 @@ def _start_ingest(app: FastAPI, settings: Settings) -> IngestService | None:
     service = IngestService(
         client,
         factory,
-        lambda: sql_tracked_entities(factory),
+        lambda: sql_tracked_entities(
+            factory,
+            gateway_entity_id=settings.can_gateway_entity_id,
+            gateway_roles=[
+                role.strip() for role in settings.can_gateway_roles.split(",") if role.strip()
+            ],
+        ),
         alive_store=FileAliveStore(settings.db_path.parent / "ingest_alive_at"),
     )
     holder.append(service)
@@ -88,7 +96,20 @@ def _start_runner(
         logger.info("Analysis runner disabled")
         return None
     factory = create_session_factory(create_db_engine(database_url(settings.db_path)))
-    runner = AnalysisRunner(factory, RunnerSettings(interval_s=settings.analysis_interval_s))
+    runner = AnalysisRunner(
+        factory,
+        RunnerSettings(
+            interval_s=settings.analysis_interval_s,
+            sources=SourceSettings(
+                can_gateway_entity_id=settings.can_gateway_entity_id,
+                can_gateway_roles=frozenset(
+                    Role(role.strip())
+                    for role in settings.can_gateway_roles.split(",")
+                    if role.strip()
+                ),
+            ),
+        ),
+    )
     stop = asyncio.Event()
     app.state.runner = runner
     return runner, stop, asyncio.create_task(runner.run_forever(stop), name="analysis-runner")

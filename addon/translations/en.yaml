@@ -8,3 +8,9 @@ configuration:
   notify_doel:
     name: Notification target
     description: Name of the notify service for notifications, e.g. mobile_app_phone (without "notify."). Leave empty to only fire the HA event cv_analyse_finding.
+  can_gateway_entity_id:
+    name: CAN gateway entity
+    description: HA entity that reports CAN gateway availability. Leave empty if it is not mapped.
+  can_gateway_roles:
+    name: CAN signal roles
+    description: Comma-separated roles of mapped signals received through the CAN gateway, for example flow_temperature,return_temperature.
