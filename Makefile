@@ -66,7 +66,7 @@ openapi: ## Regenerate api/openapi.json and the frontend API types from the back
 
 ADDON_LOCAL_DIR ?= build/addon-local/cv_analyse
 
-.PHONY: docker-build addon-local dev-up dev-down
+.PHONY: docker-build addon-local addon-version dev-up dev-down
 
 docker-build: ## Build the container image (cvidee:dev)
 	docker build -t cvidee:dev .
@@ -78,7 +78,12 @@ addon-local: ## Assemble a self-contained local add-on folder in build/addon-loc
 	cp Dockerfile .dockerignore $(ADDON_LOCAL_DIR)/
 	cp -R addon/config.yaml addon/build.yaml addon/DOCS.md addon/translations $(ADDON_LOCAL_DIR)/
 	cp addon/run.sh $(ADDON_LOCAL_DIR)/addon/run.sh
+	python3 scripts/prepare-addon-local.py $(ADDON_LOCAL_DIR)/config.yaml
 	@echo "Copy $(ADDON_LOCAL_DIR) to /addons/cv_analyse on the Home Assistant host."
+
+addon-version: ## Set add-on version (VERSION=0.1.0 or v0.1.0) before creating a release tag
+	@test -n "$(VERSION)" || (echo "Usage: make addon-version VERSION=v0.1.0" >&2; exit 2)
+	python3 scripts/set-addon-version.py "$(VERSION)"
 
 dev-up: ## Start Mosquitto, Home Assistant and the app (docker-compose.dev.yml)
 	docker compose -f docker-compose.dev.yml up --build -d

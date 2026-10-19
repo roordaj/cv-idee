@@ -3,6 +3,7 @@
 name: CV-analyse
 version: "0.1.0"
 slug: cv_analyse
+image: "ghcr.io/roordaj/cv-idee-addon-{arch}"
 description: Alleen-lezen analyse en advies voor je cv-ketel op basis van Home Assistant-gegevens.
 url: https://github.com/roordaj/cv-idee
 arch:

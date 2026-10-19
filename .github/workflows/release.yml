@@ -1,0 +1,118 @@
+name: Release add-on images
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/release.yml"
+      - "Dockerfile"
+      - ".dockerignore"
+      - "backend/**"
+      - "frontend/**"
+      - "addon/**"
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: addon-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    if: github.event_name == 'pull_request'
+    name: Validate ${{ matrix.addon_arch }} image
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - addon_arch: amd64
+            platform: linux/amd64
+          - addon_arch: aarch64
+            platform: linux/arm64
+    steps:
+      - name: Check out pull request
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image without publishing
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          platforms: ${{ matrix.platform }}
+          build-args: APP_USER=root
+          cache-from: type=gha,scope=addon-pr-${{ matrix.addon_arch }}
+          cache-to: type=gha,mode=max,scope=addon-pr-${{ matrix.addon_arch }}
+
+  build:
+    if: github.event_name == 'push'
+    name: Build ${{ matrix.addon_arch }} image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - addon_arch: amd64
+            platform: linux/amd64
+          - addon_arch: aarch64
+            platform: linux/arm64
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@v4
+
+      - name: Validate tag and add-on version
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$GITHUB_REF_NAME" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "Release tags must use vMAJOR.MINOR.PATCH (got $GITHUB_REF_NAME)" >&2
+            exit 1
+          fi
+          version="${GITHUB_REF_NAME#v}"
+          grep -Fqx "version: \"$version\"" addon/config.yaml || {
+            echo "addon/config.yaml version does not match $GITHUB_REF_NAME; run make addon-version VERSION=$GITHUB_REF_NAME" >&2
+            exit 1
+          }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          platforms: ${{ matrix.platform }}
+          push: true
+          build-args: APP_USER=root
+          tags: ghcr.io/${{ github.repository_owner }}/cv-idee-addon-${{ matrix.addon_arch }}:${{ steps.release.outputs.version }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.release.outputs.version }}
+          cache-from: type=gha,scope=addon-${{ matrix.addon_arch }}
+          cache-to: type=gha,mode=max,scope=addon-${{ matrix.addon_arch }}
