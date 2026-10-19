@@ -245,7 +245,7 @@ export interface paths {
     };
     /**
      * Get Quality
-     * @description Coverage per signal, detected events and mode distribution (stub: fixed range).
+     * @description Coverage per signal, detected events and mode distribution over the selected range.
      */
     get: operations['get_quality'];
     put?: never;
@@ -863,6 +863,7 @@ export interface components {
       | 'too_few_hours'
       | 'low_coverage'
       | 'no_data_yet'
+      | 'flame_resolution_insufficient'
       | 'ha_disconnected'
       | 'data_gap'
       | 'stale_signal'
@@ -1145,7 +1146,7 @@ export interface components {
      * CoverageSegmentKind
      * @enum {string}
      */
-    CoverageSegmentKind: 'connection_lost' | 'stale' | 'not_mapped';
+    CoverageSegmentKind: 'connection_lost' | 'stale' | 'not_mapped' | 'data_gap' | 'unknown';
     /** Cycle */
     Cycle: {
       /**

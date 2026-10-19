@@ -16,9 +16,11 @@ from cvidee.api.problems import ProblemError
 from cvidee.api.schemas.changes import Change, ChangeCreate, ChangeEvaluation, ChangeList
 from cvidee.api.schemas.common import Page, UtcDateTime
 from cvidee.api.schemas.data import (
+    CycleList,
     ImportJob,
     ImportList,
     ImportRequest,
+    QualityResponse,
     SpecialPeriod,
     SpecialPeriodIn,
     SpecialPeriodList,
@@ -34,6 +36,7 @@ from cvidee.api.schemas.findings import (
 )
 from cvidee.api.schemas.installation import InstallationProfile, InstallationProfileIn
 from cvidee.api.schemas.notifications import Notification, NotificationPolicy, NotificationPolicyIn
+from cvidee.api.schemas.system import OverviewResponse, StatusResponse
 from cvidee.api.stubs.store import StubStore
 
 
@@ -240,3 +243,57 @@ def get_notifications(request: Request) -> NotificationsBackend:
 
 
 Notifications = Annotated[NotificationsBackend, Depends(get_notifications)]
+
+
+class MonitoringBackend(Protocol):
+    def status(self) -> StatusResponse: ...
+    def overview(self) -> OverviewResponse: ...
+    def quality(
+        self, start: datetime | None = None, end: datetime | None = None
+    ) -> QualityResponse: ...
+    def cycles(
+        self, limit: int, offset: int, start: datetime | None = None, end: datetime | None = None
+    ) -> CycleList: ...
+
+
+def get_monitoring(request: Request) -> MonitoringBackend:
+    from cvidee.api.live_read import LiveReadModel
+
+    stub: StubStore | None = getattr(request.app.state, "stub_store", None)
+    if stub is not None:
+        return StubMonitoring(stub)
+    factory: sessionmaker[Session] | None = getattr(request.app.state, "session_factory", None)
+    if factory is None:
+        raise get_stub_store_problem()
+    return LiveReadModel(
+        factory,
+        request.app.state.settings,
+        getattr(request.app.state, "ha_client", None),
+        getattr(request.app.state, "ha_export", None),
+    )
+
+
+class StubMonitoring:
+    """Adapt the existing fixed example range without changing its contract."""
+
+    def __init__(self, store: StubStore) -> None:
+        self.store = store
+
+    def status(self) -> StatusResponse:
+        return self.store.status()
+
+    def overview(self) -> OverviewResponse:
+        return self.store.overview()
+
+    def quality(
+        self, start: datetime | None = None, end: datetime | None = None
+    ) -> QualityResponse:
+        return self.store.quality()
+
+    def cycles(
+        self, limit: int, offset: int, start: datetime | None = None, end: datetime | None = None
+    ) -> CycleList:
+        return self.store.cycles(limit, offset)
+
+
+Monitoring = Annotated[MonitoringBackend, Depends(get_monitoring)]

@@ -25,6 +25,8 @@ class CoverageSegmentKind(StrEnum):
     CONNECTION_LOST = "connection_lost"
     STALE = "stale"
     NOT_MAPPED = "not_mapped"
+    DATA_GAP = "data_gap"
+    UNKNOWN = "unknown"
 
 
 class CoverageSegment(ApiModel):

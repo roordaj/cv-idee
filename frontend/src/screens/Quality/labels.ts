@@ -71,6 +71,8 @@ export const SEGMENT_COLOR = {
   connection_lost: PALETTE.rose.base,
   stale: '#f2c14e',
   not_mapped: 'repeating-linear-gradient(45deg,#c3c8d2 0 2px,#f4f5f8 2px 5px)',
+  data_gap: 'repeating-linear-gradient(45deg,#b8c1d1 0 2px,#f4f5f8 2px 5px)',
+  unknown: 'repeating-linear-gradient(45deg,#d8dce3 0 2px,#f4f5f8 2px 5px)',
 } as const;
 
 export const MODE_COLOR: Readonly<Record<Mode, string>> = {

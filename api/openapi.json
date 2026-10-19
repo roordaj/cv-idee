@@ -749,7 +749,7 @@
           "quality"
         ],
         "summary": "Get Quality",
-        "description": "Coverage per signal, detected events and mode distribution (stub: fixed range).",
+        "description": "Coverage per signal, detected events and mode distribution over the selected range.",
         "operationId": "get_quality",
         "parameters": [
           {
@@ -2826,6 +2826,7 @@
           "too_few_hours",
           "low_coverage",
           "no_data_yet",
+          "flame_resolution_insufficient",
           "ha_disconnected",
           "data_gap",
           "stale_signal",
@@ -3502,7 +3503,9 @@
         "enum": [
           "connection_lost",
           "stale",
-          "not_mapped"
+          "not_mapped",
+          "data_gap",
+          "unknown"
         ],
         "title": "CoverageSegmentKind"
       },
