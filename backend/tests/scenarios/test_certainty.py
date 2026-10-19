@@ -7,7 +7,7 @@ from sqlalchemy import select
 from cvidee.analysis.types import Role
 from cvidee.rules.base import Certainty
 from cvidee.store.models import Finding
-from tests.scenarios.runner import run_scenario
+from tests.scenarios.runner import RecordingRegistry, run_scenario
 
 
 def test_scenario_two_reports_high_cycle_certainty_with_unknown_cause(tmp_path: Path) -> None:
@@ -15,6 +15,7 @@ def test_scenario_two_reports_high_cycle_certainty_with_unknown_cause(tmp_path: 
     scenario_dir.mkdir()
     factory, runner, _data = run_scenario(scenario_dir, "02-kort-branden")
 
+    assert isinstance(runner.registry, RecordingRegistry)
     outcome = runner.registry.outcomes["kort-branden"]
     (candidate,) = outcome.candidates
     assert candidate.severity.value == "high"
