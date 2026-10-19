@@ -1,0 +1,71 @@
+.plot {
+  position: relative;
+  width: 100%;
+}
+
+.marker {
+  cursor: pointer;
+  outline: none;
+}
+
+.marker:focus-visible rect,
+.marker:focus-visible circle {
+  stroke: #ea6a2f;
+  stroke-width: 2;
+}
+
+.tooltip {
+  position: absolute;
+  z-index: 2;
+  top: 4px;
+  display: flex;
+  width: min(280px, calc(100% - 16px));
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid #e7e9ee;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgb(16 24 40 / 12%);
+  color: #1d2433;
+  font-size: 12px;
+}
+
+.tooltipItem + .tooltipItem {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid #e7e9ee;
+}
+
+.meta {
+  color: #8a92a3;
+  font-size: 12px;
+}
+
+.changeText {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.action {
+  width: 100%;
+  padding: 5px 0;
+  border: 0;
+  background: transparent;
+  color: #c2531f;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.action:focus-visible {
+  border-radius: 4px;
+  outline: 2px solid #ea6a2f;
+  outline-offset: 2px;
+}

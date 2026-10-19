@@ -20,6 +20,22 @@
   gap: 10px;
   overflow-x: auto;
 }
+.legendRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px 16px;
+  flex-wrap: wrap;
+}
+.lastChange {
+  color: #5b6475;
+  font-size: 12px;
+}
+.lastChange a {
+  color: #c2531f;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 .tableHead {
   display: flex;
   justify-content: space-between;

@@ -101,6 +101,51 @@ describe('TimelineChart', () => {
     expect(onChange).toHaveBeenCalledWith('W-08');
   });
 
+  it('shows a detail card on hover and focus and exposes the change action', () => {
+    const onChange = vi.fn();
+    render(<TimelineChart data={data} onSelectChange={onChange} />);
+    const marker = screen.getByRole('button', { name: /Wijziging W-08/ });
+    fireEvent.mouseEnter(marker);
+    expect(screen.getByRole('group', { name: 'Details van 1 wijziging' })).toBeTruthy();
+    fireEvent.focus(marker);
+    expect(screen.getByRole('group', { name: 'Details van 1 wijziging' })).toBeTruthy();
+    expect(screen.getByText('Maximale CV-aanvoer: 60 → 70')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Klik om de wijziging te openen' }));
+    expect(onChange).toHaveBeenCalledWith('W-08');
+  });
+
+  it('groups nearby changes and opens a keyboard-accessible choice menu', () => {
+    const onChange = vi.fn();
+    const firstChange = data.changes[0];
+    if (!firstChange) throw new Error('Expected the chart fixture to include a change.');
+    const changes = [
+      firstChange,
+      { ...firstChange, id: 'W-09', at: iso(125), parameter: 'Pompstand' },
+    ];
+    render(<TimelineChart data={{ ...data, changes }} onSelectChange={onChange} />);
+    const marker = screen.getByRole('button', { name: /2 wijzigingen/ });
+    expect(screen.getAllByRole('button', { name: /2 wijzigingen/ })).toHaveLength(1);
+    fireEvent.keyDown(marker, { key: 'Enter' });
+    fireEvent.click(screen.getByRole('button', { name: 'Open wijziging W-09 · Pompstand' }));
+    expect(onChange).toHaveBeenCalledWith('W-09');
+  });
+
+  it('uses a compact W marker on narrow screens and navigates on the second tap', () => {
+    const originalWidth = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 390 });
+    const onChange = vi.fn();
+    render(<TimelineChart data={data} onSelectChange={onChange} />);
+    const marker = screen.getByRole('button', { name: /Wijziging W-08/ });
+    expect(marker.querySelector('circle')?.getAttribute('r')).toBe('6');
+    fireEvent.focus(marker);
+    fireEvent.click(marker);
+    expect(screen.getByRole('group', { name: 'Details van 1 wijziging' })).toBeTruthy();
+    expect(onChange).not.toHaveBeenCalled();
+    fireEvent.click(marker);
+    expect(onChange).toHaveBeenCalledWith('W-08');
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalWidth });
+  });
+
   it('omits the change lane without changes and renders no gap', () => {
     render(<TimelineChart data={{ ...data, changes: [], gaps: [] }} />);
     expect(screen.queryByText('Wijzigingen')).toBeNull();

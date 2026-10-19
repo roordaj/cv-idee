@@ -8,7 +8,7 @@ import {
   Repeat,
   TriangleAlert,
 } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useCycles, useTimeline } from '../../api/hooks/data.ts';
 import { Legend, TimelineChart } from '../../charts/index.ts';
 import { IconButton } from '../../components/Button.tsx';
@@ -26,6 +26,7 @@ import { Pill } from '../../components/Tag.tsx';
 import {
   capitalize,
   formatDateShort,
+  formatDayMonth,
   formatDuration,
   formatNumber,
   formatPercent,
@@ -64,6 +65,7 @@ const ICON = { size: 16, 'aria-hidden': true } as const;
 
 export function CyclesScreen() {
   const [params, setParams] = useSearchParams();
+  const navigate = useNavigate();
   const from = params.get('from') ?? undefined;
   const to = params.get('to') ?? undefined;
   const cycleParam = params.get('cycle');
@@ -102,6 +104,9 @@ export function CyclesScreen() {
   };
   const select = (n: number) => {
     update({ cycle: String(n) });
+  };
+  const selectChange = (id: string) => {
+    void navigate(`/wijzigingen?wijziging=${encodeURIComponent(id)}`);
   };
 
   const rangeText =
@@ -254,7 +259,19 @@ export function CyclesScreen() {
       )}
 
       <Card padding="sm" className={styles.chartCard}>
-        <Legend />
+        <div className={styles.legendRow}>
+          <Legend />
+          {timeline.data?.last_change_before && (
+            <span className={styles.lastChange}>
+              Laatste wijziging vóór dit tijdvak:{' '}
+              <Link
+                to={`/wijzigingen?wijziging=${encodeURIComponent(timeline.data.last_change_before.id)}`}
+              >
+                {`${timeline.data.last_change_before.id} · ${formatDayMonth(new Date(timeline.data.last_change_before.at))} (${timeline.data.last_change_before.parameter})`}
+              </Link>
+            </span>
+          )}
+        </div>
         {timeline.isPending ? (
           <SkeletonGroup>
             <Skeleton height={410} radius={12} />
@@ -267,7 +284,12 @@ export function CyclesScreen() {
             }}
           />
         ) : (
-          <TimelineChart data={timeline.data} selectedCycle={selected} onSelectCycle={select} />
+          <TimelineChart
+            data={timeline.data}
+            selectedCycle={selected}
+            onSelectCycle={select}
+            onSelectChange={selectChange}
+          />
         )}
       </Card>
 
