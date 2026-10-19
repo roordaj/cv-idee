@@ -262,5 +262,6 @@ async def test_legacy_table_without_provenance_does_not_count_as_known_mode(
         window = AnalysisWindow(NOW, NOW, NOW + 1000)
         observations, events = load_window_input(session, mapped, SourceSettings(), window, config)
         timelines = build_timelines(observations, events, config, window)
-        assert timelines and all(not timeline.values for timeline in timelines)
+        assert timelines
+        assert all(not timeline.values for timeline in timelines)
         assert not mode_mapping_snapshot(mapped)[0]["source_semantics_confirmed"]

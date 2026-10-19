@@ -81,6 +81,12 @@ def seed_evaluation(
                     role=config.signal.role.value,
                     scope_key=f"{scope.kind}:{scope.key}" if scope.key is not None else "",
                     source_entity_id=entity.id,
+                    value_map={code: mode.value for code, mode in data.config.mode_mapping}
+                    if config.signal.role.value == "operating_mode"
+                    else None,
+                    meaning="Explicit synthetic scenario mode table"
+                    if config.signal.role.value == "operating_mode" and data.config.mode_mapping
+                    else None,
                     kind=config.provenance.kind,
                     heartbeat_expected=config.heartbeat_expected,
                     max_age_ms=config.max_age_ms or 300_000,
