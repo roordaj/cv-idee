@@ -10,12 +10,15 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from cvidee.analysis.timeline import build_timelines
-from cvidee.analysis.types import HOUR_MS, AnalysisWindow, ObservationKind, Role
+from cvidee.analysis.types import HOUR_MS, AnalysisWindow, ObservationKind, Role, ScopeKind
+from cvidee.api.config_backend import ConfigBackend
 from cvidee.api.problems import ProblemError
 from cvidee.api.routes.signals import get_signals
+from cvidee.api.schemas.installation import InstallationProfileIn
 from cvidee.api.schemas.signals import SignalMappingUpdate
 from cvidee.config import Settings
 from cvidee.ingest.ha_client import HAClient, HAState, HAUnavailableError
+from cvidee.installation import SqlInstallationProfileRepository
 from cvidee.main import create_app
 from cvidee.runner.service import AnalysisRunner
 from cvidee.runner.sources import (
@@ -28,7 +31,7 @@ from cvidee.signals.backend import SignalsBackend
 from cvidee.signals.catalog import BY_ROLE, sync_catalogue
 from cvidee.store.engine import create_db_engine, create_session_factory, database_url
 from cvidee.store.enums import ObservationOrigin
-from cvidee.store.models import SignalDefinition, SignalMapping
+from cvidee.store.models import ProfileZone, SignalDefinition, SignalMapping
 from cvidee.store.observations import SqlObservationRepository
 from cvidee.store.records import ObservationRecord
 from cvidee.store.schema import upgrade_to_head
@@ -56,6 +59,7 @@ def backend(sessions: sessionmaker[Session]) -> SignalsBackend:
             HAState("sensor.gas", "100", {"unit_of_measurement": "m³"}, last_reported=NOW),
             HAState("sensor.heat", "10", {"unit_of_measurement": "kWh"}, last_reported=NOW),
             HAState("sensor.power", "100", {"unit_of_measurement": "W"}, last_reported=NOW),
+            HAState("binary_sensor.zone_demand", "on", last_reported=NOW),
         ]
     )
     return SignalsBackend(
@@ -73,6 +77,38 @@ async def test_circuit_scoped_mapping_reaches_pipeline(backend: SignalsBackend) 
     with backend.sessions() as session:
         (mapping,) = load_mapped_signals(session)
         assert str(mapping.signal) == "pump_state@circuit:boven"
+
+
+async def test_zone_mappings_follow_the_current_profile_inventory(
+    backend: SignalsBackend,
+) -> None:
+    with backend.sessions.begin() as session:
+        profile = SqlInstallationProfileRepository(session).current_or_default(NOW)
+        profile.zones.append(ProfileZone(key="boven", name="Boven", circuit_key="boven"))
+
+    assert "zone_demand@zone:boven" in {item.id for item in backend.signal_list().items}
+    with pytest.raises(ProblemError) as error:
+        await backend.update_signal(
+            "valve_state@zone:missing", SignalMappingUpdate(entity_id="binary_sensor.zone_demand")
+        )
+    assert error.value.problem.status == 404
+
+    mapped = await backend.update_signal(
+        "zone_demand@zone:boven", SignalMappingUpdate(entity_id="binary_sensor.zone_demand")
+    )
+    assert mapped.scope_kind is ScopeKind.ZONE
+    with backend.sessions() as session:
+        (mapping,) = load_mapped_signals(session)
+        mapping_id = mapping.mapping_id
+    config = ConfigBackend(backend.sessions, clock=lambda: NOW + 1)
+    api_profile = config.installation_profile()
+    body = api_profile.model_dump(exclude={"summary", "updated_at"})
+    body["zones"][0]["name"] = "Bovenverdieping"
+    updated = config.put_installation(InstallationProfileIn.model_validate(body))
+    assert updated.revision > api_profile.revision
+    with backend.sessions() as session:
+        (mapping,) = load_mapped_signals(session)
+        assert mapping.mapping_id == mapping_id
 
 
 async def test_heartbeat_controls_staleness(backend: SignalsBackend) -> None:

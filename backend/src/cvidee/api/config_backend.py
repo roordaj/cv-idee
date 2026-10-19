@@ -33,6 +33,7 @@ from cvidee.api.schemas.installation import (
     Room,
     RoomComfort,
     Specification,
+    Zone,
 )
 from cvidee.installation import SqlInstallationProfileRepository
 from cvidee.installation.specs import MODULATION_TO_KW, PUMP_SETTING, SPEC_BY_KEY
@@ -121,11 +122,26 @@ class ConfigBackend:
         self, session: Session, body: InstallationProfileIn, current: ProfileRow, now: int
     ) -> ProfileRow:
         circuit_keys = [c.id for c in body.circuits]
+        zones = (
+            body.zones
+            if body.zones is not None
+            else [Zone(key=z.key, name=z.name, circuit_key=z.circuit_key) for z in current.zones]
+        )
+        zone_keys = [z.key for z in zones]
+        zone_key_set = set(zone_keys)
         room_keys = [r.key for r in body.rooms]
         if len(set(circuit_keys)) != len(circuit_keys):
             raise _invalid("Circuit-id's moeten uniek zijn.")
         if len(set(room_keys)) != len(room_keys):
             raise _invalid("Ruimtesleutels moeten uniek zijn.")
+        if len(set(zone_keys)) != len(zone_keys):
+            raise _invalid("Zonesleutels moeten uniek zijn.")
+        circuit_key_set = set(circuit_keys)
+        for zone in zones:
+            if zone.circuit_key is None or zone.circuit_key not in circuit_key_set:
+                raise _invalid(
+                    f"Zone '{zone.key}' verwijst naar onbekend circuit '{zone.circuit_key}'."
+                )
         room_circuit: dict[str, str] = {}
         for circuit in body.circuits:
             for room_key in circuit.rooms:
@@ -171,16 +187,17 @@ class ConfigBackend:
                 )
                 for c in body.circuits
             ],
-            zones=[
-                ProfileZone(key=z.key, name=z.name, circuit_key=z.circuit_key)
-                for z in current.zones
-            ],
+            zones=[ProfileZone(key=z.key, name=z.name, circuit_key=z.circuit_key) for z in zones],
             rooms=[
                 ProfileRoom(
                     key=r.key,
                     name=r.name,
                     circuit_key=room_circuit.get(r.key),
-                    zone_key=old_rooms[r.key].zone_key if r.key in old_rooms else None,
+                    zone_key=(
+                        old_rooms[r.key].zone_key
+                        if r.key in old_rooms and old_rooms[r.key].zone_key in zone_key_set
+                        else None
+                    ),
                     has_thermostat=r.is_thermostat,
                     is_demand_source=old_rooms[r.key].is_demand_source
                     if r.key in old_rooms and r.is_thermostat
@@ -265,6 +282,10 @@ class ConfigBackend:
             )
             for c in profile.circuits
         ]
+        zones = [
+            Zone(key=z.key, name=z.name, circuit_key=z.circuit_key)
+            for z in sorted(profile.zones, key=lambda zone: zone.key)
+        ]
         rooms = [
             Room(
                 key=r.key,
@@ -308,6 +329,7 @@ class ConfigBackend:
         return InstallationProfile(
             boiler=boiler,
             circuits=circuits,
+            zones=zones,
             rooms=rooms,
             specifications=specs,
             revision=profile.id,
@@ -366,7 +388,11 @@ def _signature(profile: ProfileRow) -> dict[str, Any]:
     return {
         "details": profile.details,
         "circuits": sorted((c.key, c.name, c.kind, c.emitter) for c in profile.circuits),
-        "rooms": sorted((r.key, r.name, r.circuit_key, r.has_thermostat) for r in profile.rooms),
+        "zones": sorted((z.key, z.name, z.circuit_key) for z in profile.zones),
+        "rooms": sorted(
+            (r.key, r.name, r.circuit_key, r.zone_key, r.has_thermostat, r.is_demand_source)
+            for r in profile.rooms
+        ),
         "specs": sorted(
             (s.key, s.status, s.value_num, s.value_text, s.unit, s.note or "", s.change_id)
             for s in profile.specs

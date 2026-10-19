@@ -29,6 +29,14 @@ class Circuit(ApiModel):
     note: str = ""
 
 
+class Zone(ApiModel):
+    """A stable, circuit-scoped heating zone in the installation profile."""
+
+    key: str
+    name: str
+    circuit_key: str | None
+
+
 class RoomComfortWindow(ApiModel):
     """One recurring local-time comfort target for selected weekdays."""
 
@@ -118,11 +126,16 @@ class Specification(ApiModel):
 class InstallationProfileIn(ApiModel):
     boiler: BoilerInfo
     circuits: list[Circuit]
+    zones: list[Zone] | None = Field(
+        default=None,
+        description="Omit only for legacy writes to preserve the current zone inventory.",
+    )
     rooms: list[Room]
     specifications: list[Specification]
     revision: int = Field(ge=0, description="Optimistic concurrency: send the revision read.")
 
 
 class InstallationProfile(InstallationProfileIn):
+    zones: list[Zone]
     summary: str = Field(description="One-line summary, e.g. 'Radiatoren beneden, …'.")
     updated_at: UtcDateTime

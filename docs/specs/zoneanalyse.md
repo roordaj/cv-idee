@@ -25,10 +25,19 @@ bestaand circuit. De installatie-API moet deze zones kunnen lezen en opslaan in 
 profielversie, waarna `zone_demand` en `valve_state` per zone kunnen worden
 gekoppeld. Een onbekende of niet-gemapte zone blijft expliciet zichtbaar.
 
+`GET /api/installation` geeft de zone-inventaris terug als `key`, `name` en
+`circuit_key`; `PUT /api/installation` valideert unieke sleutels en bestaande
+circuitkoppelingen. De inventaris is onderdeel van de onveranderlijke
+profielversie. Een profielwijziging maakt geen nieuwe signaalkoppelingen aan en
+verandert de identiteit van bestaande koppelingen niet. Een zonekoppeling is alleen
+beschikbaar zolang de zonesleutel in het actuele profiel staat.
+
 De bestaande catalogus behandelt beide waarden als gerapporteerd en verwacht een
 boolean. De invoerlaag normaliseert alleen herkende waarden naar actief/inactief;
 onbekende of niet-parseerbare waarden blijven `unknown`. Er wordt geen waarheid
 afgeleid uit een numeriek percentage of vrije tekst die niet eenduidig is.
+Zonder expliciete bronwaardetabel worden alleen `on`/`off`, `true`/`false` en
+`1`/`0` als binaire statussen genormaliseerd.
 
 Voor elke zone-mapping wordt de door de gebruiker gekozen rol getoond:
 

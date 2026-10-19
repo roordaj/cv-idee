@@ -133,7 +133,13 @@ class SignalsBackend:
             for key in profile.scope_keys(ScopeKind.CIRCUIT)
         )
         ids.update(
-            str(mapping.signal) for mapping in load_mapped_signals(session) if mapping.valid_at(now)
+            str(mapping.signal)
+            for mapping in load_mapped_signals(session)
+            if mapping.valid_at(now)
+            and (
+                mapping.signal.scope.kind is not ScopeKind.ZONE
+                or mapping.signal.scope.key in profile.scope_keys(ScopeKind.ZONE)
+            )
         )
         return sorted(ids)
 

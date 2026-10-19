@@ -19,6 +19,8 @@ from cvidee.analysis.types import (
     ConnectionSource,
     QualityEventKind,
     Role,
+    Scope,
+    ScopeKind,
     SignalRef,
 )
 from cvidee.store.engine import create_db_engine, create_session_factory
@@ -295,12 +297,18 @@ def test_duplicate_quality_events() -> None:
 def test_to_analysis_observation() -> None:
     flame = SignalRef(Role.FLAME)
     flow = SignalRef(Role.FLOW_TEMPERATURE)
+    zone_demand = SignalRef(Role.ZONE_DEMAND, Scope(ScopeKind.ZONE, "boven"))
+    valve_state = SignalRef(Role.VALVE_STATE, Scope(ScopeKind.ZONE, "boven"))
     assert to_analysis_observation(rec(T0, "on"), flame).value is True
     assert to_analysis_observation(rec(T0, "off"), flame).value is False
     assert to_analysis_observation(rec(T0, "unavailable"), flame).value is None
     assert to_analysis_observation(rec(T0, "unknown"), flame).value is None
     assert to_analysis_observation(rec(T0, "55.5"), flow).value == 55.5
     assert to_analysis_observation(rec(T0, "burning"), flame).value == "burning"
+    assert to_analysis_observation(rec(T0, "TRUE"), zone_demand).value is True
+    assert to_analysis_observation(rec(T0, "0"), valve_state).value is False
+    assert to_analysis_observation(rec(T0, "open"), valve_state).value is None
+    assert to_analysis_observation(rec(T0, "partly_open"), zone_demand).value is None
     mapped = to_analysis_observation(rec(T0, "burning"), flame, {"burning": True})
     assert mapped.value is True
     obs = to_analysis_observation(rec(T0, "on", CONFIRM, last_reported=T0 + 9), flame)

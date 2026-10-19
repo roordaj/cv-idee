@@ -254,6 +254,8 @@ class StubStore:
             "updated_at": self.now,
             "summary": self.installation.summary,
         }
+        if body.zones is None:
+            data["zones"] = [zone.model_dump(mode="json") for zone in self.installation.zones]
         old_rooms = {room.key: room for room in self.installation.rooms}
         for room in data["rooms"]:
             if room["comfort"] is None:

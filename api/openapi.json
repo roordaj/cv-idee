@@ -5734,6 +5734,13 @@
             "type": "array",
             "title": "Circuits"
           },
+          "zones": {
+            "items": {
+              "$ref": "#/components/schemas/Zone"
+            },
+            "type": "array",
+            "title": "Zones"
+          },
           "rooms": {
             "items": {
               "$ref": "#/components/schemas/Room"
@@ -5774,6 +5781,7 @@
         "required": [
           "boiler",
           "circuits",
+          "zones",
           "rooms",
           "specifications",
           "revision",
@@ -5793,6 +5801,21 @@
             },
             "type": "array",
             "title": "Circuits"
+          },
+          "zones": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Zone"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Zones",
+            "description": "Omit only for legacy writes to preserve the current zone inventory."
           },
           "rooms": {
             "items": {
@@ -9009,6 +9032,38 @@
         ],
         "title": "TriState",
         "description": "Boolean fact that can also be explicitly unknown (e.g. heat demand after a stop)."
+      },
+      "Zone": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "circuit_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Circuit Key"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "key",
+          "name",
+          "circuit_key"
+        ],
+        "title": "Zone",
+        "description": "A stable, circuit-scoped heating zone in the installation profile."
       }
     }
   }
