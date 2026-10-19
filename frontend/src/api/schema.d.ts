@@ -1573,6 +1573,11 @@ export interface components {
       configured: boolean;
       /** Connected */
       connected: boolean;
+      /**
+       * Clock Offset Ms
+       * @description Median app receipt time minus HA event time; positive means HA is behind.
+       */
+      clock_offset_ms: number;
     };
     /**
      * HaEntity

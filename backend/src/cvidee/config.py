@@ -74,6 +74,8 @@ class Settings(BaseSettings):
     notify_target: str | None = Field(default=None, alias="CVIDEE_NOTIFY_TARGET")
     analysis_enabled: bool = Field(default=True, alias="CVIDEE_ANALYSIS_ENABLED")
     analysis_interval_s: float = Field(default=60.0, gt=0, alias="CVIDEE_ANALYSIS_INTERVAL_S")
+    can_gateway_entity_id: str | None = Field(default=None, alias="CVIDEE_CAN_GATEWAY_ENTITY_ID")
+    can_gateway_roles: str = Field(default="", alias="CVIDEE_CAN_GATEWAY_ROLES")
     stub_data: bool = Field(default=False, alias="CVIDEE_STUB_DATA")
     """Serve the design-v3 example data on all API routes (contract stubs, issue #11)."""
 

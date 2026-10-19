@@ -27,7 +27,8 @@ function mount({ connected = true, mapped = true, completed = false, gate = fals
           values: { min_observation_hours: 6 },
           onboarding_completed_at: completed ? '2026-10-01T00:00:00Z' : null,
         };
-      else if (path === '/api/ha/status') body = { configured: true, connected };
+      else if (path === '/api/ha/status')
+        body = { configured: true, connected, clock_offset_ms: 0 };
       else if (path === '/api/signals')
         body = {
           items: mapped

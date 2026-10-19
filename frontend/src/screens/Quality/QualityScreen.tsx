@@ -2,6 +2,7 @@ import { CalendarDays, CircleAlert, Clock, Plus, Shield, WifiOff } from 'lucide-
 import { useEffect, useState } from 'react';
 import { useQuality } from '../../api/hooks/data.ts';
 import { usePeriods } from '../../api/hooks/installation.ts';
+import { useHaStatus } from '../../api/hooks/signals.ts';
 import type { components } from '../../api/schema';
 import { Button } from '../../components/Button.tsx';
 import { Callout } from '../../components/Callout.tsx';
@@ -52,6 +53,7 @@ function periodNote(p: Period): string {
 export function QualityScreen() {
   const quality = useQuality();
   const periods = usePeriods();
+  const haStatus = useHaStatus();
   const [dialog, setDialog] = useState<{ period?: Period } | null>(null);
   const [highlight, setHighlight] = useState<string | null>(null);
   const [recomputing, setRecomputing] = useState(false);
@@ -82,6 +84,14 @@ export function QualityScreen() {
         icon={<Shield size={ICON_SIZE} aria-hidden="true" />}
         tone="amber"
       />
+      {haStatus.data?.configured && Math.abs(haStatus.data.clock_offset_ms) > 2000 ? (
+        <Callout tone="warning" title="Klokverschil Home Assistant">
+          De klok van Home Assistant loopt circa{' '}
+          {formatNumber(Math.abs(haStatus.data.clock_offset_ms) / 1000, 1)} s{' '}
+          {haStatus.data.clock_offset_ms > 0 ? 'achter' : 'voor'} op de app. Tijdstippen zijn
+          gecorrigeerd.
+        </Callout>
+      ) : null}
 
       {quality.isError ? (
         <ErrorCallout

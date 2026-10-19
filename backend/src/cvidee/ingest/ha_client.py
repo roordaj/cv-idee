@@ -16,7 +16,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import statistics
 import time
+from collections import deque
 from collections.abc import Awaitable, Callable, Collection, Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
@@ -124,6 +126,9 @@ class HAClient(Protocol):
     """What the rest of the application needs from Home Assistant."""
 
     @property
+    def clock_offset_ms(self) -> int: ...
+
+    @property
     def connected(self) -> bool: ...
 
     async def run(self, listener: HAListener) -> None:
@@ -174,8 +179,14 @@ class AiohttpHAClient:
         self._last_received = 0
         self._listener: HAListener | None = None
         self._subscription_id = 0
+        self._clock_offsets: deque[int] = deque(maxlen=100)
+        self._clock_warning_active = False
 
     # ------------------------------------------------------------------ public
+
+    @property
+    def clock_offset_ms(self) -> int:
+        return int(statistics.median(self._clock_offsets)) if self._clock_offsets else 0
 
     @property
     def connected(self) -> bool:
@@ -370,14 +381,26 @@ class AiohttpHAClient:
                     if future is not None and not future.done():
                         future.set_result(data)
                 elif kind == "event" and data.get("id") == self._subscription_id:
-                    await self._on_event(data["event"])
+                    await self._on_event(data["event"], self._last_received)
         finally:
             self._fail_pending()
 
-    async def _on_event(self, raw: Mapping[str, Any]) -> None:
+    async def _on_event(self, raw: Mapping[str, Any], received_at: int | None = None) -> None:
         if raw.get("event_type") != "state_changed":
             return
         payload = raw["data"]
+        event_ts = parse_ha_time(raw.get("time_fired"))
+        received = self._last_received if received_at is None else received_at
+        if event_ts is not None:
+            self._clock_offsets.append(received - event_ts)
+            offset = self.clock_offset_ms
+            warning = abs(offset) > 2_000
+            if warning != self._clock_warning_active:
+                if warning:
+                    logger.warning("Home Assistant clock offset exceeds 2 s: %d ms", offset)
+                else:
+                    logger.info("Home Assistant clock offset returned within 2 s: %d ms", offset)
+                self._clock_warning_active = warning
         entity_id = payload["entity_id"]
         if entity_id not in self._tracked():
             return

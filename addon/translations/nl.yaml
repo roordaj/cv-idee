@@ -8,3 +8,9 @@ configuration:
   notify_doel:
     name: Meldingsdoel
     description: Naam van de notify-service voor meldingen, bijvoorbeeld mobile_app_telefoon (zonder "notify."). Leeg laten om alleen het HA-event cv_analyse_finding te sturen.
+  can_gateway_entity_id:
+    name: CAN-gateway-entiteit
+    description: HA-entiteit die beschikbaarheid van de CAN-gateway aangeeft. Leeg laten als die niet is gekoppeld.
+  can_gateway_roles:
+    name: CAN-signaalrollen
+    description: Komma-gescheiden rollen van gekoppelde signalen die via de CAN-gateway binnenkomen, bijvoorbeeld flow_temperature,return_temperature.
