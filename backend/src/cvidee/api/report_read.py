@@ -151,6 +151,8 @@ class ReportsReadModel:
                         title=finding_row.title,
                         status=status,
                         action=rec.action,
+                        success_criterion=rec.success_criterion,
+                        rollback_criterion=rec.rollback_criterion,
                         missing_signals=[
                             str(signal) for signal in finding_row.support.get("missing_signals", [])
                         ],

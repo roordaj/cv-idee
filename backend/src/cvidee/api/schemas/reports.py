@@ -22,6 +22,8 @@ class ReportAdvice(ApiModel):
     status: RecommendationStatus
     action: str
     missing_signals: list[str]
+    success_criterion: str | None
+    rollback_criterion: str | None
 
 
 class ReportStatusChange(ApiModel):
