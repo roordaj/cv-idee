@@ -494,6 +494,36 @@
         </div>
       </sc-if>
 
+      <!-- ZONEANALYSE -->
+      <sc-if value="{{ is.zones }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+            <span style="width:44px;height:44px;border-radius:14px;background:#efeafb;color:#7c5cd6;display:grid;place-items:center">{{ I.layers }}</span>
+            <div style="flex:1;min-width:220px"><h1 style="font-size:24px;font-weight:800">Zoneanalyse</h1><p style="color:#5b6475">Voorbeeldgegevens · afgelopen 30 dagen · profiel v3 · bestaande CV-cycli en korte-cyclusclassificatie</p></div>
+            <span style="padding:4px 10px;border-radius:999px;background:#e1f4f1;color:#0f6b61;font-size:12px;font-weight:700">Beperkt · gedeeltelijke dekking</span>
+          </div>
+          <div style="background:#fcf3dc;color:#6b4c05;border-radius:14px;padding:13px 15px;font-size:13px;line-height:1.55">Samenhang tussen zonecounts en korte cycli bewijst geen oorzaak. “Klep meldt open” is de gemelde status of een commando; dit bewijst geen fysieke opening, debiet of warmteafgifte.</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:14px;min-width:0;width:100%">
+            <article style="background:#fff;border:1px solid #e7e9ee;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:10px;min-width:0;overflow-wrap:anywhere">
+              <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap"><h2 style="font-size:16px;font-weight:800">Zone vraagt warmte</h2><span style="padding:3px 9px;border-radius:999px;background:#e1f4f1;color:#0f6b61;font-size:11px;font-weight:700">Gemeten vraagstatus</span></div>
+              <p style="font-size:12px;color:#5b6475">Op cyclusstart · 86 van 112 CV-cycli beoordeelbaar · tijdsdekking 82 %</p>
+              <table aria-label="Zonevraag en korte cycli per zonecount" style="width:100%;border-collapse:collapse;table-layout:fixed;text-align:left;font-size:13px;max-width:100%"><thead><tr style="color:#5b6475;font-size:12px"><th scope="col" style="padding:8px 4px">Actieve zones</th><th scope="col" style="padding:8px 4px">Cycli</th><th scope="col" style="padding:8px 4px">Kort</th></tr></thead><tbody><tr><th scope="row" style="padding:7px 4px;font-weight:500">0</th><td style="padding:7px 4px">8</td><td style="padding:7px 4px">3</td></tr><tr><th scope="row" style="padding:7px 4px;font-weight:500">1</th><td style="padding:7px 4px">31</td><td style="padding:7px 4px">18</td></tr><tr><th scope="row" style="padding:7px 4px;font-weight:500">2</th><td style="padding:7px 4px">39</td><td style="padding:7px 4px">12</td></tr><tr><th scope="row" style="padding:7px 4px;font-weight:500">Onvolledig</th><td style="padding:7px 4px">8</td><td style="padding:7px 4px">—</td></tr></tbody></table>
+              <button type="button" style="align-self:flex-start;border:0;background:transparent;color:#2659a8;font-weight:700;padding:4px 0;cursor:pointer">Bekijk cycli per count →</button>
+            </article>
+            <article style="background:#fff;border:1px solid #e7e9ee;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:10px;min-width:0;overflow-wrap:anywhere">
+              <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap"><h2 style="font-size:16px;font-weight:800">Klep meldt open</h2><span style="padding:3px 9px;border-radius:999px;background:#e7effb;color:#2659a8;font-size:11px;font-weight:700">Gemelde status / commando</span></div>
+              <p style="font-size:12px;color:#5b6475">Apart geteld · 64 van 112 CV-cycli beoordeelbaar · tijdsdekking 61 %</p>
+              <table aria-label="Gemelde klepstatus en korte cycli per zonecount" style="width:100%;border-collapse:collapse;table-layout:fixed;text-align:left;font-size:13px;max-width:100%"><thead><tr style="color:#5b6475;font-size:12px"><th scope="col" style="padding:8px 4px">Gemeld open</th><th scope="col" style="padding:8px 4px">Cycli</th><th scope="col" style="padding:8px 4px">Kort</th></tr></thead><tbody><tr><th scope="row" style="padding:7px 4px;font-weight:500">0</th><td style="padding:7px 4px">5</td><td style="padding:7px 4px">2</td></tr><tr><th scope="row" style="padding:7px 4px;font-weight:500">1</th><td style="padding:7px 4px">22</td><td style="padding:7px 4px">13</td></tr><tr><th scope="row" style="padding:7px 4px;font-weight:500">2+</th><td style="padding:7px 4px">37</td><td style="padding:7px 4px">11</td></tr><tr><th scope="row" style="padding:7px 4px;font-weight:500">Onbekend</th><td style="padding:7px 4px">48</td><td style="padding:7px 4px">—</td></tr></tbody></table>
+              <p style="font-size:12px;line-height:1.5;color:#5b6475">De vraagcount en klepcount verschillen; beide meetreeksen blijven zichtbaar. Geen fout of oorzaak afgeleid.</p>
+            </article>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px;min-width:0;width:100%">
+            <article style="background:#fff;border:1px solid #e7e9ee;border-radius:18px;padding:18px"><h2 style="font-size:16px;font-weight:800;margin-bottom:8px">Onvoldoende bewijs</h2><p style="font-size:13px;line-height:1.55;color:#5b6475">Voor 8 cycli is ten minste één zone onbekend of verouderd. Die cycli vallen onder “onvolledig”; ontbrekende zones tellen niet als inactief. De grens voor “weinig actieve zones” is niet ingesteld, dus er verschijnt geen laag-/hooglabel.</p></article>
+            <article style="background:#f8f9fb;border:1px dashed #c3c8d2;border-radius:18px;padding:18px"><h2 style="font-size:16px;font-weight:800;margin-bottom:8px">Analyse niet beschikbaar · voorbeeld lege staat</h2><p style="font-size:13px;line-height:1.55;color:#5b6475">Koppel in het installatieprofiel zones én zonevraag of klepstatus. Zonder bruikbare zonebron betekent “onbekend” niet nul actieve zones.</p><button type="button" style="margin-top:12px;padding:8px 11px;border:1px solid #dfe2e8;border-radius:9px;background:#fff;color:#2659a8;font-weight:700;cursor:pointer">Bekijk installatieprofiel</button></article>
+          </div>
+        </div>
+      </sc-if>
+
       <!-- INSTALLATIE -->
       <sc-if value="{{ is.installatie }}" hint-placeholder-val="{{ false }}">
         <div style="display:flex;flex-direction:column;gap:16px">
@@ -563,7 +593,7 @@
                   <p style="font-size:12px;color:#5b6475;margin-top:9px;line-height:1.5">Kamertemperatuursensor niet gekoppeld. Een doel kan worden opgeslagen; de analyse blijft onbekend.</p>
                 </article>
               </div>
-              <details open style="border:1px solid #e7e9ee;border-radius:14px;padding:14px">
+              <details open style="border:1px solid #e7e9ee;border-radius:14px;padding:14px;min-width:0;overflow-wrap:anywhere">
                 <summary style="cursor:pointer;font-weight:700;color:#1d2433">Woonkamer instellen</summary>
                 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-top:14px">
                   <label style="display:block;font-size:12px;font-weight:700;color:#1d2433">Ruimte<select aria-label="Ruimte kiezen" style="display:block;width:100%;margin-top:6px;padding:8px;border:1px solid #dfe2e8;border-radius:9px;background:#fff;color:#1d2433"><option>Woonkamer</option><option>Slaapkamer</option><option>Kinderkamer</option><option>Badkamer</option><option>Keuken</option><option>Hal</option></select></label>
@@ -577,6 +607,18 @@
               <div style="display:flex;gap:8px;align-items:flex-start;background:#fcf3dc;color:#6b4c05;border-radius:12px;padding:10px 12px;font-size:12px;line-height:1.5"><span>{{ I.info }}</span><span>De app analyseert alleen. Een ingestelde comfortdoelwaarde verandert de thermostaat niet.</span></div>
             </div>
           </div>
+          <section style="background:#fff;border:1px solid #e7e9ee;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0;width:100%" aria-labelledby="zones-title">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><h2 id="zones-title" style="font-size:18px;font-weight:800">Zones per circuit</h2><p style="font-size:12px;color:#5b6475;margin-top:4px">Stabiele zonesleutel · koppelingen per profielversie · voorbeeldconfiguratie</p></div><button type="button" style="padding:8px 12px;border:1px solid #dfe2e8;border-radius:9px;background:#fff;color:#2659a8;font-weight:700;cursor:pointer">+ Zone toevoegen</button></div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:12px;min-width:0;width:100%">
+              <article style="border:1px solid #e7e9ee;border-radius:14px;padding:14px;min-width:0;overflow-wrap:anywhere"><div style="display:flex;justify-content:space-between;gap:8px"><div><h3 style="font-size:14px;font-weight:800">Woonkamer</h3><p style="font-size:11px;color:#5b6475">Sleutel: beneden-woonkamer · Circuit: radiatoren beneden</p></div><span style="font-size:11px;color:#0f6b61;font-weight:700">Actief</span></div><div style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:12px"><label style="font-size:12px;font-weight:700">Zone vraagt warmte<select aria-label="Warmtevraagsignaal woonkamer" style="display:block;width:100%;margin-top:4px;padding:8px;border:1px solid #dfe2e8;border-radius:8px;background:#fff;width:100%;max-width:100%;min-width:0"><option>binary_sensor.woonkamer_vraag · Gerapporteerd</option><option>Niet gekoppeld</option></select></label><label style="font-size:12px;font-weight:700">Klep meldt open/gesloten<select aria-label="Klepsignaal woonkamer" style="display:block;width:100%;margin-top:4px;padding:8px;border:1px solid #dfe2e8;border-radius:8px;background:#fff;width:100%;max-width:100%;min-width:0"><option>Niet gekoppeld</option><option>select.woonkamer_klep · Commando</option></select></label></div></article>
+              <article style="border:1px solid #e7e9ee;border-radius:14px;padding:14px"><div style="display:flex;justify-content:space-between;gap:8px"><div><h3 style="font-size:14px;font-weight:800">Slaapkamer boven</h3><p style="font-size:11px;color:#5b6475">Sleutel: boven-slaapkamer · Circuit: vloerverwarming boven</p></div><span style="font-size:11px;color:#0f6b61;font-weight:700">Actief</span></div><div style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:12px"><label style="font-size:12px;font-weight:700">Zone vraagt warmte<select aria-label="Warmtevraagsignaal slaapkamer boven" style="display:block;width:100%;margin-top:4px;padding:8px;border:1px solid #dfe2e8;border-radius:8px;background:#fff;width:100%;max-width:100%;min-width:0"><option>binary_sensor.slaapkamer_vraag · Gerapporteerd</option><option>Niet gekoppeld</option></select></label><label style="font-size:12px;font-weight:700">Klep meldt open/gesloten<select aria-label="Klepsignaal slaapkamer boven" style="display:block;width:100%;margin-top:4px;padding:8px;border:1px solid #dfe2e8;border-radius:8px;background:#fff;width:100%;max-width:100%;min-width:0"><option>binary_sensor.groep_1 · Status gemeld</option><option>Niet gekoppeld</option></select></label></div></article>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px;align-items:end">
+              <label style="font-size:12px;font-weight:700">Grens “weinig actieve zones” <input aria-label="Grens weinig actieve zones" type="number" min="0" step="1" placeholder="Niet ingesteld" style="display:block;width:100%;margin-top:5px;padding:9px;border:1px solid #dfe2e8;border-radius:9px;background:#fff;width:100%;max-width:100%;min-width:0"><span style="display:block;font-size:11px;color:#5b6475;font-weight:400;margin-top:4px">Optioneel; er is geen universele standaardgrens. Leeg laten toont alleen concrete counts.</span></label>
+              <button type="button" style="padding:9px 13px;border:0;border-radius:9px;background:#ea6a2f;color:#fff;font-weight:700;cursor:pointer">Profiel opslaan</button>
+            </div>
+            <div style="background:#fcf3dc;color:#6b4c05;border-radius:12px;padding:11px 13px;font-size:12px;line-height:1.5">Vraagstatus en klepstatus zijn aparte bronnen. Een klepcommando of gemelde open status bewijst geen fysieke opening of debiet. Opslaan wijzigt alleen het analyseprofiel; de app bedient geen zonekleppen, ketel of thermostaat.</div>
+          </section>
         </div>
       </sc-if>
 
@@ -692,7 +734,7 @@
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;startScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;overzicht&quot;,&quot;bevindingen&quot;,&quot;cycli&quot;,&quot;wijzigingen&quot;,&quot;historie&quot;,&quot;signalen&quot;,&quot;installatie&quot;,&quot;kwaliteit&quot;,&quot;meldingen&quot;],&quot;default&quot;:&quot;overzicht&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;showExplain&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;showRequirementIds&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;showRoomScheduleError&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;startScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;overzicht&quot;,&quot;bevindingen&quot;,&quot;cycli&quot;,&quot;wijzigingen&quot;,&quot;historie&quot;,&quot;signalen&quot;,&quot;installatie&quot;,&quot;zones&quot;,&quot;kwaliteit&quot;,&quot;meldingen&quot;],&quot;default&quot;:&quot;overzicht&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;showExplain&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;showRequirementIds&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;showRoomScheduleError&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
 
 const H = m => { const t = 360 + Math.round(m); return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); };
 const D = d => Math.floor(d) + ':' + String(Math.round((d % 1) * 60)).padStart(2, '0');
@@ -1082,7 +1124,7 @@ class Component extends DCLogic {
       bv: (() => { const side = S.mw >= 1060, two = S.mw >= 700; return { sideList: side, chips: !side, grid: side ? '272px minmax(0,1fr)' : 'minmax(0,1fr)', cols: two ? 'minmax(0,1.2fr) minmax(280px,1fr)' : 'minmax(0,1fr)', sticky: two ? 'sticky' : 'static', h2: S.mw < 560 ? '19px' : '22px' }; })(),
       I, is: { [S.screen]: true }, showFR: this.props.showRequirementIds ?? false, showExplain: this.props.showExplain ?? true, showRoomScheduleError: this.props.showRoomScheduleError ?? false,
       navMain: [navItem('overzicht', 'Overzicht', 'dashboard'), navItem('bevindingen', 'Bevindingen', 'bulb', openCount), navItem('cycli', 'Cycli', 'activity'), navItem('wijzigingen', 'Wijzigingen', 'sliders'), navItem('historie', 'Advieshistorie', 'history')],
-      navConfig: [navItem('signalen', 'Signalen', 'plug', '9/15'), navItem('installatie', 'Installatie', 'home'), navItem('kwaliteit', 'Gegevenskwaliteit', 'shield'), navItem('meldingen', 'Meldingen', 'bell')],
+      navConfig: [navItem('signalen', 'Signalen', 'plug', '9/15'), navItem('installatie', 'Installatie', 'home'), navItem('zones', 'Zoneanalyse', 'layers'), navItem('kwaliteit', 'Gegevenskwaliteit', 'shield'), navItem('meldingen', 'Meldingen', 'bell')],
       kpis: withExplain([kp('Aanvoer', nl(last.T) + ' °C', 'gemeten · 4 s', 'flame', 'orange'), kp('Retour', nl(last.R) + ' °C', 'gemeten · 4 s', 'droplet', 'blue'), kp('Modulatie', '0 %', 'niet omgerekend naar kW', 'gauge', 'violet'),
         kp('Woonkamer', '20,4 °C', 'doel 20,5 °C', 'home', 'teal'), kp('Slaapkamer', '17,6 °C', 'doel 18,0 · 14 min oud', 'bed', 'amber'), kp('Buiten', '9,8 °C', 'gemeten · 5 min', 'sun', 'amber')]),
       findings, sel, openCount,
