@@ -283,7 +283,8 @@ def test_scenario_two_has_one_pattern_with_original_rule_versions(session: Sessi
         "temperatuurverloop",
     }
     assert all(
-        source.rule is not None and source.rule.version == "1.0.0" for source in detail.bundle
+        source.rule is not None and source.rule.version == raw[source.rule.id].snapshot.version
+        for source in detail.bundle
     )
 
 

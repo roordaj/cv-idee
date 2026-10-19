@@ -226,11 +226,11 @@ Rollen per ruimte/zone/verdeler gelden voor **elke** entiteit uit het profiel (p
 | Bedrijfsmodus (`operating_mode`) | — | `operating_mode` / `flame` | `operating_mode` (zonder: afgeleid, beperkte zekerheid, FR-09) | — |
 | Comfort (`comfort`) | `room_temperature`, `room_setpoint` per ruimte | — | `outdoor_temperature` | — |
 | Zones (`zones`) | `flame` | `zone_demand` / `valve_state` per zone | — | — |
-| Hydraulisch (`hydraulic`) | `flow_temperature`, `return_temperature` | (`manifold_flow_temperature` + `manifold_return_temperature` per verdeler) / `flow_rate` | `pump_state` | — |
+| Hydraulisch (`hydraulic`) | `flow_temperature`, `return_temperature` | — | (`manifold_flow_temperature` + `manifold_return_temperature` per verdeler) / lokaal circuit-`flow_rate`; `pump_state` | — |
 | Verbruik (`consumption`) | `gas_cumulative` | — | `outdoor_temperature` (weerscorrectie) | — |
 | Rendement (`efficiency`) | `gas_cumulative`, `heat_meter` | — | — | — |
 
-Gevolgen, getest: zonder gasmeter blijft Cycli `available` en is Verbruik `unavailable` met ontbrekend `gas_cumulative@boiler` (FR-04-acceptatie); Rendement alleen met gas **én** warmtemeter; zonder modussignaal zijn Cycli en Bedrijfsmodus `limited`; een verouderde slaapkamersensor maakt Comfort `limited` (ontwerp v3); zonder verdelerdata is Hydraulisch `unavailable` (scenario 6).
+Gevolgen, getest: zonder gasmeter blijft Cycli `available` en is Verbruik `unavailable` met ontbrekend `gas_cumulative@boiler` (FR-04-acceptatie); Rendement alleen met gas **én** warmtemeter; zonder modussignaal zijn Cycli en Bedrijfsmodus `limited`; een verouderde slaapkamersensor maakt Comfort `limited` (ontwerp v3). Correctie #130: met keteltemperaturen maar zonder bruikbare lokale verdelerdata is Hydraulisch `limited` (scenario 6), met expliciete ontbrekende signalen. Zonder benodigde keteltemperaturen blijft die analyse `unavailable`. De afzonderlijke informatiewaarschuwing over ontbrekende lokale data kan wel draaien en geeft uitsluitend meetadvies; beperkte beschikbaarheid heft de diagnosegrens niet op.
 
 ### 6.3 Resolutiecheck
 

@@ -5,6 +5,11 @@
     ]
   },
   "hydraulisch": {
+    "1.0.1": [
+      "De melding over ontbrekende lokale gegevens heeft ernst info.",
+      "Keteldata met ontbrekende lokale verdelerdata maakt de hydraulische analyse beperkt; de waarschuwing zelf blijft uitvoerbaar.",
+      "Lokale beschikbaarheid wordt per mengverdeler beoordeeld, zonder keteldebiet of een ander circuit als vervanging te gebruiken."
+    ],
     "1.0.0": [
       "Eerste versie, met scenario- en uitsluitingstests."
     ]

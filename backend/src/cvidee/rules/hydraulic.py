@@ -38,7 +38,7 @@ class HydraulicParams(WindowParams):
 
 class HydraulicRule(BaseRule[HydraulicParams]):
     id = "hydraulisch"
-    version = "1.0.0"
+    version = "1.0.1"
     category = Category.HYDRAULIC
     # Missing measurements are the finding, so they must not gate this diagnostic rule.
     required_signals = frozenset()
@@ -92,7 +92,7 @@ class HydraulicRule(BaseRule[HydraulicParams]):
                     scope_key=f"circuit:{circuit.key}:ch",
                     category=self.category,
                     title="Mengverdeler: onvoldoende gegevens voor een hydraulische conclusie",
-                    severity=Severity.LOW,
+                    severity=Severity.INFO,
                     certainty=Certainty.INSUFFICIENT_EVIDENCE,
                     relevance=(Relevance.COMFORT, Relevance.ENERGY),
                     observation=(
