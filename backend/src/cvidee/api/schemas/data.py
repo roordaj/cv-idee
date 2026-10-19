@@ -25,6 +25,8 @@ class CoverageSegmentKind(StrEnum):
     CONNECTION_LOST = "connection_lost"
     STALE = "stale"
     NOT_MAPPED = "not_mapped"
+    DATA_GAP = "data_gap"
+    UNKNOWN = "unknown"
 
 
 class CoverageSegment(ApiModel):
@@ -103,7 +105,7 @@ class CycleSummary(ApiModel):
     median_burn_s: float | None
     mean_burn_s: float | None
     median_pause_s: float | None
-    total_burn_s: float = Field(ge=0)
+    total_burn_s: float | None = Field(ge=0)
     incomplete_cycles: int = Field(ge=0)
 
 

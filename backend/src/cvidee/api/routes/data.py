@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from cvidee.api.routes.deps import From, Limit, Offset, Store, Timeline, To
+from cvidee.api.routes.deps import From, Limit, Monitoring, Offset, Timeline, To
 from cvidee.api.schemas.common import problem_responses
 from cvidee.api.schemas.data import (
     CycleList,
@@ -14,10 +14,9 @@ router = APIRouter(responses=problem_responses(501, 422))
 
 
 @router.get("/quality", tags=["quality"])
-async def get_quality(store: Store, from_: From = None, to: To = None) -> QualityResponse:
-    """Coverage per signal, detected events and mode distribution (stub: fixed range)."""
-    del from_, to
-    return store.quality()
+async def get_quality(store: Monitoring, from_: From = None, to: To = None) -> QualityResponse:
+    """Coverage per signal, detected events and mode distribution over the selected range."""
+    return store.quality(from_, to)
 
 
 @router.get("/timeline", tags=["cycles"])
@@ -28,8 +27,7 @@ async def get_timeline(store: Timeline, from_: From = None, to: To = None) -> Ti
 
 @router.get("/cycles", tags=["cycles"])
 async def list_cycles(
-    store: Store, from_: From = None, to: To = None, limit: Limit = 100, offset: Offset = 0
+    store: Monitoring, from_: From = None, to: To = None, limit: Limit = 100, offset: Offset = 0
 ) -> CycleList:
     """Burner cycles with end reason and the KPI summary of the range (FR-12, FR-13)."""
-    del from_, to
-    return store.cycles(limit, offset)
+    return store.cycles(limit, offset, from_, to)

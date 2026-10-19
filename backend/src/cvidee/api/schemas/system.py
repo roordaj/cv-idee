@@ -114,6 +114,7 @@ class AssessmentReasonCode(StrEnum):
     TOO_FEW_HOURS = "too_few_hours"
     LOW_COVERAGE = "low_coverage"
     NO_DATA_YET = "no_data_yet"
+    FLAME_RESOLUTION_INSUFFICIENT = "flame_resolution_insufficient"
     # Reasons for limited
     HA_DISCONNECTED = "ha_disconnected"
     DATA_GAP = "data_gap"
