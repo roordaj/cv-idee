@@ -1,0 +1,65 @@
+name: E2E
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/e2e.yml"
+      - "docker-compose*.yml"
+      - "e2e/**"
+      - "Dockerfile"
+      - "frontend/**"
+      - "backend/**"
+      - "fixtures/scenarios/**"
+      - "backend/uv.lock"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - name: Install dependencies
+        run: |
+          npm ci --prefix frontend
+          uv sync --project backend --locked
+      - name: Install Playwright browser
+        run: cd frontend && npx playwright install --with-deps chromium
+      - name: Start application behind ingress proxy
+        run: docker compose -f docker-compose.dev.yml -f docker-compose.e2e.yml up --build -d app ingress
+      - name: Wait for ingress application
+        run: |
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:8180/api/hassio_ingress/e2e-token/api/health; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose -f docker-compose.dev.yml -f docker-compose.e2e.yml logs
+          exit 1
+      - name: Replay short-cycling and CAN-outage scenarios
+        run: |
+          uv run --project backend pytest -q \
+            backend/tests/scenarios/test_certainty.py::test_scenario_two_reports_high_cycle_certainty_with_unknown_cause \
+            backend/tests/scenarios/test_mvp.py::test_can_outage_gives_no_fictitious_start_and_marks_gap
+      - name: Run browser smoke tests
+        run: cd frontend && npm run test:e2e
+      - name: Stop development stack
+        if: always()
+        run: docker compose -f docker-compose.dev.yml -f docker-compose.e2e.yml down -v

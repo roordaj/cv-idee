@@ -1,6 +1,5 @@
-/// <reference types="vitest/config" />
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import { configDefaults, defineConfig } from 'vitest/config';
 
 const backendUrl = process.env['CVIDEE_BACKEND_URL'] ?? 'http://localhost:8099';
 
@@ -18,5 +17,6 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     css: true,
+    exclude: [...configDefaults.exclude, 'e2e/**'],
   },
 });
