@@ -743,6 +743,87 @@
         }
       }
     },
+    "/api/reports/{kind}": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Get Report",
+        "description": "Build a read-only snapshot for the previous or specified complete local period.",
+        "operationId": "get_report",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ReportPeriodKind"
+            }
+          },
+          {
+            "name": "reference_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Local date; for a week this must be Monday. Defaults to the previous complete period.",
+              "title": "Reference Date"
+            },
+            "description": "Local date; for a week this must be Monday. Defaults to the previous complete period."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportSnapshot"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not implemented (start the backend with CVIDEE_STUB_DATA=1 for example data)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/quality": {
       "get": {
         "tags": [
@@ -6703,6 +6784,270 @@
         ],
         "title": "Relevance",
         "description": "Relevantie of a finding (requirements §5)."
+      },
+      "ReportAdvice": {
+        "properties": {
+          "finding_id": {
+            "type": "string",
+            "title": "Finding Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RecommendationStatus"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "missing_signals": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing Signals"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "finding_id",
+          "title",
+          "status",
+          "action",
+          "missing_signals"
+        ],
+        "title": "ReportAdvice"
+      },
+      "ReportChange": {
+        "properties": {
+          "change_id": {
+            "type": "string",
+            "title": "Change Id"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "At",
+            "description": "ISO 8601 timestamp in UTC.",
+            "examples": [
+              "2026-10-04T10:00:00Z"
+            ]
+          },
+          "parameter": {
+            "type": "string",
+            "title": "Parameter"
+          },
+          "old_value": {
+            "type": "string",
+            "title": "Old Value"
+          },
+          "new_value": {
+            "type": "string",
+            "title": "New Value"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "evaluation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReportChangeEvaluation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "change_id",
+          "at",
+          "parameter",
+          "old_value",
+          "new_value",
+          "reason",
+          "evaluation"
+        ],
+        "title": "ReportChange"
+      },
+      "ReportChangeEvaluation": {
+        "properties": {
+          "verdict": {
+            "$ref": "#/components/schemas/EvaluationVerdict"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "reference": {
+            "$ref": "#/components/schemas/TimeRange"
+          },
+          "observation": {
+            "$ref": "#/components/schemas/TimeRange"
+          },
+          "comparability": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Comparability"
+          },
+          "metrics": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Metrics"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "verdict",
+          "summary",
+          "reference",
+          "observation",
+          "comparability",
+          "metrics"
+        ],
+        "title": "ReportChangeEvaluation"
+      },
+      "ReportPeriodKind": {
+        "type": "string",
+        "enum": [
+          "day",
+          "week"
+        ],
+        "title": "ReportPeriodKind"
+      },
+      "ReportSnapshot": {
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/ReportPeriodKind"
+          },
+          "period": {
+            "$ref": "#/components/schemas/TimeRange"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At",
+            "description": "ISO 8601 timestamp in UTC.",
+            "examples": [
+              "2026-10-04T10:00:00Z"
+            ]
+          },
+          "quality": {
+            "$ref": "#/components/schemas/QualityResponse"
+          },
+          "cycle_summary": {
+            "$ref": "#/components/schemas/CycleSummary"
+          },
+          "cycles": {
+            "items": {
+              "$ref": "#/components/schemas/Cycle"
+            },
+            "type": "array",
+            "title": "Cycles"
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/FindingSummary"
+            },
+            "type": "array",
+            "title": "Findings"
+          },
+          "open_advice": {
+            "items": {
+              "$ref": "#/components/schemas/ReportAdvice"
+            },
+            "type": "array",
+            "title": "Open Advice"
+          },
+          "status_changes": {
+            "items": {
+              "$ref": "#/components/schemas/ReportStatusChange"
+            },
+            "type": "array",
+            "title": "Status Changes"
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/ReportChange"
+            },
+            "type": "array",
+            "title": "Changes"
+          },
+          "has_more_cycles": {
+            "type": "boolean",
+            "title": "Has More Cycles",
+            "description": "True when more than 500 cycles fall in the period."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "period",
+          "generated_at",
+          "quality",
+          "cycle_summary",
+          "cycles",
+          "findings",
+          "open_advice",
+          "status_changes",
+          "changes",
+          "has_more_cycles"
+        ],
+        "title": "ReportSnapshot"
+      },
+      "ReportStatusChange": {
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "At",
+            "description": "ISO 8601 timestamp in UTC.",
+            "examples": [
+              "2026-10-04T10:00:00Z"
+            ]
+          },
+          "finding_id": {
+            "type": "string",
+            "title": "Finding Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RecommendationStatus"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "at",
+          "finding_id",
+          "title",
+          "status"
+        ],
+        "title": "ReportStatusChange"
       },
       "Role": {
         "type": "string",
