@@ -1230,7 +1230,7 @@ export interface components {
       /** Median Pause S */
       median_pause_s: number | null;
       /** Total Burn S */
-      total_burn_s: number;
+      total_burn_s: number | null;
       /** Incomplete Cycles */
       incomplete_cycles: number;
     };

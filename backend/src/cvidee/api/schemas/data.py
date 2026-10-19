@@ -105,7 +105,7 @@ class CycleSummary(ApiModel):
     median_burn_s: float | None
     mean_burn_s: float | None
     median_pause_s: float | None
-    total_burn_s: float = Field(ge=0)
+    total_burn_s: float | None = Field(ge=0)
     incomplete_cycles: int = Field(ge=0)
 
 

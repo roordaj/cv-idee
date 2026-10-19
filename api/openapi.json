@@ -3748,8 +3748,15 @@
             "title": "Median Pause S"
           },
           "total_burn_s": {
-            "type": "number",
-            "minimum": 0.0,
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Total Burn S"
           },
           "incomplete_cycles": {

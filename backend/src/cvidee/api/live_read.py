@@ -63,7 +63,7 @@ from cvidee.api.schemas.system import (
 )
 from cvidee.api.timeline_read import TimelineReadModel
 from cvidee.config import Settings
-from cvidee.findings.stage import StoreTimelines
+from cvidee.findings.stage import StoreTimelines, first_mapped_observation
 from cvidee.runner.sources import SourceSettings, build_pipeline_config, load_mapped_signals
 from cvidee.settings.repository import current_revision, effective_values, pipeline_settings
 from cvidee.signals.backend import SignalsBackend
@@ -109,7 +109,7 @@ def safe_url(value: str | None) -> str | None:
         host = f"[{host}]"
     if parts.port is not None:
         host = f"{host}:{parts.port}"
-    return urlunsplit((parts.scheme, host, parts.path, "", ""))
+    return urlunsplit((parts.scheme, host, "", "", ""))
 
 
 def _intersect(left: list[tuple[int, int]], right: list[tuple[int, int]]) -> list[tuple[int, int]]:
@@ -314,23 +314,6 @@ class LiveReadModel:
             )
         return lo, hi
 
-    @staticmethod
-    def _first(session: Session, now: int) -> int | None:
-        mapped = load_mapped_signals(session)
-        if not mapped:
-            return None
-        conditions = [
-            (SourceEntity.entity_id == m.entity_id)
-            & (Observation.ts >= m.valid_from)
-            & (Observation.ts < min(now, m.valid_to or now))
-            for m in mapped
-        ]
-        return session.scalar(
-            select(func.min(Observation.ts))
-            .join(SourceEntity, SourceEntity.id == Observation.source_entity_id)
-            .where(or_(*conditions))
-        )
-
     def _setup(self, session: Session, window: ReadWindow) -> SetupState:
         revision = current_revision(session)
         imported = (
@@ -357,7 +340,7 @@ class LiveReadModel:
             local.replace(hour=0, minute=0, second=0, microsecond=0).timestamp() * 1000
         )
         with self.sessions() as session:
-            first = self._first(session, now)
+            first = first_mapped_observation(session, load_mapped_signals(session), now)
             lo = max(midnight, first or midnight)
             window = ReadWindow(session, min(lo, now - 1), now)
             signals = SignalsBackend(self.sessions, clock=self.clock).signal_list()
@@ -596,7 +579,7 @@ class LiveReadModel:
                     median_burn_s=value(MetricName.BURN_DURATION_MEDIAN),
                     mean_burn_s=value(MetricName.BURN_DURATION_MEAN),
                     median_pause_s=value(MetricName.PAUSE_DURATION_MEDIAN),
-                    total_burn_s=value(MetricName.BURN_TIME) or 0,
+                    total_burn_s=value(MetricName.BURN_TIME),
                     incomplete_cycles=sum(c.duration_is_lower_bound for c in items),
                 ),
                 items=items[offset : offset + limit],
@@ -608,7 +591,7 @@ class LiveReadModel:
     def overview(self) -> OverviewResponse:
         now = self.clock()
         with self.sessions() as session:
-            first = self._first(session, now)
+            first = first_mapped_observation(session, load_mapped_signals(session), now)
             lo = max(now - 24 * 3_600_000, first or now - 24 * 3_600_000)
             window = ReadWindow(session, min(lo, now - 1), now)
             assessment = window.assessment(self.connected)
@@ -666,7 +649,9 @@ class LiveReadModel:
                 info = BY_ROLE[signal.role]
                 kpis.append(
                     LiveValue(
-                        key=str(signal),
+                        key=f"room:{signal.scope.key}"
+                        if signal.scope.key is not None and signal.scope.kind.value == "room"
+                        else signal.role.value,
                         signal_id=str(signal),
                         label=info.name
                         if signal.scope.key is None
@@ -685,6 +670,29 @@ class LiveReadModel:
                             "onbekende tijd wordt niet ingevuld."
                         ),
                         stale=getattr(timeline.at(now - 1), "reason", None) is UnknownReason.STALE,
+                    )
+                )
+            linked_kpis = {item.signal_id for item in kpis}
+            for role in (
+                Role.FLOW_TEMPERATURE,
+                Role.RETURN_TEMPERATURE,
+                Role.FLOW_SETPOINT,
+                Role.MODULATION,
+            ):
+                ref = SignalRef(role)
+                if str(ref) in linked_kpis:
+                    continue
+                info = BY_ROLE[role]
+                kpis.append(
+                    LiveValue(
+                        key=role.value,
+                        signal_id=str(ref),
+                        label=info.name,
+                        value=None,
+                        unit=info.unit or "",
+                        note_text="Niet gekoppeld",
+                        explanation="Koppel dit signaal om actuele waarden te tonen.",
+                        stale=False,
                     )
                 )
             today_start = round(

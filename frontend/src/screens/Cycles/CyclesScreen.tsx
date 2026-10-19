@@ -243,7 +243,7 @@ export function CyclesScreen() {
             icon={<Activity {...ICON} />}
             tone="teal"
             label="Totale brandtijd"
-            value={none ? DASH : formatBurnTotal(s.total_burn_s)}
+            value={s.total_burn_s === null || none ? DASH : formatBurnTotal(s.total_burn_s)}
             sub={
               s.incomplete_cycles > 0
                 ? `${String(s.incomplete_cycles)} ${s.incomplete_cycles === 1 ? 'cyclus' : 'cycli'} onvolledig`

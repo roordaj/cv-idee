@@ -214,6 +214,11 @@ POST /api/import                       historische import starten, GET voortgang
 GET|PUT /api/settings                  drempels, gasprijs, …
 ```
 
+Met voorbeelddata uit lezen de monitoringroutes de echte opslag. Ongeldige, verouderde,
+ontbrekende en niet-gekoppelde tijd blijft herkenbaar; ontbrekende kernsignalen worden niet
+stilzwijgend als nul ingevuld. Kengetallen verschijnen pas nadat een analyse is geslaagd en
+de gevraagde periode dekt. Status-, kwaliteits- en cyclivensters zijn maximaal 31 dagen.
+
 Ingress: alle URL's relatief (Vite `base: './'`, router-basename uit `X-Ingress-Path`). Standalone: optionele eenvoudige token-auth (env `CVIDEE_API_TOKEN`).
 
 ### 3.10 Frontend (`frontend/`)
