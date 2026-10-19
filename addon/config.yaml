@@ -1,7 +1,7 @@
 # Home Assistant add-on configuration for CV-analyse (CV-idee).
 # https://developers.home-assistant.io/docs/add-ons/configuration
 name: CV-analyse
-version: "0.1.0"
+version: "0.1.1"
 slug: cv_analyse
 image: "ghcr.io/roordaj/cv-idee-addon-{arch}"
 description: Alleen-lezen analyse en advies voor je cv-ketel op basis van Home Assistant-gegevens.
