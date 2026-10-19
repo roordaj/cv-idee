@@ -2,7 +2,7 @@
 
 from collections.abc import Sequence
 
-from cvidee.analysis.types import Mode, Role
+from cvidee.analysis.types import MINUTE_MS, EndReason, Mode, Role
 from cvidee.rules.base import (
     BaseRule,
     Category,
@@ -17,12 +17,22 @@ from cvidee.rules.base import (
     Thresholds,
     signal_ref,
 )
-from cvidee.rules.patterns import DAY_MS, WindowParams, pattern_period
+from cvidee.rules.patterns import (
+    DAY_MS,
+    DEFAULT_SHORT_CYCLE_LIMIT_MIN,
+    WindowParams,
+    pattern_period,
+)
+
+MIN_REPEATED_DHW_CYCLES = 10
+"""Minimum count for a separate DHW finding; individual cycles stay in the timeline."""
+MIN_SHORT_CH_CYCLES_FOR_DHW_CONTEXT = 4
+"""Show DHW context at lower counts when short CH cycles could be misread."""
 
 
 class DhwExcludedRule(BaseRule[WindowParams]):
     id = "tapwater-uitgesloten"
-    version = "1.0.0"
+    version = "1.1.0"
     category = Category.OPERATING_CONTEXT
     required_signals = frozenset({Role.FLAME, Role.OPERATING_MODE})
     applies_in_modes = frozenset({Mode.DHW})
@@ -36,7 +46,18 @@ class DhwExcludedRule(BaseRule[WindowParams]):
 
     def _evaluate(self, ctx: RuleContext, params: WindowParams) -> Sequence[FindingCandidate]:
         cycles = [c for c in ctx.cycles_in() if c.mode is Mode.DHW]
-        if not cycles:
+        short_ch = [
+            c
+            for c in ctx.cycles_in()
+            if c.mode is Mode.CH
+            and c.complete
+            and c.end_reason is EndReason.STOP_DURING_DEMAND
+            and c.duration_ms < round(DEFAULT_SHORT_CYCLE_LIMIT_MIN * MINUTE_MS)
+        ]
+        if (
+            len(cycles) < MIN_REPEATED_DHW_CYCLES
+            and len(short_ch) < MIN_SHORT_CH_CYCLES_FOR_DHW_CONTEXT
+        ):
             return ()
         coverage = min(
             (s.coverage for s in ctx.signals if s.signal.role in self.required_signals), default=0

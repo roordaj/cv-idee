@@ -21,6 +21,7 @@ from cvidee.rules.base import (
 from cvidee.rules.certainty import derive_certainty
 from cvidee.rules.patterns import (
     DAY_MS,
+    DEFAULT_SHORT_CYCLE_LIMIT_MIN,
     PatternParams,
     cycle_metric,
     evidence,
@@ -55,7 +56,7 @@ class StopParams(PatternParams):
 
 class StopDuringDemandRule(BaseRule[StopParams]):
     id = "stop-tijdens-vraag"
-    version = "1.0.0"
+    version = "1.1.0"
     category = Category.CYCLES
     required_signals = frozenset({Role.FLAME, Role.OPERATING_MODE, Role.HEAT_DEMAND})
     optional_signals = frozenset({Role.FLOW_TEMPERATURE, Role.FLOW_SETPOINT, Role.MODULATION})
@@ -69,7 +70,12 @@ class StopDuringDemandRule(BaseRule[StopParams]):
 
     def _evaluate(self, ctx: RuleContext, params: StopParams) -> Sequence[FindingCandidate]:
         cycles = [c for c in ctx.relevant_cycles() if c.complete]
-        stops = [c for c in cycles if c.end_reason is EndReason.STOP_DURING_DEMAND]
+        stops = [
+            c
+            for c in cycles
+            if c.end_reason is EndReason.STOP_DURING_DEMAND
+            and c.duration_ms < round(DEFAULT_SHORT_CYCLE_LIMIT_MIN * MINUTE_MS)
+        ]
         if len(stops) < params.min_stop_cycles:
             return ()
         overshoots = [cycle_metric(ctx, c, MetricName.OVERSHOOT_AT_STOP) for c in stops]

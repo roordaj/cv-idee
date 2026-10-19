@@ -1,11 +1,13 @@
 # `temperatuurverloop` — Afwijkend temperatuurverloop tijdens cv-bedrijf
 
-- **Id:** `temperatuurverloop` · **Huidige versie:** 1.0.0
+- **Id:** `temperatuurverloop` · **Huidige versie:** 1.1.0
 - **Code:** `backend/src/cvidee/rules/temperature.py` · **Issue:** #31
 
 ## Doel
 
 Detecteert herhaald doorschieten en een uitgelijnde retour hoger dan aanvoer tijdens stabiel cv-bedrijf. Geen oordeel over schadelijkheid, gewenste lus-ΔT of oorzaak.
+
+Een kandidaat met voldoende bewijs kan zelfstandig worden gemeld. Een kandidaat met onvoldoende bewijs wordt alleen als onderbouwing gebundeld wanneer een overlappende kortecyclusbevinding bestaat; op zichzelf levert die geen bevinding of meetadvies op.
 
 ## Toepasbaarheid
 
@@ -40,3 +42,7 @@ Afwezigheid van het patroon is pas herstel bij voldoende gegevens en het herstel
 ### 1.0.0 — 2026-10-09
 
 - Eerste versie, met scenario- en uitsluitingstests.
+
+### 1.1.0 — 2026-10-19
+
+- Toon temperatuurkandidaten met onvoldoende bewijs alleen als onderbouwing bij een overlappende kortecyclusbevinding.

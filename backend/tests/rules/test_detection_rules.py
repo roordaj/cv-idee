@@ -8,6 +8,7 @@ import pytest
 from cvidee.analysis.pipeline import run_pipeline
 from cvidee.analysis.types import (
     HOUR_MS,
+    MINUTE_MS,
     BurnerCycle,
     ConnectionSource,
     EndReason,
@@ -63,7 +64,9 @@ def metric(c: BurnerCycle, name: MetricName, value: float) -> MetricValue:
 
 
 def test_stop_pattern_observation_is_separate_from_interpretation() -> None:
-    cycles = tuple(cycle(T0 + i * HOUR_MS, 20) for i in range(4))
+    cycles = tuple(
+        replace(cycle(T0 + i * HOUR_MS, 2.5), pause_before_ms=20 * MINUTE_MS) for i in range(4)
+    )
     metrics = tuple(metric(c, MetricName.OVERSHOOT_AT_STOP, 5) for c in cycles)
     (finding,) = StopDuringDemandRule().evaluate(
         context(cycles=cycles, metrics=metrics), StopParams(min_observation_h=1)
@@ -97,6 +100,14 @@ def test_incomplete_and_special_period_cycles_do_not_trigger_patterns() -> None:
     assert HydraulicRule().evaluate(ctx, HydraulicParams()) == ()
 
 
+def test_long_stops_during_demand_alone_do_not_create_pattern_finding() -> None:
+    cycles = tuple(
+        replace(cycle(T0 + i * HOUR_MS, 20), end_reason=EndReason.STOP_DURING_DEMAND)
+        for i in range(8)
+    )
+    assert StopDuringDemandRule().evaluate(context(cycles=cycles), StopParams()) == ()
+
+
 def test_temperature_requires_aligned_metrics_not_cycle_maxima() -> None:
     cycles = tuple(cycle(T0 + i * HOUR_MS, 30) for i in range(4))
     assert TemperatureRule().evaluate(context(cycles=cycles), TemperatureParams()) == ()
@@ -119,7 +130,7 @@ def test_inverted_stable_delta_t_is_observation_not_loop_advice() -> None:
     cycles = tuple(cycle(T0 + i * HOUR_MS, 30) for i in range(4))
     metrics = tuple(metric(c, MetricName.BOILER_DELTA_T_STABLE, -1) for c in cycles)
     (finding,) = TemperatureRule().evaluate(
-        context(cycles=cycles, metrics=metrics), TemperatureParams()
+        context(cycles=cycles, metrics=metrics), TemperatureParams(min_observation_h=1)
     )
     assert "retour" in finding.observation
     assert finding.recommendation is not None
@@ -189,7 +200,7 @@ def test_explicit_unavailable_does_not_invent_connection_loss() -> None:
     assert "niet vastgesteld" in finding.interpretation
 
 
-def test_low_aligned_coverage_keeps_temperature_conclusion_insufficient() -> None:
+def test_low_aligned_coverage_marks_temperature_candidate_insufficient() -> None:
     cycles = tuple(cycle(T0 + i * HOUR_MS, 30) for i in range(4))
     metrics = tuple(replace(metric(c, MetricName.OVERSHOOT, 4), coverage=0.1) for c in cycles)
     (finding,) = TemperatureRule().evaluate(
@@ -200,9 +211,9 @@ def test_low_aligned_coverage_keeps_temperature_conclusion_insufficient() -> Non
 
 
 def test_dhw_is_visible_but_never_a_temperature_pattern() -> None:
-    cycles = tuple(cycle(T0 + i * HOUR_MS, 10, Mode.DHW) for i in range(4))
+    cycles = tuple(cycle(T0 + i * 30 * MINUTE_MS, 10, Mode.DHW) for i in range(10))
     (finding,) = DhwExcludedRule().evaluate(context(cycles=cycles), WindowParams())
-    assert finding.evidence.excluded_cycles == 4
+    assert finding.evidence.excluded_cycles == 10
     assert finding.severity.value == "info"
     assert finding.recommendation is None
     metrics = tuple(metric(c, MetricName.OVERSHOOT, 20) for c in cycles)
@@ -210,6 +221,11 @@ def test_dhw_is_visible_but_never_a_temperature_pattern() -> None:
         TemperatureRule().evaluate(context(cycles=cycles, metrics=metrics), TemperatureParams())
         == ()
     )
+
+
+def test_ordinary_dhw_draws_stay_in_timeline_without_context_finding() -> None:
+    cycles = tuple(cycle(T0 + i * 30 * MINUTE_MS, 10, Mode.DHW) for i in range(9))
+    assert DhwExcludedRule().evaluate(context(cycles=cycles), WindowParams()) == ()
 
 
 def test_mixing_manifold_without_local_measurements_gets_measurement_only() -> None:

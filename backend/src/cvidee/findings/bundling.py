@@ -9,7 +9,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from typing import Any
 
-from cvidee.rules.base import CycleRef, FindingCandidate, InstallationFacts
+from cvidee.rules.base import Certainty, CycleRef, FindingCandidate, InstallationFacts
 from cvidee.rules.registry import RuleOutcome, RuleSnapshot
 
 Key = tuple[str, str]
@@ -117,6 +117,7 @@ def bundle_candidates(
                 c
                 for c in outcome.candidates
                 if (outcome.snapshot.rule_id, c.scope_key) not in parents
+                and not (c.certainty is Certainty.INSUFFICIENT_EVIDENCE and c.supports)
             ),
         )
         for outcome in sorted(outcomes, key=lambda o: o.snapshot.rule_id)

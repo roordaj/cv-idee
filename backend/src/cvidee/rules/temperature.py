@@ -56,7 +56,7 @@ class TemperatureParams(PatternParams):
 
 class TemperatureRule(BaseRule[TemperatureParams]):
     id = "temperatuurverloop"
-    version = "1.0.0"
+    version = "1.1.0"
     category = Category.TEMPERATURE
     required_signals = frozenset(
         {Role.FLAME, Role.OPERATING_MODE, Role.FLOW_TEMPERATURE, Role.FLOW_SETPOINT}

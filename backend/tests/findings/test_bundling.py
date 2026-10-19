@@ -86,6 +86,17 @@ def test_order_does_not_change_bundle_or_parent_certainty() -> None:
     )
 
 
+def test_insufficient_supported_candidate_is_hidden_without_its_parent() -> None:
+    ctx = make_ctx(NOW)
+    DummyRule.emit = (Emit(certainty=Certainty.INSUFFICIENT_EVIDENCE),)
+    child = RuleRegistry([Child()]).evaluate(Child.id, ctx, DummyParams())
+    DummyRule.emit = ()
+    candidate = replace(child.candidates[0], supports=(Parent.id,))
+    plan = bundle_candidates((replace(child, candidates=(candidate,)),), PROFILE)
+    assert plan.parents == {}
+    assert all(not outcome.candidates for outcome in plan.outcomes)
+
+
 @pytest.mark.parametrize(
     "variant", ["no-support", "other-scope", "touching", "other-cycles", "protected"]
 )
