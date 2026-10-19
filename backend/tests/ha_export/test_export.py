@@ -171,6 +171,10 @@ def test_summary_uses_real_reports_and_drops_values_immediately_on_outage(tmp_pa
             session.add(
                 SignalMapping(
                     role=role.value,
+                    value_map={"1": "ch"} if role is Role.OPERATING_MODE else None,
+                    meaning="Explicit synthetic export-test mode table"
+                    if role is Role.OPERATING_MODE
+                    else None,
                     scope_key="",
                     source_entity_id=entity.id,
                     kind=ValueKind.REPORTED,

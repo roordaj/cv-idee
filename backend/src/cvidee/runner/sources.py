@@ -86,6 +86,8 @@ class MappedSignal:
     heartbeat_expected: bool
     max_age_ms: int
     value_map: Mapping[str, ObservedValue | None] | None
+    mapping_id: int | None = None
+    meaning: str | None = None
 
     def valid_at(self, ts: TimestampMs) -> bool:
         return self.valid_from <= ts and (self.valid_to is None or ts < self.valid_to)
@@ -119,10 +121,30 @@ def load_mapped_signals(session: Session) -> list[MappedSignal]:
                 heartbeat_expected=mapping.heartbeat_expected,
                 max_age_ms=mapping.max_age_ms,
                 value_map=mapping.value_map,
+                mapping_id=mapping.id,
+                meaning=mapping.meaning,
             )
         )
     out.sort(key=lambda m: (m.signal, m.valid_from, m.entity_id))
     return out
+
+
+def mode_mapping_snapshot(mapped: Sequence[MappedSignal]) -> list[dict[str, Any]]:
+    """Source- and data-time-bound mode semantics, safe to freeze in run/advice history."""
+    return [
+        {
+            "version": m.mapping_id,
+            "signal": str(m.signal),
+            "entity_id": m.entity_id,
+            "valid_from": m.valid_from,
+            "valid_to": m.valid_to,
+            "meaning": m.meaning,
+            "source_semantics_confirmed": bool(m.meaning and m.meaning.strip() and m.value_map),
+            "value_map": None if m.value_map is None else dict(sorted(m.value_map.items())),
+        }
+        for m in sorted(mapped, key=lambda m: (m.signal, m.valid_from, m.entity_id))
+        if m.signal.role is Role.OPERATING_MODE
+    ]
 
 
 def config_hash(config: PipelineConfig, extra: Mapping[str, Any] | None = None) -> str:
@@ -171,6 +193,7 @@ def build_pipeline_config(
             (str(m.signal), m.entity_id, m.valid_from, m.valid_to, repr(m.value_map))
             for m in mapped
         ],
+        "operating_mode_mappings": mode_mapping_snapshot(mapped),
         "gateway": sources.can_gateway_entity_id,
         "rules": sorted((rule_versions or {}).items()),
     }
@@ -239,8 +262,24 @@ def _last_down_before(
     return min(found) if found else None
 
 
+def _mapped_observation(
+    record: ObservationRecord, mapping: MappedSignal, config: PipelineConfig | None
+) -> Observation:
+    table = mapping.value_map
+    if mapping.signal.role is Role.OPERATING_MODE:
+        if table is None:
+            # Only an explicitly supplied synthetic/replay table may interpret raw codes.
+            table = None if config is not None and config.mode_mapping else {}
+        elif not mapping.meaning or not mapping.meaning.strip():
+            table = {}  # legacy unproven semantics are unknown, including for coverage
+    return to_analysis_observation(record, mapping.signal, table)
+
+
 def _carry_in(
-    repo: SqlObservationRepository, versions: Sequence[MappedSignal], ts: TimestampMs
+    repo: SqlObservationRepository,
+    versions: Sequence[MappedSignal],
+    ts: TimestampMs,
+    config: PipelineConfig | None,
 ) -> Observation | None:
     """Latest observation before ``ts`` within the validity of the mapping that held it."""
     for m in sorted(versions, key=lambda v: v.valid_from, reverse=True):
@@ -249,7 +288,7 @@ def _carry_in(
         upper = ts if m.valid_to is None else min(ts, m.valid_to)
         record = repo.last_before(m.entity_id, upper)
         if record is not None and record.ts >= m.valid_from:
-            return to_analysis_observation(record, m.signal, m.value_map)
+            return _mapped_observation(record, m, config)
     return None
 
 
@@ -258,6 +297,7 @@ def load_window_input(
     mapped: Sequence[MappedSignal],
     sources: SourceSettings,
     window: AnalysisWindow,
+    config: PipelineConfig | None = None,
 ) -> tuple[list[Observation], list[ConnectionEvent]]:
     """Observations and connection events for one run (ADR-002 §4.2 step 1)."""
     repo = SqlObservationRepository(session)
@@ -267,7 +307,7 @@ def load_window_input(
         by_signal.setdefault(m.signal, []).append(m)
     observations: list[Observation] = []
     for signal, versions in sorted(by_signal.items()):
-        seed = _carry_in(repo, versions, start)
+        seed = _carry_in(repo, versions, start, config)
         if seed is not None:
             observations.append(seed)
         for m in versions:
@@ -276,8 +316,7 @@ def load_window_input(
             if lo >= hi:
                 continue
             observations.extend(
-                to_analysis_observation(r, signal, m.value_map)
-                for r in repo.observations(m.entity_id, lo, hi)
+                _mapped_observation(r, m, config) for r in repo.observations(m.entity_id, lo, hi)
             )
         # Closing or unlinking a mapping ends validity even without another HA event.
         for m in versions:

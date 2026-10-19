@@ -220,6 +220,8 @@ async def seed_role(backend: SignalsBackend, role: str, entity: str, state: str)
         f"{role}@boiler",
         SignalMappingUpdate(
             entity_id=entity,
+            value_map={"1": "ch"} if role == "operating_mode" else None,
+            meaning="Explicit synthetic test mode table" if role == "operating_mode" else None,
             valid_from=datetime.fromtimestamp((NOW - DAY) / 1000, UTC),
         ),
     )

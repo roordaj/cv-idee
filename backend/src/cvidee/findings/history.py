@@ -82,6 +82,9 @@ def snapshot_transition(
         profile = SqlInstallationProfileRepository(session).at(finding.period_end_ts)
         profile_id = None if profile is None else profile.id
         settings["installation_profile"] = profile_settings(session, profile_id)
+        if run is not None and "operating_mode_mappings" in run.stats:
+            settings["operating_mode_mappings"] = deepcopy(run.stats["operating_mode_mappings"])
+            settings["pipeline_mode_mapping"] = deepcopy(run.stats.get("pipeline_mode_mapping", {}))
         session.add(
             RecommendationSnapshot(
                 recommendation_id=rec.id,

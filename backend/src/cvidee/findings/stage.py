@@ -35,7 +35,12 @@ from cvidee.periods import rule_periods
 from cvidee.rules.availability import AvailabilityPolicy, assess_analyses
 from cvidee.rules.base import RuleContext
 from cvidee.rules.registry import RuleRegistry
-from cvidee.runner.sources import MappedSignal, SourceSettings, load_window_input
+from cvidee.runner.sources import (
+    MappedSignal,
+    SourceSettings,
+    load_window_input,
+    mode_mapping_snapshot,
+)
 from cvidee.settings.repository import rule_params
 from cvidee.signals.quality import signal_statuses
 from cvidee.store.derived import SqlDerivedDataRepository
@@ -77,7 +82,7 @@ class StoreTimelines:
         if key not in self._cache:
             window = AnalysisWindow(context_start=key.start, emit_from=key.start, end=end)
             observations, events = load_window_input(
-                self._session, self._mapped, self._sources, window
+                self._session, self._mapped, self._sources, window, self._config
             )
             built = build_timelines(observations, events, self._config, window)
             self._cache[key] = {t.signal: t for t in built}
@@ -256,6 +261,8 @@ class FindingsStage:
                     settings={
                         **(settings_values or AnalysisSettings()).model_dump(mode="json"),
                         "installation_profile": profile_settings(session, int(profile.version)),
+                        "operating_mode_mappings": mode_mapping_snapshot(mapped),
+                        "pipeline_mode_mapping": dict(config.mode_mapping),
                     },
                     content=rendered,
                     note=max(recommendation.notes, key=lambda n: (n.created_at_ts, n.id)).text

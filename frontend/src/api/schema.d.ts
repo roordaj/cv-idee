@@ -2597,10 +2597,18 @@ export interface components {
       expected_resolution_s?: number | null;
       /** Valid From */
       valid_from?: string | null;
-      /** Value Map */
+      /**
+       * Value Map
+       * @description Brongebonden waardetabel. Voor operating_mode uitsluitend canonieke modi ch/dhw/standby/afterrun/fault_blocking/unknown; meaning legt de herkomst vast.
+       */
       value_map?: {
         [key: string]: number | string | boolean | null;
       } | null;
+      /**
+       * Mapping Version
+       * @description Immutable mapping version id.
+       */
+      mapping_version?: number | null;
     };
     /** SignalCoverage */
     SignalCoverage: {
@@ -2654,7 +2662,10 @@ export interface components {
       expected_resolution_s?: number | null;
       /** Valid From */
       valid_from?: string | null;
-      /** Value Map */
+      /**
+       * Value Map
+       * @description Brongebonden waardetabel. Voor operating_mode uitsluitend canonieke modi ch/dhw/standby/afterrun/fault_blocking/unknown; meaning legt de herkomst vast.
+       */
       value_map?: {
         [key: string]: number | string | boolean | null;
       } | null;

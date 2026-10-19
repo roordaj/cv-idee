@@ -33,14 +33,17 @@ from typing import Any, cast
 from sqlalchemy import CursorResult, Table, bindparam, delete, insert, select, update
 from sqlalchemy.orm import Session
 
+from cvidee.analysis.modes import mode_code
 from cvidee.analysis.types import (
     HOUR_MS,
     ConnectionEvent,
     ConnectionSource,
+    Mode,
     Observation,
     ObservedValue,
     QualityEvent,
     QualityEventKind,
+    Role,
     SignalRef,
 )
 from cvidee.store.enums import ObservationKind, ObservationOrigin
@@ -182,6 +185,14 @@ def to_analysis_observation(
     value: ObservedValue | None
     if record.state in UNKNOWN_STATES:
         value = None
+    elif signal.role is Role.OPERATING_MODE and value_map is not None:
+        code = mode_code(record.value_num if record.value_num is not None else record.state)
+        mapped = None if code is None else value_map.get(code)
+        try:
+            mode = Mode(mapped) if isinstance(mapped, str) else Mode.UNKNOWN
+        except ValueError:
+            mode = Mode.UNKNOWN
+        value = None if mode is Mode.UNKNOWN else mode
     elif value_map is not None and record.state in value_map:
         value = value_map[record.state]
     elif record.state in ("on", "off"):
