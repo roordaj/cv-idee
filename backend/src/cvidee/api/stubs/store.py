@@ -29,6 +29,12 @@ from cvidee.api.schemas.data import (
     SpecialPeriodList,
     TimelineResponse,
 )
+from cvidee.api.schemas.experiments import (
+    ExperimentCreate,
+    ExperimentList,
+    ExperimentOut,
+    ExperimentStatus,
+)
 from cvidee.api.schemas.findings import (
     FindingDetail,
     FindingList,
@@ -106,6 +112,7 @@ class StubStore:
         self.periods = {p.id: p for p in fx.periods()}
         self.changes = fx.changes()
         self.evaluations = fx.evaluations()
+        self.experiments: dict[str, ExperimentOut] = {}
         self.installation = fx.installation()
         self.policy = fx.notification_policy()
         self.settings_values = AnalysisSettings()
@@ -566,6 +573,58 @@ class StubStore:
         if found is None:
             raise not_found("Wijziging", change_id)
         return found
+
+    def list(self, limit: int, offset: int) -> ExperimentList:
+        items = sorted(self.experiments.values(), key=lambda item: item.created_at, reverse=True)
+        return ExperimentList(
+            items=items[offset : offset + limit], total=len(items), limit=limit, offset=offset
+        )
+
+    def get(self, change_id: str) -> ExperimentOut:
+        found = self.experiments.get(change_id)
+        if found is None:
+            raise not_found("Experiment", change_id)
+        return found
+
+    def create(self, body: ExperimentCreate) -> ExperimentOut:
+        change = next((item for item in self.changes if item.id == body.change_id), None)
+        if change is None:
+            raise not_found("Wijziging", body.change_id)
+        if change.id in self.experiments:
+            raise ProblemError(
+                409, "Experiment bestaat al", "Deze wijziging heeft al een experiment."
+            )
+        now = self.now
+        item = ExperimentOut(
+            change_id=change.id,
+            status=ExperimentStatus.RUNNING,
+            status_text="Loopt",
+            change=change,
+            evaluation=self.evaluation(change.id),
+            created_at=now,
+            updated_at=now,
+            last_evaluated_at=now,
+            completed_at=None,
+            ended_at=None,
+        )
+        self.experiments[change.id] = item
+        return item
+
+    def end(self, change_id: str) -> ExperimentOut:
+        item = self.get(change_id)
+        if item.status is ExperimentStatus.COMPLETED:
+            raise ProblemError(409, "Experiment afgerond", "Dit experiment is al afgerond.")
+        if item.status is ExperimentStatus.RUNNING:
+            item = item.model_copy(
+                update={
+                    "status": ExperimentStatus.ENDED,
+                    "status_text": "Beëindigd",
+                    "ended_at": self.now,
+                    "updated_at": self.now,
+                }
+            )
+            self.experiments[change_id] = item
+        return item
 
     # --- notifications and export ----------------------------------------------------
 

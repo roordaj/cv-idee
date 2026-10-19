@@ -26,6 +26,7 @@ from cvidee.api.schemas.data import (
     SpecialPeriodList,
     TimelineResponse,
 )
+from cvidee.api.schemas.experiments import ExperimentCreate, ExperimentList, ExperimentOut
 from cvidee.api.schemas.findings import (
     FindingDetail,
     FindingList,
@@ -189,6 +190,30 @@ def get_timeline(request: Request) -> Iterator[TimelineBackend]:
 
 
 Changes = Annotated[ChangesBackend, Depends(get_changes)]
+
+
+class ExperimentsBackend(Protocol):
+    def list(self, limit: int, offset: int) -> ExperimentList: ...
+    def get(self, change_id: str) -> ExperimentOut: ...
+    def create(self, body: ExperimentCreate) -> ExperimentOut: ...
+    def end(self, change_id: str) -> ExperimentOut: ...
+
+
+def get_experiments(request: Request) -> Iterator[ExperimentsBackend]:
+    from cvidee.experiments.backend import ExperimentBackend
+
+    stub: StubStore | None = getattr(request.app.state, "stub_store", None)
+    if stub is not None:
+        yield stub
+        return
+    factory: sessionmaker[Session] | None = getattr(request.app.state, "session_factory", None)
+    if factory is None:
+        raise get_stub_store_problem()
+    with factory.begin() as session:
+        yield ExperimentBackend(session, lambda: int(time.time() * 1000))
+
+
+Experiments = Annotated[ExperimentsBackend, Depends(get_experiments)]
 Timeline = Annotated[TimelineBackend, Depends(get_timeline)]
 
 

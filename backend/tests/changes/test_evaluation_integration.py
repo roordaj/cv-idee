@@ -224,6 +224,7 @@ async def test_real_runner_and_api_show_trade_off_and_preserve_rollback_history(
         recorded = next(entry for entry in entries if entry["status"] == "rollback_triggered")
         assert recorded["change_evaluation"]["verdict"] == "trade_off"
         assert recorded["evaluation_parameters"]["comfort_deficit_c"] == 0.5
+
         settings = SettingsBackend(factory, runner)
         current = settings.settings()
         settings.put_settings(
@@ -249,6 +250,41 @@ async def test_real_runner_and_api_show_trade_off_and_preserve_rollback_history(
             assert loaded_rec.status is RecommendationStatus.ROLLBACK_TRIGGERED
             assert loaded_rec.outcome.value == "unfavourable"
     assert data.changes
+
+
+async def test_experiment_reuses_change_evaluation_and_persists_lifecycle(tmp_path: Path) -> None:
+    factory, runner, _ = seed_evaluation(tmp_path, "07-aanvoerwijziging-comfort")
+    app = create_app(Settings.model_validate({}))
+    app.state.session_factory, app.state.runner = factory, runner
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        comparison = (await client.get("/api/changes/W-01/evaluation")).json()
+        created = await client.post("/api/experiments", json={"change_id": "W-01"})
+        assert created.status_code == 201
+        body = created.json()
+        assert body["evaluation"] == comparison
+        assert body["status"] == "completed"
+        assert body["completed_at"] is not None
+        assert (await client.get("/api/experiments/W-01")).json()["evaluation"] == comparison
+        assert (await client.get("/api/experiments?limit=1")).json()["total"] == 1
+        duplicate = await client.post("/api/experiments", json={"change_id": "W-01"})
+        assert duplicate.status_code == 409
+        assert (await client.post("/api/experiments/W-01/end")).status_code == 409
+
+
+async def test_experiment_keeps_existing_overlap_verdict(tmp_path: Path) -> None:
+    factory, runner, _ = seed_evaluation(tmp_path, "08-gelijktijdige-wijzigingen")
+    app = create_app(Settings.model_validate({}))
+    app.state.session_factory, app.state.runner = factory, runner
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        current = (await client.get("/api/changes/W-01/evaluation")).json()
+        created = await client.post("/api/experiments", json={"change_id": "W-01"})
+        assert created.status_code == 201
+        assert created.json()["evaluation"] == current
+        assert created.json()["evaluation"]["verdict"] == "not_attributable"
 
 
 def test_real_runner_bundles_simultaneous_changes_without_attribution(tmp_path: Path) -> None:

@@ -38,6 +38,7 @@ __all__ = [
     "EndReason",
     "EvaluationVerdict",
     "EvidenceKind",
+    "ExperimentStatus",
     "FindingLifecycle",
     "ImportStatus",
     "MetricName",
@@ -180,6 +181,14 @@ class EvaluationVerdict(StrEnum):
     TRADE_OFF = "trade_off"
     NOT_ATTRIBUTABLE = "not_attributable"
     INSUFFICIENT_EVIDENCE = "insufficient_evidence"
+
+
+class ExperimentStatus(StrEnum):
+    """Lifecycle of a user-guided evaluation of one recorded change."""
+
+    RUNNING = "running"
+    COMPLETED = "completed"
+    ENDED = "ended"
 
 
 class NotificationChannel(StrEnum):

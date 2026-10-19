@@ -604,6 +604,61 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/experiments': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Experiments */
+    get: operations['list_experiments'];
+    put?: never;
+    /**
+     * Create Experiment
+     * @description Follow one previously recorded, single-parameter change.
+     */
+    post: operations['create_experiment'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/experiments/{change_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Experiment */
+    get: operations['get_experiment'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/experiments/{change_id}/end': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** End Experiment */
+    post: operations['end_experiment'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/notifications/policy': {
     parameters: {
       query?: never;
@@ -1500,6 +1555,66 @@ export interface components {
       /** Label */
       label?: string | null;
     };
+    /**
+     * ExperimentCreate
+     * @description Start following one existing single-parameter change.
+     */
+    ExperimentCreate: {
+      /**
+       * Change Id
+       * @example W-07
+       */
+      change_id: string;
+    };
+    /** ExperimentList */
+    ExperimentList: {
+      /** Items */
+      items: components['schemas']['ExperimentOut'][];
+      /** Total */
+      total: number;
+      /** Limit */
+      limit: number;
+      /** Offset */
+      offset: number;
+    };
+    /**
+     * ExperimentOut
+     * @description Experiment lifecycle and the existing change evaluation it reuses.
+     */
+    ExperimentOut: {
+      /** Change Id */
+      change_id: string;
+      status: components['schemas']['ExperimentStatus'];
+      /** Status Text */
+      status_text: string;
+      change: components['schemas']['Change'];
+      evaluation: components['schemas']['ChangeEvaluation'] | null;
+      /**
+       * Created At
+       * Format: date-time
+       * @description ISO 8601 timestamp in UTC.
+       * @example 2026-10-04T10:00:00Z
+       */
+      created_at: string;
+      /**
+       * Updated At
+       * Format: date-time
+       * @description ISO 8601 timestamp in UTC.
+       * @example 2026-10-04T10:00:00Z
+       */
+      updated_at: string;
+      /** Last Evaluated At */
+      last_evaluated_at: string | null;
+      /** Completed At */
+      completed_at: string | null;
+      /** Ended At */
+      ended_at: string | null;
+    };
+    /**
+     * ExperimentStatus
+     * @enum {string}
+     */
+    ExperimentStatus: 'running' | 'completed' | 'ended';
     /**
      * FieldError
      * @description One validation error (``422``), shown on the matching form field.
@@ -4870,6 +4985,226 @@ export interface operations {
         content: {
           'application/problem+json': components['schemas']['Problem'];
           'application/json': components['schemas']['Problem'];
+        };
+      };
+      /** @description Not implemented (start the backend with CVIDEE_STUB_DATA=1 for example data) */
+      501: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+    };
+  };
+  list_experiments: {
+    parameters: {
+      query?: {
+        /** @description Page size. */
+        limit?: number;
+        /** @description Items to skip. */
+        offset?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ExperimentList'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+      /** @description Not implemented (start the backend with CVIDEE_STUB_DATA=1 for example data) */
+      501: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+    };
+  };
+  create_experiment: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ExperimentCreate'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ExperimentOut'];
+        };
+      };
+      /** @description Not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+      /** @description Validation error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+      /** @description Not implemented (start the backend with CVIDEE_STUB_DATA=1 for example data) */
+      501: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+    };
+  };
+  get_experiment: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        change_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ExperimentOut'];
+        };
+      };
+      /** @description Not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+      /** @description Not implemented (start the backend with CVIDEE_STUB_DATA=1 for example data) */
+      501: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+    };
+  };
+  end_experiment: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        change_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ExperimentOut'];
+        };
+      };
+      /** @description Not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
         };
       };
       /** @description Not implemented (start the backend with CVIDEE_STUB_DATA=1 for example data) */
