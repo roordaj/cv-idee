@@ -141,6 +141,29 @@ describe('CyclesScreen', () => {
     expect(screen.getByRole('radio', { name: '6 uur', checked: true })).toBeInTheDocument();
   });
 
+  it('links to the last change before the selected time window', async () => {
+    const timeline = {
+      ...TIMELINE,
+      last_change_before: {
+        id: 'W-07',
+        at: '2026-09-21T06:30:00Z',
+        parameter: 'Maximale CV-aanvoer',
+      },
+    };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>((input) => {
+        const url = new URL((input as Request).url);
+        return Promise.resolve(
+          json(url.pathname === '/api/timeline' ? timeline : { items: CYCLES, summary: SUMMARY }),
+        );
+      }),
+    );
+    renderScreen();
+    const link = await screen.findByRole('link', { name: /W-07.*Maximale CV-aanvoer/ });
+    expect(link.getAttribute('href')).toBe('/wijzigingen?wijziging=W-07');
+  });
+
   it('formats an incomplete cycle with unknown end and lower-bound duration', async () => {
     stubApi();
     renderScreen();
