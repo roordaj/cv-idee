@@ -6,7 +6,7 @@ from sqlalchemy import Boolean, Float, ForeignKey, Integer, String, Text, Unique
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from cvidee.store.base import Base, enum_column, ts_column
-from cvidee.store.enums import ChangeActor, EvaluationVerdict
+from cvidee.store.enums import ChangeActor, EvaluationVerdict, ExperimentStatus
 
 
 class Change(Base):
@@ -85,3 +85,22 @@ class ChangeEvaluation(Base):
     config_hash: Mapped[str] = mapped_column(String(64))
 
     change: Mapped[Change] = relationship(back_populates="evaluation")
+
+
+class Experiment(Base):
+    """Persistent lifecycle for evaluating one manually recorded installation change."""
+
+    __tablename__ = "experiments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    change_id: Mapped[int] = mapped_column(
+        ForeignKey("changes.id", ondelete="CASCADE"), unique=True
+    )
+    status: Mapped[ExperimentStatus] = enum_column(
+        ExperimentStatus, "status", default=ExperimentStatus.RUNNING
+    )
+    created_at_ts: Mapped[int] = ts_column()
+    updated_at_ts: Mapped[int] = ts_column()
+    completed_at_ts: Mapped[int | None] = ts_column(nullable=True)
+    ended_at_ts: Mapped[int | None] = ts_column(nullable=True)
+    change: Mapped[Change] = relationship()

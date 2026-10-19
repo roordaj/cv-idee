@@ -4,7 +4,7 @@ Importing this package registers all tables on :data:`Base.metadata`.
 """
 
 from cvidee.store.base import Base
-from cvidee.store.models.changes import Change, ChangeEvaluation, ChangeItem
+from cvidee.store.models.changes import Change, ChangeEvaluation, ChangeItem, Experiment
 from cvidee.store.models.derived import (
     AnalysisRun,
     BurnerCycle,
@@ -42,6 +42,7 @@ __all__ = [
     "ChangeEvaluation",
     "ChangeItem",
     "ConnectionEvent",
+    "Experiment",
     "Finding",
     "FindingEvidence",
     "FindingHypothesis",

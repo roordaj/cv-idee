@@ -41,11 +41,12 @@ from cvidee.settings.repository import current_revision, effective_values, pipel
 from cvidee.store.derived import SqlDerivedDataRepository
 from cvidee.store.enums import (
     EvaluationVerdict,
+    ExperimentStatus,
     RecommendationOutcome,
     RecommendationStatus,
     SnapshotTrigger,
 )
-from cvidee.store.models import Change, ChangeEvaluation, Recommendation, SpecialPeriod
+from cvidee.store.models import Change, ChangeEvaluation, Experiment, Recommendation, SpecialPeriod
 from cvidee.store.models import InstallationProfile as ProfileRow
 
 RULE_VERSION = EVALUATION_VERSION
@@ -152,6 +153,7 @@ def render_evaluation(fact: EvaluationFact) -> EvaluationOut:
         )
         for room in sorted(old_coverage.keys() | new_coverage.keys())
     )
+
     metrics = []
     specs = [
         (
@@ -253,6 +255,32 @@ def render_evaluation(fact: EvaluationFact) -> EvaluationOut:
         conditions=conditions,
         metrics=metrics,
         result_expected_at=_dt(fact.observation.end)
+        if verdict is EvaluationVerdict.PENDING
+        else None,
+    )
+
+
+def render_persisted_evaluation(row: ChangeEvaluation) -> EvaluationOut:
+    """Render the last stored evaluation without recalculating its periods or metrics."""
+    verdict = EvaluationVerdict(row.verdict)
+    return EvaluationOut(
+        change_id=row.change.human_id,
+        verdict=verdict,
+        verdict_text=VERDICTS[verdict],
+        summary=row.summary or "",
+        before=RangeOut(start=_dt(row.reference_start_ts), end=_dt(row.reference_end_ts)),
+        after=RangeOut(start=_dt(row.observation_start_ts), end=_dt(row.observation_end_ts)),
+        before_text=(
+            f"{_dt(row.reference_start_ts).astimezone(ZoneInfo('Europe/Amsterdam')):%d-%m-%Y} "
+            f"tot {_dt(row.reference_end_ts).astimezone(ZoneInfo('Europe/Amsterdam')):%d-%m-%Y}"
+        ),
+        after_text=(
+            f"{_dt(row.observation_start_ts).astimezone(ZoneInfo('Europe/Amsterdam')):%d-%m-%Y} "
+            f"tot {_dt(row.observation_end_ts).astimezone(ZoneInfo('Europe/Amsterdam')):%d-%m-%Y}"
+        ),
+        conditions=[ConditionRow.model_validate(item) for item in row.comparability],
+        metrics=[MetricComparison.model_validate(item) for item in row.metrics],
+        result_expected_at=_dt(row.observation_end_ts)
         if verdict is EvaluationVerdict.PENDING
         else None,
     )
@@ -523,6 +551,12 @@ def evaluate_stored_change(
                     "evaluation_config_hash": row.config_hash,
                 },
             )
+    experiment = session.scalar(select(Experiment).where(Experiment.change_id == change.id))
+    if experiment is not None and experiment.status is ExperimentStatus.RUNNING:
+        if fact.verdict != EvaluationVerdict.PENDING:
+            experiment.status = ExperimentStatus.COMPLETED
+            experiment.completed_at_ts = now
+        experiment.updated_at_ts = now
     session.flush()
     return fact
 
