@@ -35,6 +35,8 @@ def read_policy(session: Session) -> PolicyOut:
         channels=SeverityChannels(**{str(key): value for key, value in channels.items()}),
         bundle_related=bool(raw.get("notification.bundle_related", True)),
         renotify_on_worsening=bool(raw.get("notification.renotify_on_worsening", True)),
+        daily_report_enabled=bool(raw.get("reports.daily_enabled", False)),
+        weekly_report_enabled=bool(raw.get("reports.weekly_enabled", False)),
         recovery_text=(
             f"{values.recovery_days} dagen zonder patroon{weather} "
             f"en ≥ {values.recovery_min_coverage_pct} % gegevens"
@@ -70,7 +72,19 @@ class NotificationBackend:
                 "notification.bundle_related": body.bundle_related,
                 "notification.renotify_on_worsening": body.renotify_on_worsening,
             }
-            if any(raw.get(key, True) != value for key, value in toggles.items()):
+            toggles.update(
+                {
+                    "reports.daily_enabled": body.daily_report_enabled,
+                    "reports.weekly_enabled": body.weekly_report_enabled,
+                }
+            )
+            defaults = {
+                "notification.bundle_related": True,
+                "notification.renotify_on_worsening": True,
+                "reports.daily_enabled": False,
+                "reports.weekly_enabled": False,
+            }
+            if any(raw.get(key, defaults[key]) != value for key, value in toggles.items()):
                 values = effective_values(current)
                 session.add(
                     SettingsRevision(

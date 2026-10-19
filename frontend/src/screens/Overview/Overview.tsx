@@ -485,6 +485,9 @@ function OverviewContent({ data }: { data: Overview }) {
         <QualityCard data={data} />
       </div>
       <AnalysesCard insufficient={insufficient} analyses={data.analyses} />
+      <Section title="Rapportage">
+        <LinkButton to="/rapporten">Dag- of weekrapport bekijken</LinkButton>
+      </Section>
     </div>
   );
 }

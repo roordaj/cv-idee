@@ -31,6 +31,7 @@ from cvidee.store.models.profile import (
     ProfileZone,
     SpecialPeriod,
 )
+from cvidee.store.models.reports import ReportSnapshotRecord
 from cvidee.store.models.settings import SettingsRevision
 from cvidee.store.models.signals import SignalDefinition, SignalMapping, SourceEntity
 
@@ -62,6 +63,7 @@ __all__ = [
     "Recommendation",
     "RecommendationNote",
     "RecommendationSnapshot",
+    "ReportSnapshotRecord",
     "SettingsRevision",
     "SignalDefinition",
     "SignalMapping",

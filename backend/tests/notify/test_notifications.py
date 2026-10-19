@@ -2,6 +2,7 @@
 
 from datetime import UTC, datetime
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock
 
@@ -333,6 +334,68 @@ async def test_disabled_channel_stops_push_of_already_prepared_digest(tmp_path: 
     await dispatcher.tick()
     ha.call_service.assert_not_awaited()
     ha.fire_event.assert_awaited_once()
+
+
+async def test_enabled_day_and_week_reports_are_idempotent(tmp_path: Path) -> None:
+    factory = make_db(tmp_path)
+    policy = NotificationBackend(factory).policy.model_dump(exclude={"recovery_text"})
+    policy.update(daily_report_enabled=True, weekly_report_enabled=True)
+    NotificationBackend(factory).put_policy(NotificationPolicyIn.model_validate(policy))
+    built: list[tuple[str, str]] = []
+
+    def build(kind: Any, reference_date: Any) -> Any:
+        built.append((kind.value, reference_date.isoformat()))
+        return SimpleNamespace(
+            cycle_summary=SimpleNamespace(ch_cycles=3, dhw_cycles=1), findings=[1], changes=[]
+        )
+
+    monday_0800 = round(datetime(2026, 10, 19, 6, tzinfo=UTC).timestamp() * 1000)
+    ha = client()
+    dispatcher = NotificationService(
+        factory, ha, "notify.mobile_app_test", clock=lambda: monday_0800, report_builder=build
+    )
+    await dispatcher.tick()
+    await dispatcher.tick()
+    reports = [row for row in rows(factory) if row.payload.get("kind") == "report"]
+    assert {(row.payload["report_kind"], row.payload["report_period"]) for row in reports} == {
+        ("day", "day:2026-10-18"),
+        ("week", "week:2026-10-12"),
+    }
+    assert len(reports) == 2
+    assert all(row.delivery_status is DeliveryStatus.SENT for row in reports)
+    assert ha.call_service.await_count == 2
+
+
+async def test_turning_off_report_delivery_suppresses_a_queued_report(tmp_path: Path) -> None:
+    factory = make_db(tmp_path)
+    backend = NotificationBackend(factory)
+    policy = backend.policy.model_dump(exclude={"recovery_text"})
+    policy["daily_report_enabled"] = True
+    backend.put_policy(NotificationPolicyIn.model_validate(policy))
+
+    def build(kind: Any, reference_date: Any) -> Any:
+        return SimpleNamespace(
+            cycle_summary=SimpleNamespace(ch_cycles=0, dhw_cycles=0), findings=[], changes=[]
+        )
+
+    monday_0800 = round(datetime(2026, 10, 19, 6, tzinfo=UTC).timestamp() * 1000)
+    ha = client()
+    ha.connected = False
+    dispatcher = NotificationService(
+        factory, ha, "mobile_app_test", clock=lambda: monday_0800, report_builder=build
+    )
+    await dispatcher.tick()
+    queued = next(row for row in rows(factory) if row.payload.get("kind") == "report")
+    assert queued.delivery_status is DeliveryStatus.PENDING
+
+    policy["daily_report_enabled"] = False
+    backend.put_policy(NotificationPolicyIn.model_validate(policy))
+    ha.connected = True
+    await dispatcher.tick()
+    updated = next(row for row in rows(factory) if row.id == queued.id)
+    assert updated.delivery_status is DeliveryStatus.SUPPRESSED
+    ha.call_service.assert_not_awaited()
+    ha.fire_event.assert_not_awaited()
 
 
 def test_notification_policy_preserves_analysis_and_onboarding_across_saves(tmp_path: Path) -> None:
