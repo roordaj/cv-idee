@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 
 from cvidee.api.problems import ProblemError, not_found
 from cvidee.api.schemas.changes import Change, ChangeCreate, ChangeEvaluation, ChangeList
+from cvidee.api.schemas.comfort import RoomComfortAnalysisResponse, RoomComfortResult
 from cvidee.api.schemas.common import Page, TimeRange
 from cvidee.api.schemas.data import (
     ChangeMarker,
@@ -241,6 +242,50 @@ class StubStore:
 
     def installation_profile(self) -> InstallationProfile:
         return self.installation
+
+    def room_comfort_analysis(
+        self, start: datetime | None = None, end: datetime | None = None
+    ) -> RoomComfortAnalysisResponse:
+        end = end or self.now
+        start = start or end - timedelta(days=7)
+        if start.tzinfo is None or end.tzinfo is None or start >= end:
+            raise ProblemError(
+                422, "Ongeldig tijdvak", "Begin en einde moeten geldige tijdstippen zijn."
+            )
+        return RoomComfortAnalysisResponse(
+            start=start,
+            end=end,
+            profile_version=str(self.installation.revision),
+            comfort_margin_c=0.5,
+            rooms=[
+                RoomComfortResult(
+                    room_key=room.key,
+                    room_name=room.name,
+                    availability="not_available",
+                    target_source=(
+                        "configured_schedule"
+                        if room.comfort is not None and room.comfort.status == "scheduled"
+                        else "not_configured"
+                    ),
+                    expected_hours=0,
+                    observed_hours=0,
+                    coverage_pct=None,
+                    comfort_loss_target_hours=None,
+                    comfort_loss_setpoint_hours=None,
+                    overshoot_target_hours=None,
+                    max_overshoot_target_c=None,
+                    overshoot_setpoint_hours=None,
+                    max_overshoot_setpoint_c=None,
+                    mean_target_deviation_c=None,
+                    mean_setpoint_deviation_c=None,
+                    warmup_mean_minutes=None,
+                    warmup_samples=0,
+                    warmup_incomplete=False,
+                    missing_signals=[f"room_temperature@room:{room.key}"],
+                )
+                for room in self.installation.rooms
+            ],
+        )
 
     def put_installation(self, body: InstallationProfileIn) -> InstallationProfile:
         if body.revision != self.installation.revision:

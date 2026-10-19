@@ -1,12 +1,16 @@
 """Pure before/after metrics and conservative verdicts (FR-30, FR-32)."""
 
+from __future__ import annotations
+
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from itertools import pairwise
 from statistics import median
+from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
+from cvidee.analysis.room_comfort import RoomComfortPeriod, analyze_room_comfort
 from cvidee.analysis.types import (
     OUTDOOR,
     BurnerCycle,
@@ -21,6 +25,9 @@ from cvidee.analysis.types import (
     SignalTimeline,
     TimeRange,
 )
+
+if TYPE_CHECKING:
+    from cvidee.api.schemas.installation import RoomComfort
 
 HOUR_MS = 3_600_000
 DAY_MS = 24 * HOUR_MS
@@ -57,6 +64,7 @@ class PeriodMetrics:
     flame_resolution_ms: int | None = None
     setpoint_values: tuple[tuple[str, tuple[float, ...]], ...] = ()
     setpoint_profile: tuple[tuple[str, tuple[tuple[int, float], ...]], ...] = ()
+    comfort_profile_mixed: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -172,6 +180,9 @@ def period_metrics(
     modes: Sequence[ModeSegment],
     exclusions: Sequence[TimeRange],
     policy: ComparisonPolicy,
+    room_comfort: dict[str, RoomComfort] | None = None,
+    comfort_periods: dict[str, tuple[RoomComfortPeriod, ...]] | None = None,
+    comfort_profile_mixed: bool = False,
 ) -> PeriodMetrics:
     by_signal = {t.signal: t for t in timelines}
     eligible = eligible_ranges(window, exclusions)
@@ -281,6 +292,42 @@ def period_metrics(
         and not any(gap.start < right and left < gap.end for gap in flame_gaps)
     ]
     resolution = round(median(intervals)) if intervals else None
+    if room_comfort is not None:
+        if comfort_profile_mixed:
+            for room, config in room_comfort.items():
+                if config.status == "scheduled":
+                    cold_hours = [pair for pair in cold_hours if pair[0] != room]
+                    room_coverage = [pair for pair in room_coverage if pair[0] != room]
+                    cold_hours.append((room, None))
+                    room_coverage.append((room, 0.0))
+        else:
+            for room, comfort in room_comfort.items():
+                if comfort.status != "scheduled":
+                    continue
+                actual = by_signal.get(
+                    SignalRef(Role.ROOM_TEMPERATURE, Scope(ScopeKind.ROOM, room))
+                )
+                setpoint = by_signal.get(SignalRef(Role.ROOM_SETPOINT, Scope(ScopeKind.ROOM, room)))
+                metrics = analyze_room_comfort(
+                    room,
+                    comfort,
+                    actual,
+                    setpoint,
+                    tuple(modes),
+                    window.start,
+                    window.end,
+                    policy.comfort_deficit_c,
+                    () if comfort_periods is None else comfort_periods.get(room, ()),
+                )
+                weekly_loss = (
+                    None
+                    if metrics.target_comfort_loss_ms is None or metrics.observed_ms == 0
+                    else metrics.target_comfort_loss_ms / metrics.observed_ms * 168
+                )
+                cold_hours = [pair for pair in cold_hours if pair[0] != room]
+                room_coverage = [pair for pair in room_coverage if pair[0] != room]
+                cold_hours.append((room, weekly_loss))
+                room_coverage.append((room, metrics.coverage or 0.0))
     return PeriodMetrics(
         coverage=coverage,
         observed_hours=hours,
@@ -302,6 +349,7 @@ def period_metrics(
         flame_resolution_ms=resolution,
         setpoint_values=tuple(setpoint_values),
         setpoint_profile=tuple(setpoint_profile),
+        comfort_profile_mixed=comfort_profile_mixed,
     )
 
 

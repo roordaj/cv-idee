@@ -13,17 +13,24 @@ from collections.abc import Sequence
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
 
+from cvidee.analysis.quality import apply_quality
+from cvidee.analysis.room_comfort import RoomComfortMetrics, RoomComfortPeriod, analyze_room_comfort
 from cvidee.analysis.timeline import build_timelines
 from cvidee.analysis.types import (
     AnalysisWindow,
     MetricWindowKind,
     PipelineConfig,
     PipelineResult,
+    Role,
+    Scope,
+    ScopeKind,
     SignalRef,
     SignalTimeline,
     TimeRange,
 )
 from cvidee.api.findings_read import FindingsReadModel
+from cvidee.api.schemas.data import RoomComfortOverride
+from cvidee.api.schemas.installation import RoomComfort
 from cvidee.api.schemas.settings import AnalysisSettings
 from cvidee.changes.evaluation import evaluate_changes
 from cvidee.findings.bundling import bundle_signature
@@ -31,7 +38,7 @@ from cvidee.findings.engine import EngineResult, FindingsEngine, RecoverySetting
 from cvidee.findings.history import profile_settings
 from cvidee.findings.repository import SqlFindingRepository
 from cvidee.installation import SqlInstallationProfileRepository, profile_facts
-from cvidee.periods import rule_periods
+from cvidee.periods import SqlSpecialPeriodRepository, rule_periods
 from cvidee.rules.availability import AvailabilityPolicy, assess_analyses
 from cvidee.rules.base import RuleContext
 from cvidee.rules.registry import RuleRegistry
@@ -167,8 +174,72 @@ class FindingsStage:
         built = timelines.build(period)
         statuses = signal_statuses(session, mapped, built, period)
         profiles = SqlInstallationProfileRepository(session)
-        profile = profile_facts(profiles.at(now) or profiles.current_or_default(now))
+        stored_profile = profiles.at(now) or profiles.current_or_default(now)
+        profile = profile_facts(stored_profile)
         derived = SqlDerivedDataRepository(session)
+        mode_segments = tuple(derived.mode_segments(period.start, now))
+        analysis_settings = settings_values or AnalysisSettings()
+        comfort_start = max(period.start, stored_profile.valid_from_ts)
+        room_comfort: list[tuple[str, RoomComfortMetrics]] = []
+        if comfort_start < now:
+            comfort_timelines = apply_quality(
+                tuple(built.values()), config, AnalysisWindow(comfort_start, comfort_start, now)
+            ).timelines
+            comfort_by_signal = {item.signal: item for item in comfort_timelines}
+            special_rows = SqlSpecialPeriodRepository(session).in_range(comfort_start, now)
+            room_details = stored_profile.details.get("rooms", {})
+            for room in stored_profile.rooms:
+                comfort = RoomComfort.model_validate(
+                    room_details.get(room.key, {}).get(
+                        "comfort", {"status": "not_configured", "windows": []}
+                    )
+                )
+                periods: list[RoomComfortPeriod] = []
+                for special in special_rows:
+                    special_start = max(comfort_start, special.start_ts)
+                    special_end = min(now, special.end_ts or now)
+                    if special_start >= special_end:
+                        continue
+                    override = next(
+                        (
+                            found
+                            for raw in special.room_overrides
+                            if (found := RoomComfortOverride.model_validate(raw)).room_key
+                            == room.key
+                        ),
+                        None,
+                    )
+                    periods.append(
+                        RoomComfortPeriod(
+                            start=special_start,
+                            end=special_end,
+                            excluded=special.exclude_from_ch_conclusions,
+                            override_kind=None if override is None else override.kind,
+                            override_target_c=(
+                                None if override is None else override.target_temperature_c
+                            ),
+                        )
+                    )
+                actual_ref = SignalRef(Role.ROOM_TEMPERATURE, Scope(ScopeKind.ROOM, room.key))
+                setpoint_ref = SignalRef(Role.ROOM_SETPOINT, Scope(ScopeKind.ROOM, room.key))
+                room_comfort.append(
+                    (
+                        room.key,
+                        analyze_room_comfort(
+                            room.key,
+                            comfort,
+                            comfort_by_signal.get(actual_ref)
+                            if room.circuit_key is not None
+                            else None,
+                            comfort_by_signal.get(setpoint_ref),
+                            mode_segments,
+                            comfort_start,
+                            now,
+                            analysis_settings.comfort_margin_c,
+                            tuple(periods),
+                        ),
+                    )
+                )
         metrics = tuple(
             m for kind in MetricWindowKind for m in derived.metric_values(kind, period.start, now)
         )
@@ -191,13 +262,17 @@ class FindingsStage:
                 change_evaluations,
             ),
             cycles=tuple(derived.burner_cycles(period.start, now)),
-            mode_segments=tuple(derived.mode_segments(period.start, now)),
+            mode_segments=mode_segments,
             metrics=metrics,
             quality_events=tuple(derived.quality_events(period.start, now)),
             special_periods=rule_periods(session, period),
             timelines=timelines,
             config_hash=config.config_hash,
             change_evaluations=change_evaluations,
+            room_comfort=tuple(room_comfort),
+            allowed_room_comfort_loss_h_week=analysis_settings.allowed_comfort_loss_h_per_week,
+            minimum_room_comfort_coverage=analysis_settings.min_assessment_coverage_pct / 100,
+            minimum_room_comfort_observed_hours=float(analysis_settings.min_observation_hours),
         )
         recovery = (
             self.recovery

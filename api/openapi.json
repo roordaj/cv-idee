@@ -102,6 +102,74 @@
         }
       }
     },
+    "/api/comfort": {
+      "get": {
+        "tags": [
+          "comfort"
+        ],
+        "summary": "Get Room Comfort",
+        "description": "Return independent comfort metrics by room for a UTC range (default: last 7 days).",
+        "operationId": "get_room_comfort",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomComfortAnalysisResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/signals": {
       "get": {
         "tags": [
@@ -4938,6 +5006,19 @@
         ],
         "title": "GlossaryTerm"
       },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
       "HaConnectionState": {
         "type": "string",
         "enum": [
@@ -7467,6 +7548,54 @@
         "title": "RoomComfort",
         "description": "Explicit user intent; unconfigured stays distinct from no expectation."
       },
+      "RoomComfortAnalysisResponse": {
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Start",
+            "description": "ISO 8601 timestamp in UTC.",
+            "examples": [
+              "2026-10-04T10:00:00Z"
+            ]
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time",
+            "title": "End",
+            "description": "ISO 8601 timestamp in UTC.",
+            "examples": [
+              "2026-10-04T10:00:00Z"
+            ]
+          },
+          "profile_version": {
+            "type": "string",
+            "title": "Profile Version"
+          },
+          "comfort_margin_c": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Comfort Margin C"
+          },
+          "rooms": {
+            "items": {
+              "$ref": "#/components/schemas/RoomComfortResult"
+            },
+            "type": "array",
+            "title": "Rooms"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "start",
+          "end",
+          "profile_version",
+          "comfort_margin_c",
+          "rooms"
+        ],
+        "title": "RoomComfortAnalysisResponse"
+      },
       "RoomComfortOverride": {
         "properties": {
           "room_key": {
@@ -7505,6 +7634,193 @@
         ],
         "title": "RoomComfortOverride",
         "description": "A room-specific expectation during an existing special period."
+      },
+      "RoomComfortResult": {
+        "properties": {
+          "room_key": {
+            "type": "string",
+            "title": "Room Key"
+          },
+          "room_name": {
+            "type": "string",
+            "title": "Room Name"
+          },
+          "availability": {
+            "type": "string",
+            "enum": [
+              "available",
+              "limited",
+              "not_available"
+            ],
+            "title": "Availability"
+          },
+          "target_source": {
+            "type": "string",
+            "enum": [
+              "configured_schedule",
+              "special_period",
+              "not_configured"
+            ],
+            "title": "Target Source"
+          },
+          "expected_hours": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Expected Hours"
+          },
+          "observed_hours": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Observed Hours"
+          },
+          "coverage_pct": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coverage Pct"
+          },
+          "comfort_loss_target_hours": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comfort Loss Target Hours"
+          },
+          "comfort_loss_setpoint_hours": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comfort Loss Setpoint Hours"
+          },
+          "overshoot_target_hours": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Overshoot Target Hours"
+          },
+          "max_overshoot_target_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Overshoot Target C"
+          },
+          "overshoot_setpoint_hours": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Overshoot Setpoint Hours"
+          },
+          "max_overshoot_setpoint_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Overshoot Setpoint C"
+          },
+          "mean_target_deviation_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mean Target Deviation C"
+          },
+          "mean_setpoint_deviation_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mean Setpoint Deviation C"
+          },
+          "warmup_mean_minutes": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Warmup Mean Minutes"
+          },
+          "warmup_samples": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Warmup Samples"
+          },
+          "warmup_incomplete": {
+            "type": "boolean",
+            "title": "Warmup Incomplete"
+          },
+          "missing_signals": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing Signals"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "room_key",
+          "room_name",
+          "availability",
+          "target_source",
+          "expected_hours",
+          "observed_hours",
+          "warmup_samples",
+          "warmup_incomplete",
+          "missing_signals"
+        ],
+        "title": "RoomComfortResult"
       },
       "RoomComfortWindow": {
         "properties": {
@@ -9032,6 +9348,46 @@
         ],
         "title": "TriState",
         "description": "Boolean fact that can also be explicitly unknown (e.g. heat demand after a stop)."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
       },
       "Zone": {
         "properties": {

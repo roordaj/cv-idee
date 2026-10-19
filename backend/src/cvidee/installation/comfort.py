@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
-from cvidee.api.schemas.installation import RoomComfort
+if TYPE_CHECKING:
+    from cvidee.api.schemas.installation import RoomComfort
 
 
 def comfort_target_at(comfort: RoomComfort, instant: datetime) -> float | None:

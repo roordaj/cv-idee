@@ -26,6 +26,7 @@ from zoneinfo import ZoneInfo
 from pydantic import BaseModel, ConfigDict, Field
 
 from cvidee.analysis.change_evaluation import EvaluationFact
+from cvidee.analysis.room_comfort import RoomComfortMetrics
 from cvidee.analysis.types import (
     BOILER,
     OUTDOOR,
@@ -444,6 +445,10 @@ class RuleContext:
     timelines: TimelineSource = field(default_factory=StaticTimelines)
     config_hash: str = ""
     change_evaluations: tuple[EvaluationFact, ...] = ()
+    room_comfort: tuple[tuple[str, RoomComfortMetrics], ...] = ()
+    allowed_room_comfort_loss_h_week: float = 4.0
+    minimum_room_comfort_coverage: float = 0.8
+    minimum_room_comfort_observed_hours: float = 6.0
     tz: str = LOCAL_TZ
 
     # -- signals -------------------------------------------------------------------------
