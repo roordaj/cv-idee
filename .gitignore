@@ -18,3 +18,5 @@ coverage/
 /build/
 /data/
 /backend/data/
+/frontend/playwright-report/
+/frontend/test-results/

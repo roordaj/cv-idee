@@ -1,0 +1,25 @@
+services:
+  mosquitto:
+    ports: !override
+      - "127.0.0.1:1884:1883"
+
+  homeassistant:
+    ports: !override
+      - "127.0.0.1:8124:8123"
+
+  app:
+    environment:
+      HA_URL: ""
+      HA_TOKEN: ""
+      CVIDEE_STUB_DATA: "1"
+      CVIDEE_ANALYSIS_ENABLED: "false"
+
+  ingress:
+    image: nginx:1.27-alpine
+    ports:
+      - "127.0.0.1:8180:80"
+    volumes:
+      - ./e2e/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      app:
+        condition: service_healthy
