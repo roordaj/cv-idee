@@ -2695,6 +2695,74 @@
           }
         }
       }
+    },
+    "/api/zones/analysis": {
+      "get": {
+        "tags": [
+          "zone-analysis"
+        ],
+        "summary": "Get Zone Analysis",
+        "description": "Compare complete CH cycles with independently counted zone demand and valve states.",
+        "operationId": "get_zone_analysis",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZoneAnalysisResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2876,6 +2944,23 @@
             ],
             "x-step": 1,
             "x-unit": "cycli"
+          },
+          "few_active_zones_max": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 64.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grens voor weinig actieve zones",
+            "description": "Alleen ingevuld als je zelf een aantal zones kiest; anders worden alleen gemeten aantallen vergeleken zonder laag-/hooglabel of diagnose.",
+            "x-group": "short_cycles",
+            "x-step": 1,
+            "x-unit": "zones"
           },
           "min_observation_hours": {
             "type": "integer",
@@ -5802,6 +5887,51 @@
           "cancelled"
         ],
         "title": "ImportStatus"
+      },
+      "IncompleteZoneCount": {
+        "properties": {
+          "cycle_start": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Cycle Start",
+            "description": "ISO 8601 timestamp in UTC.",
+            "examples": [
+              "2026-10-04T10:00:00Z"
+            ]
+          },
+          "known_active_count": {
+            "type": "integer",
+            "title": "Known Active Count"
+          },
+          "known_zone_keys": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Known Zone Keys"
+          },
+          "missing_zone_keys": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing Zone Keys"
+          },
+          "short": {
+            "type": "boolean",
+            "title": "Short"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "cycle_start",
+          "known_active_count",
+          "known_zone_keys",
+          "missing_zone_keys",
+          "short"
+        ],
+        "title": "IncompleteZoneCount"
       },
       "InstallationProfile": {
         "properties": {
@@ -9420,6 +9550,262 @@
         ],
         "title": "Zone",
         "description": "A stable, circuit-scoped heating zone in the installation profile."
+      },
+      "ZoneAnalysisResponse": {
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Start",
+            "description": "ISO 8601 timestamp in UTC.",
+            "examples": [
+              "2026-10-04T10:00:00Z"
+            ]
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time",
+            "title": "End",
+            "description": "ISO 8601 timestamp in UTC.",
+            "examples": [
+              "2026-10-04T10:00:00Z"
+            ]
+          },
+          "profile_version": {
+            "type": "string",
+            "title": "Profile Version"
+          },
+          "few_active_zones_max": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Few Active Zones Max"
+          },
+          "zone_demand": {
+            "$ref": "#/components/schemas/ZoneSignalAnalysis"
+          },
+          "valve_state": {
+            "$ref": "#/components/schemas/ZoneSignalAnalysis"
+          },
+          "short_cycle_threshold_s": {
+            "type": "number",
+            "title": "Short Cycle Threshold S"
+          },
+          "exclusions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Exclusions"
+          },
+          "interpretation": {
+            "type": "string",
+            "title": "Interpretation"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "start",
+          "end",
+          "profile_version",
+          "few_active_zones_max",
+          "zone_demand",
+          "valve_state",
+          "short_cycle_threshold_s",
+          "exclusions",
+          "interpretation"
+        ],
+        "title": "ZoneAnalysisResponse"
+      },
+      "ZoneCountBin": {
+        "properties": {
+          "active_count": {
+            "type": "integer",
+            "title": "Active Count"
+          },
+          "cycles": {
+            "type": "integer",
+            "title": "Cycles"
+          },
+          "short_cycles": {
+            "type": "integer",
+            "title": "Short Cycles"
+          },
+          "cycle_starts": {
+            "items": {
+              "type": "string",
+              "format": "date-time",
+              "description": "ISO 8601 timestamp in UTC.",
+              "examples": [
+                "2026-10-04T10:00:00Z"
+              ]
+            },
+            "type": "array",
+            "title": "Cycle Starts",
+            "description": "Cycle starts included in this bin; usable to open matching timeline evidence."
+          },
+          "few_active_zones": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Few Active Zones",
+            "description": "True only when a user-configured threshold exists and this count is at or below it."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "active_count",
+          "cycles",
+          "short_cycles",
+          "cycle_starts",
+          "few_active_zones"
+        ],
+        "title": "ZoneCountBin"
+      },
+      "ZoneSignalAnalysis": {
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "zone_demand",
+              "valve_state"
+            ],
+            "title": "Role"
+          },
+          "availability": {
+            "type": "string",
+            "enum": [
+              "available",
+              "limited",
+              "not_available"
+            ],
+            "title": "Availability"
+          },
+          "mapped_zone_keys": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Mapped Zone Keys"
+          },
+          "unmapped_zone_keys": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Unmapped Zone Keys"
+          },
+          "signals": {
+            "items": {
+              "$ref": "#/components/schemas/ZoneSignalRef"
+            },
+            "type": "array",
+            "title": "Signals",
+            "description": "Mapped zone signal references and user-provided meaning, kept per role."
+          },
+          "eligible_cycles": {
+            "type": "integer",
+            "title": "Eligible Cycles"
+          },
+          "complete_cycles": {
+            "type": "integer",
+            "title": "Complete Cycles"
+          },
+          "coverage_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coverage Pct",
+            "description": "Share of eligible complete CH cycle starts with known states for all configured zones."
+          },
+          "distribution": {
+            "items": {
+              "$ref": "#/components/schemas/ZoneCountBin"
+            },
+            "type": "array",
+            "title": "Distribution"
+          },
+          "incomplete_cycles": {
+            "items": {
+              "$ref": "#/components/schemas/IncompleteZoneCount"
+            },
+            "type": "array",
+            "title": "Incomplete Cycles"
+          },
+          "unknown_demand_cycles": {
+            "type": "integer",
+            "title": "Unknown Demand Cycles"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "role",
+          "availability",
+          "mapped_zone_keys",
+          "unmapped_zone_keys",
+          "signals",
+          "eligible_cycles",
+          "complete_cycles",
+          "coverage_pct",
+          "distribution",
+          "incomplete_cycles",
+          "unknown_demand_cycles",
+          "note"
+        ],
+        "title": "ZoneSignalAnalysis"
+      },
+      "ZoneSignalRef": {
+        "properties": {
+          "zone_key": {
+            "type": "string",
+            "title": "Zone Key"
+          },
+          "signal_id": {
+            "type": "string",
+            "title": "Signal Id"
+          },
+          "meaning": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meaning"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "zone_key",
+          "signal_id",
+          "meaning"
+        ],
+        "title": "ZoneSignalRef"
       }
     }
   }

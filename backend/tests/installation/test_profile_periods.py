@@ -292,6 +292,37 @@ async def test_room_comfort_endpoint_rejects_invalid_time_range(api: httpx.Async
     assert response.status_code == 422
 
 
+async def test_zone_analysis_does_not_treat_unmapped_zones_as_inactive(
+    api: httpx.AsyncClient,
+) -> None:
+    first = (await api.get("/api/installation")).json()
+    body = {key: value for key, value in first.items() if key not in ("summary", "updated_at")}
+    body["zones"] = [
+        {"key": "woonzone", "name": "Woonzone", "circuit_key": "beneden"},
+        {"key": "slaapzone", "name": "Slaapzone", "circuit_key": "boven"},
+    ]
+    saved = await api.put("/api/installation", json=body)
+    assert saved.status_code == 200
+
+    response = await api.get("/api/zones/analysis")
+    assert response.status_code == 200, response.text
+    result = response.json()
+    assert result["profile_version"] == str(saved.json()["revision"])
+    assert result["few_active_zones_max"] is None
+    for role in ("zone_demand", "valve_state"):
+        assert result[role]["availability"] == "not_available"
+        assert result[role]["distribution"] == []
+        assert result[role]["unmapped_zone_keys"] == ["slaapzone", "woonzone"]
+
+
+async def test_zone_analysis_rejects_invalid_range(api: httpx.AsyncClient) -> None:
+    response = await api.get(
+        "/api/zones/analysis",
+        params={"from": "2026-10-20T00:00:00Z", "to": "2026-10-19T00:00:00Z"},
+    )
+    assert response.status_code == 422
+
+
 async def test_room_comfort_schedules_are_versioned_and_noop_saves_are_skipped(
     api: httpx.AsyncClient, factory: sessionmaker[Session]
 ) -> None:

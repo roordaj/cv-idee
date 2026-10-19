@@ -712,6 +712,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/zones/analysis': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Zone Analysis
+     * @description Compare complete CH cycles with independently counted zone demand and valve states.
+     */
+    get: operations['get_zone_analysis'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -810,6 +830,11 @@ export interface components {
        * @default 4
        */
       min_short_cycles: number;
+      /**
+       * Grens voor weinig actieve zones
+       * @description Alleen ingevuld als je zelf een aantal zones kiest; anders worden alleen gemeten aantallen vergeleken zonder laag-/hooglabel of diagnose.
+       */
+      few_active_zones_max?: number | null;
       /**
        * Minimale observatieduur
        * @description Zoveel uur met gegevens tijdens cv-bedrijf of warmtevraag is nodig voordat de app iets over cycli concludeert. Uren zonder gegevens tellen niet mee.
@@ -1938,6 +1963,24 @@ export interface components {
      */
     ImportStatus:
       'pending' | 'fetching' | 'analysing' | 'done' | 'interrupted' | 'failed' | 'cancelled';
+    /** IncompleteZoneCount */
+    IncompleteZoneCount: {
+      /**
+       * Cycle Start
+       * Format: date-time
+       * @description ISO 8601 timestamp in UTC.
+       * @example 2026-10-04T10:00:00Z
+       */
+      cycle_start: string;
+      /** Known Active Count */
+      known_active_count: number;
+      /** Known Zone Keys */
+      known_zone_keys: string[];
+      /** Missing Zone Keys */
+      missing_zone_keys: string[];
+      /** Short */
+      short: boolean;
+    };
     /** InstallationProfile */
     InstallationProfile: {
       boiler: components['schemas']['BoilerInfo'];
@@ -3249,6 +3292,102 @@ export interface components {
       name: string;
       /** Circuit Key */
       circuit_key: string | null;
+    };
+    /** ZoneAnalysisResponse */
+    ZoneAnalysisResponse: {
+      /**
+       * Start
+       * Format: date-time
+       * @description ISO 8601 timestamp in UTC.
+       * @example 2026-10-04T10:00:00Z
+       */
+      start: string;
+      /**
+       * End
+       * Format: date-time
+       * @description ISO 8601 timestamp in UTC.
+       * @example 2026-10-04T10:00:00Z
+       */
+      end: string;
+      /** Profile Version */
+      profile_version: string;
+      /** Few Active Zones Max */
+      few_active_zones_max: number | null;
+      zone_demand: components['schemas']['ZoneSignalAnalysis'];
+      valve_state: components['schemas']['ZoneSignalAnalysis'];
+      /** Short Cycle Threshold S */
+      short_cycle_threshold_s: number;
+      /** Exclusions */
+      exclusions: string[];
+      /** Interpretation */
+      interpretation: string;
+    };
+    /** ZoneCountBin */
+    ZoneCountBin: {
+      /** Active Count */
+      active_count: number;
+      /** Cycles */
+      cycles: number;
+      /** Short Cycles */
+      short_cycles: number;
+      /**
+       * Cycle Starts
+       * @description Cycle starts included in this bin; usable to open matching timeline evidence.
+       */
+      cycle_starts: string[];
+      /**
+       * Few Active Zones
+       * @description True only when a user-configured threshold exists and this count is at or below it.
+       */
+      few_active_zones: boolean | null;
+    };
+    /** ZoneSignalAnalysis */
+    ZoneSignalAnalysis: {
+      /**
+       * Role
+       * @enum {string}
+       */
+      role: 'zone_demand' | 'valve_state';
+      /**
+       * Availability
+       * @enum {string}
+       */
+      availability: 'available' | 'limited' | 'not_available';
+      /** Mapped Zone Keys */
+      mapped_zone_keys: string[];
+      /** Unmapped Zone Keys */
+      unmapped_zone_keys: string[];
+      /**
+       * Signals
+       * @description Mapped zone signal references and user-provided meaning, kept per role.
+       */
+      signals: components['schemas']['ZoneSignalRef'][];
+      /** Eligible Cycles */
+      eligible_cycles: number;
+      /** Complete Cycles */
+      complete_cycles: number;
+      /**
+       * Coverage Pct
+       * @description Share of eligible complete CH cycle starts with known states for all configured zones.
+       */
+      coverage_pct: number | null;
+      /** Distribution */
+      distribution: components['schemas']['ZoneCountBin'][];
+      /** Incomplete Cycles */
+      incomplete_cycles: components['schemas']['IncompleteZoneCount'][];
+      /** Unknown Demand Cycles */
+      unknown_demand_cycles: number;
+      /** Note */
+      note: string;
+    };
+    /** ZoneSignalRef */
+    ZoneSignalRef: {
+      /** Zone Key */
+      zone_key: string;
+      /** Signal Id */
+      signal_id: string;
+      /** Meaning */
+      meaning: string | null;
     };
   };
   responses: never;
@@ -5000,6 +5139,38 @@ export interface operations {
         content: {
           'application/problem+json': components['schemas']['Problem'];
           'application/json': components['schemas']['Problem'];
+        };
+      };
+    };
+  };
+  get_zone_analysis: {
+    parameters: {
+      query?: {
+        from?: string | null;
+        to?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ZoneAnalysisResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
         };
       };
     };

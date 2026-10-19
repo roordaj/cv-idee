@@ -66,6 +66,7 @@ from cvidee.api.schemas.system import (
     StatusResponse,
     TodaySummary,
 )
+from cvidee.api.schemas.zone_analysis import ZoneAnalysisResponse, ZoneSignalAnalysis
 from cvidee.api.stubs import fixtures as fx
 from cvidee.api.stubs.sim import GAP, at, build_sim
 from cvidee.findings.priority import prioritise
@@ -285,6 +286,55 @@ class StubStore:
                 )
                 for room in self.installation.rooms
             ],
+        )
+
+    def zone_analysis(
+        self, start: datetime | None = None, end: datetime | None = None
+    ) -> ZoneAnalysisResponse:
+        end = end or self.now
+        start = start or end - timedelta(days=7)
+        if (
+            start.tzinfo is None
+            or end.tzinfo is None
+            or start.utcoffset() is None
+            or end.utcoffset() is None
+            or start >= end
+        ):
+            raise ProblemError(
+                422, "Ongeldig tijdvak", "Begin en einde moeten geldige tijdstippen zijn."
+            )
+        no_data = ZoneSignalAnalysis(
+            role="zone_demand",
+            availability="not_available",
+            mapped_zone_keys=[],
+            unmapped_zone_keys=[zone.key for zone in self.installation.zones],
+            signals=[],
+            eligible_cycles=0,
+            complete_cycles=0,
+            coverage_pct=None,
+            distribution=[],
+            incomplete_cycles=[],
+            unknown_demand_cycles=0,
+            note="Stubdata bevat geen zonecontext.",
+        )
+        return ZoneAnalysisResponse(
+            start=start,
+            end=end,
+            profile_version=str(self.installation.revision),
+            few_active_zones_max=None,
+            zone_demand=no_data,
+            valve_state=no_data.model_copy(update={"role": "valve_state"}),
+            short_cycle_threshold_s=180,
+            exclusions=[
+                "Tapwater",
+                "Onbekende modus",
+                "Onbekende warmtevraag",
+                "Onvolledige cycli",
+            ],
+            interpretation=(
+                "Zonevraag en gemelde klepstatus zijn aparte bronnen. De stubdata bevat geen "
+                "zonewaarnemingen en levert daarom geen telling of conclusie."
+            ),
         )
 
     def put_installation(self, body: InstallationProfileIn) -> InstallationProfile:
