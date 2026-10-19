@@ -16,7 +16,19 @@ export function useUpdateInstallation() {
   return useMutation({
     mutationFn: async (body: RequestBody<'/api/installation', 'put'>) =>
       unwrap(await api().PUT('/api/installation', { body })),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: installationKey }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: installationKey }),
+        queryClient.invalidateQueries({ queryKey: ['comfort-analysis'] }),
+      ]);
+    },
+  });
+}
+
+export function useRoomComfortAnalysis() {
+  return useQuery({
+    queryKey: ['comfort-analysis'],
+    queryFn: async () => unwrap(await api().GET('/api/comfort')),
   });
 }
 
@@ -32,7 +44,12 @@ export function useCreatePeriod() {
   return useMutation({
     mutationFn: async (body: RequestBody<'/api/periods', 'post'>) =>
       unwrap(await api().POST('/api/periods', { body })),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: periodsKey }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: periodsKey }),
+        queryClient.invalidateQueries({ queryKey: ['comfort-analysis'] }),
+      ]);
+    },
   });
 }
 
@@ -49,7 +66,12 @@ export function useUpdatePeriod() {
           body: args.body,
         }),
       ),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: periodsKey }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: periodsKey }),
+        queryClient.invalidateQueries({ queryKey: ['comfort-analysis'] }),
+      ]);
+    },
   });
 }
 
@@ -62,6 +84,11 @@ export function useDeletePeriod() {
       });
       if (result.error !== undefined) unwrap(result);
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: periodsKey }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: periodsKey }),
+        queryClient.invalidateQueries({ queryKey: ['comfort-analysis'] }),
+      ]);
+    },
   });
 }

@@ -63,6 +63,7 @@ const JOB = {
   finished_at: null,
   eta_s: 120,
 };
+const INSTALLATION = { rooms: [{ key: 'woonkamer', name: 'Woonkamer' }] };
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -82,6 +83,7 @@ function stubApi(posts: unknown[] = [], jobs: unknown[] = [JOB]) {
         return json({ ...PERIOD, id: 'p2' }, 201);
       }
       if (url.pathname === '/api/quality') return json(QUALITY);
+      if (url.pathname === '/api/installation') return json(INSTALLATION);
       if (url.pathname === '/api/periods') return json({ items: [PERIOD] });
       if (url.pathname === '/api/import')
         return json({ items: jobs, earliest_available_at: '2026-09-24T00:00:00Z' });
@@ -134,6 +136,30 @@ describe('QualityScreen', () => {
       expect(posts).toHaveLength(1);
     });
     expect(posts[0]).toMatchObject({ kind: 'vacation' });
+  });
+
+  it('stores a temporary room comfort expectation in a special period', async () => {
+    const posts: unknown[] = [];
+    stubApi(posts);
+    const user = userEvent.setup();
+    renderScreen();
+    await user.click(await screen.findByRole('button', { name: /Periode markeren/ }));
+    await user.click(screen.getByRole('radio', { name: 'Vakantie' }));
+    await user.selectOptions(
+      await screen.findByLabelText('Comfort tijdens periode · Woonkamer'),
+      'temporary_target',
+    );
+    await user.clear(screen.getByLabelText('Tijdelijk doel · Woonkamer'));
+    await user.type(screen.getByLabelText('Tijdelijk doel · Woonkamer'), '19.5');
+    await user.click(screen.getByRole('button', { name: 'Markeren' }));
+    await waitFor(() => {
+      expect(posts).toHaveLength(1);
+    });
+    expect(posts[0]).toMatchObject({
+      room_overrides: [
+        { room_key: 'woonkamer', kind: 'temporary_target', target_temperature_c: 19.5 },
+      ],
+    });
   });
 
   it('shows import progress', async () => {

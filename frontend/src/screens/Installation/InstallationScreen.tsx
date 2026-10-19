@@ -13,6 +13,7 @@ import { Pill } from '../../components/Tag.tsx';
 import { cx } from '../../components/tone.ts';
 import styles from './Installation.module.css';
 import { SpecDialog } from './SpecDialog.tsx';
+import { RoomComfortPanel } from './RoomComfortPanel.tsx';
 import { specText, type InstallationProfile, type Specification } from './specFormat.ts';
 
 type Circuit = InstallationProfile['circuits'][number];
@@ -121,10 +122,6 @@ function SpecRow({ spec, onEdit }: { spec: Specification; onEdit: () => void }) 
   );
 }
 
-function formatTemp(value: number | null): string {
-  return value === null ? '—' : `${value.toLocaleString('nl-NL', { minimumFractionDigits: 1 })} °C`;
-}
-
 export function InstallationScreen() {
   const installation = useInstallation();
   const [editKey, setEditKey] = useState<string | null>(null);
@@ -197,30 +194,7 @@ export function InstallationScreen() {
                 zonder gevalideerde omrekening.
               </p>
             </Card>
-            <Card className={styles.comfort}>
-              <div className={styles.comfortHead}>
-                <h2 className={styles.h3}>Comfort per ruimte</h2>
-                <Pill tone="violet" size="sm">
-                  Binnenkort
-                </Pill>
-              </div>
-              <div className={styles.card}>
-                {installation.data.rooms.map((room) => (
-                  <div key={room.key} className={styles.room}>
-                    <span className={styles.roomText}>
-                      <span className={styles.roomName}>{room.name}</span>
-                      <span className={styles.roomSub}>
-                        {room.schedule_text ?? 'Geen schema'}
-                        {room.night_setpoint !== null
-                          ? ` · nacht ${room.night_setpoint.toLocaleString('nl-NL', { minimumFractionDigits: 1 })}`
-                          : ''}
-                      </span>
-                    </span>
-                    <span className={styles.temp}>{formatTemp(room.setpoint)}</span>
-                  </div>
-                ))}
-              </div>
-            </Card>
+            <RoomComfortPanel profile={installation.data} />
           </div>
           {editing ? (
             <SpecDialog

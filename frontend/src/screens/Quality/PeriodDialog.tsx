@@ -1,7 +1,12 @@
 import { CalendarDays, Check, CircleAlert, Loader2, TriangleAlert } from 'lucide-react';
 import { useState, type FormEvent, type KeyboardEvent } from 'react';
 import type { components } from '../../api/schema';
-import { useCreatePeriod, useDeletePeriod, useUpdatePeriod } from '../../api/hooks/installation.ts';
+import {
+  useCreatePeriod,
+  useDeletePeriod,
+  useInstallation,
+  useUpdatePeriod,
+} from '../../api/hooks/installation.ts';
 import { Button } from '../../components/Button.tsx';
 import { Dialog } from '../../components/Dialog.tsx';
 import { ICON_SIZE } from '../../components/icons.ts';
@@ -13,6 +18,7 @@ import { PERIOD_HELP, PERIOD_KINDS, PERIOD_LABEL, PERIOD_TONE, type PeriodKind }
 
 type Period = components['schemas']['SpecialPeriod'];
 type Exclusions = components['schemas']['PeriodExclusions'];
+type RoomOverride = components['schemas']['RoomComfortOverride'];
 
 const DAY_MS = 86_400_000;
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -107,6 +113,8 @@ function PeriodDialogInner({ open, onClose, period, allPeriods, onSaved }: Perio
   const [submitted, setSubmitted] = useState(false);
   const [touched, setTouched] = useState<Set<string>>(new Set());
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const installation = useInstallation();
+  const [roomOverrides, setRoomOverrides] = useState<RoomOverride[]>(period?.room_overrides ?? []);
 
   const create = useCreatePeriod();
   const update = useUpdatePeriod();
@@ -120,6 +128,11 @@ function PeriodDialogInner({ open, onClose, period, allPeriods, onSaved }: Perio
     { kind, start, end, ongoing },
     allPeriods.filter((p) => p.id !== period?.id),
   );
+  const invalidRoomOverride = roomOverrides.some(
+    (item) =>
+      item.kind === 'temporary_target' &&
+      (!Number.isFinite(item.target_temperature_c) || (item.target_temperature_c ?? 0) <= 0),
+  );
   const show = (field: keyof PeriodErrors) =>
     submitted || touched.has(field) ? errors[field] : undefined;
   const touch = (field: string) => {
@@ -129,13 +142,14 @@ function PeriodDialogInner({ open, onClose, period, allPeriods, onSaved }: Perio
   const submit = (event?: FormEvent) => {
     event?.preventDefault();
     setSubmitted(true);
-    if (errors.kind || errors.start || errors.end || !kind || !start) return;
+    if (errors.kind || errors.start || errors.end || !kind || !start || invalidRoomOverride) return;
     const body = {
       kind,
       start: start.toISOString(),
       end: end ? end.toISOString() : null,
       description: description.trim(),
       excluded_from: excluded,
+      room_overrides: roomOverrides,
     };
     const done = (saved: { id: string }) => {
       onSaved?.(saved.id);
@@ -344,6 +358,74 @@ function PeriodDialogInner({ open, onClose, period, allPeriods, onSaved }: Perio
             <span style={{ textAlign: 'right', color: '#8a92a3' }}>{description.length}/140</span>
           ) : null}
         </label>
+        {installation.data?.rooms.length ? (
+          <div className={styles.form}>
+            <span className={styles.label}>Comfortverwachting per ruimte tijdens deze periode</span>
+            {installation.data.rooms.map((room) => {
+              const override = roomOverrides.find((item) => item.room_key === room.key);
+              const choice = override?.kind ?? 'normal_schedule';
+              return (
+                <div key={room.key} className={styles.form}>
+                  <label className={styles.field}>
+                    {room.name}
+                    <select
+                      className={styles.input}
+                      aria-label={`Comfort tijdens periode · ${room.name}`}
+                      value={choice}
+                      onChange={(event) => {
+                        const kind = event.target.value as RoomOverride['kind'] | 'normal_schedule';
+                        setRoomOverrides((items) => [
+                          ...items.filter((item) => item.room_key !== room.key),
+                          ...(kind === 'normal_schedule'
+                            ? []
+                            : [
+                                {
+                                  room_key: room.key,
+                                  kind,
+                                  ...(kind === 'temporary_target'
+                                    ? { target_temperature_c: override?.target_temperature_c ?? 20 }
+                                    : {}),
+                                } as RoomOverride,
+                              ]),
+                        ]);
+                      }}
+                    >
+                      <option value="normal_schedule">Normaal rooster volgen</option>
+                      <option value="no_expectation">Geen comfortverwachting</option>
+                      <option value="temporary_target">Tijdelijk comfortdoel</option>
+                    </select>
+                  </label>
+                  {choice === 'temporary_target' ? (
+                    <label className={styles.field}>
+                      Tijdelijk doel (°C)
+                      <input
+                        className={styles.input}
+                        type="number"
+                        min="0.1"
+                        step="0.1"
+                        aria-label={`Tijdelijk doel · ${room.name}`}
+                        value={override?.target_temperature_c ?? 20}
+                        onChange={(event) => {
+                          setRoomOverrides((items) =>
+                            items.map((item) =>
+                              item.room_key === room.key
+                                ? { ...item, target_temperature_c: Number(event.target.value) }
+                                : item,
+                            ),
+                          );
+                        }}
+                      />
+                    </label>
+                  ) : null}
+                </div>
+              );
+            })}
+            <p className={styles.note}>
+              De tijdelijke verwachting geldt alleen voor de analyse van deze periode. De
+              thermostaat wordt niet aangepast.
+            </p>
+          </div>
+        ) : null}
         <div className={styles.form}>
           <span className={styles.label}>Niet meetellen voor</span>
           <Toggle
@@ -377,6 +459,12 @@ function PeriodDialogInner({ open, onClose, period, allPeriods, onSaved }: Perio
             {w}
           </div>
         ))}
+        {submitted && invalidRoomOverride ? (
+          <div role="alert" className={styles.error}>
+            <CircleAlert size={14} aria-hidden="true" />
+            Een tijdelijk comfortdoel moet hoger zijn dan 0 °C.
+          </div>
+        ) : null}
         {failed ? (
           <div role="alert" className={styles.error}>
             <CircleAlert size={14} aria-hidden="true" />

@@ -130,6 +130,9 @@ niet beschikbaar is en waarom. Een totaalscore over kamers wordt niet berekend.
   periode-implementaties.
 - Lever ruimtegebonden metrics, dekking, doelbron en beperkingen via het analyse-/API
   contract. OpenAPI en frontend-types veranderen mee.
+- De huidige kwaliteitsgefilterde kamertemperatuur en het actuele kamersetpoint zijn
+  aparte velden in de comfortresponse. Als de actuele waarde ontbreekt of verouderd
+  is, blijft zij onbekend.
 - Werk de kaart “Comfort per ruimte” uit in design v3: doel en schema, werkelijk
   setpoint, actuele/waargenomen temperatuur, comfortverlies, overshoot, dekking,
   ontbrekende mapping en speciale perioden. Bied instellen/bewerken per ruimte en
