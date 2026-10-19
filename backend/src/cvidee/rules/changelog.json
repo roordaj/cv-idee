@@ -19,7 +19,11 @@
       "Eerste versie."
     ],
     "1.1.0": [
-      "Voeg bij ontbrekende modus- of warmtevraagsignalen een meetuitkomst toe als voldoende volledige, korte branderperioden daadwerkelijk zijn waargenomen; leid geen bedrijfsmodus of eindreden af."
+      "Rapporteer herhaald gemeten korte branderperioden als onvoldoende bewijs wanneer modus of warmtevraag ontbreekt; leid geen cv-eindreden af."
+    ],
+    "1.2.0": [
+      "Scheid de zekerheid van het gemeten cyclipatroon van ontbrekende metingen die alleen mogelijke oorzaken helpen onderscheiden.",
+      "Laat drie dagen herhaling volstaan voor de hoge categorie wanneer ook dekking en aantal cycli aan de hoge criteria voldoen."
     ]
   },
   "sensor-verouderd": {

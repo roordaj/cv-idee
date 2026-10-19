@@ -51,7 +51,7 @@ def burst(day: int, count: int, *, hour: int = 6, mode: Mode = Mode.CH) -> tuple
 def test_registered_with_identity() -> None:
     registry = default_registry()
     assert "kort-branden" in registry
-    assert registry.get("kort-branden").version == "1.1.0"
+    assert registry.get("kort-branden").version == "1.2.0"
     schema = registry.params_json_schema("kort-branden")
     assert schema["properties"]["short_cycle_min"]["x-unit"] == "min"
 
@@ -152,10 +152,11 @@ def test_repeated_pattern_lists_hypotheses_without_setting_change() -> None:
     assert all(h.missing and h.distinguishing_measurement for h in finding.hypotheses)
 
 
-def test_missing_optional_signals_lower_certainty_and_are_listed() -> None:
+def test_missing_cause_signals_are_listed_without_lowering_pattern_certainty() -> None:
     cycles = burst(1, 20) + burst(2, 20) + burst(3, 20)
     (finding,) = RULE.evaluate(ctx(cycles), PARAMS)
-    assert finding.evidence.missing_signals  # pump, valves, manifold: not mapped in the fixture
+    assert finding.evidence.missing_signals  # cause measurements are not mapped in the fixture
+    assert finding.certainty is Certainty.HIGH
 
 
 @pytest.mark.parametrize("name", ["01-normaal-cv", "02-kort-branden"])

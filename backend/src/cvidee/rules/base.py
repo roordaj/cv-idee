@@ -885,6 +885,8 @@ class CertaintyCriteria:
     """All met (on top of ``reasonable``) → ``HIGH``. ``None`` = not reachable."""
     allow_measured: bool = False
     """Direct measurements of this rule may reach ``HIGH_MEASURED``."""
+    lower_for_missing_signals: bool = True
+    """Whether unmeasured optional signals weaken certainty for this rule's observation."""
     max_certainty: Certainty = Certainty.HIGH_MEASURED
     """Cap, e.g. rules that only correlate stay at most ``REASONABLE``."""
 
