@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from sqlalchemy import select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
 
 from cvidee.analysis.timeline import build_timelines
@@ -40,9 +40,15 @@ from cvidee.settings.repository import rule_params
 from cvidee.signals.quality import signal_statuses
 from cvidee.store.derived import SqlDerivedDataRepository
 from cvidee.store.enums import RecommendationStatus, SnapshotTrigger
-from cvidee.store.models import AnalysisRun, Finding, RecommendationSnapshot
+from cvidee.store.models import (
+    AnalysisRun,
+    Finding,
+    Observation,
+    RecommendationSnapshot,
+    SourceEntity,
+)
 
-__all__ = ["FindingsStage", "StoreTimelines"]
+__all__ = ["FindingsStage", "StoreTimelines", "first_mapped_observation"]
 
 
 class StoreTimelines:
@@ -84,6 +90,37 @@ class StoreTimelines:
         return self.build(rng).get(signal)
 
 
+def first_mapped_observation(
+    session: Session, mapped: Sequence[MappedSignal], horizon: int
+) -> int | None:
+    """First installation observation within any mapping version before the horizon.
+
+    Use one shared lower bound; choosing each signal's first observation separately
+    would hide late signals and overstate their coverage.
+    """
+    if not mapped:
+        return None
+    first = session.scalar(
+        select(func.min(Observation.ts))
+        .join(SourceEntity, SourceEntity.id == Observation.source_entity_id)
+        .where(
+            Observation.ts < horizon,
+            or_(
+                *(
+                    and_(
+                        SourceEntity.entity_id == mapping.entity_id,
+                        Observation.ts >= mapping.valid_from,
+                        Observation.ts
+                        < (mapping.valid_to if mapping.valid_to is not None else horizon),
+                    )
+                    for mapping in mapped
+                )
+            ),
+        )
+    )
+    return first
+
+
 class FindingsStage:
     def __init__(
         self,
@@ -114,7 +151,13 @@ class FindingsStage:
             for rule in self.registry
         }
         history = max(rule.history_ms(params[rule.id]) for rule in self.registry)
-        period = TimeRange(now - max(history, 1), now)
+        start = now - max(history, 1)
+        # Only time before the first observation in any valid mapping is installation
+        # prehistory. Later per-signal starts and internal outages remain unknown.
+        first = first_mapped_observation(session, mapped, now)
+        if first is not None:
+            start = max(start, first)
+        period = TimeRange(start, now)
         timelines = StoreTimelines(session, mapped, self._sources, config, now)
         built = timelines.build(period)
         statuses = signal_statuses(session, mapped, built, period)
