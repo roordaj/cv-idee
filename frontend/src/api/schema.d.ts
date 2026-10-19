@@ -256,6 +256,66 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/reports/{kind}/html': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Download Report Html
+     * @description Download the reference HTML rendering of the selected report snapshot.
+     */
+    get: operations['download_report_html'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/reports/{kind}/csv': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Download Report Csv
+     * @description Download all report items as a spreadsheet-safe nl-NL CSV file.
+     */
+    get: operations['download_report_csv'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/reports/{kind}/pdf': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Download Report Pdf
+     * @description Download a paginated PDF rendering of the selected report snapshot.
+     */
+    get: operations['download_report_pdf'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/quality': {
     parameters: {
       query?: never;
@@ -2371,6 +2431,10 @@ export interface components {
       action: string;
       /** Missing Signals */
       missing_signals: string[];
+      /** Success Criterion */
+      success_criterion: string | null;
+      /** Rollback Criterion */
+      rollback_criterion: string | null;
     };
     /** ReportChange */
     ReportChange: {
@@ -3566,6 +3630,138 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ReportSnapshot'];
+        };
+      };
+      /** @description Validation error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+      /** @description Not implemented (start the backend with CVIDEE_STUB_DATA=1 for example data) */
+      501: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+    };
+  };
+  download_report_html: {
+    parameters: {
+      query?: {
+        reference_date?: string | null;
+      };
+      header?: never;
+      path: {
+        kind: components['schemas']['ReportPeriodKind'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': string;
+        };
+      };
+      /** @description Validation error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+      /** @description Not implemented (start the backend with CVIDEE_STUB_DATA=1 for example data) */
+      501: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+    };
+  };
+  download_report_csv: {
+    parameters: {
+      query?: {
+        reference_date?: string | null;
+      };
+      header?: never;
+      path: {
+        kind: components['schemas']['ReportPeriodKind'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/csv': string;
+        };
+      };
+      /** @description Validation error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+      /** @description Not implemented (start the backend with CVIDEE_STUB_DATA=1 for example data) */
+      501: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+    };
+  };
+  download_report_pdf: {
+    parameters: {
+      query?: {
+        reference_date?: string | null;
+      };
+      header?: never;
+      path: {
+        kind: components['schemas']['ReportPeriodKind'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/pdf': string;
         };
       };
       /** @description Validation error */
