@@ -282,6 +282,8 @@ async def test_room_comfort_endpoint_returns_per_room_availability(
     assert len(result["rooms"]) == 6
     assert {room["availability"] for room in result["rooms"]} == {"not_available"}
     assert all(room["comfort_loss_target_hours"] is None for room in result["rooms"])
+    assert all(room["current_temperature_c"] is None for room in result["rooms"])
+    assert all(room["current_setpoint_c"] is None for room in result["rooms"])
 
 
 async def test_room_comfort_endpoint_rejects_invalid_time_range(api: httpx.AsyncClient) -> None:

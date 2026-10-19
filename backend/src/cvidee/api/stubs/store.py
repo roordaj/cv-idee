@@ -268,6 +268,8 @@ class StubStore:
                         if room.comfort is not None and room.comfort.status == "scheduled"
                         else "not_configured"
                     ),
+                    current_temperature_c=None,
+                    current_setpoint_c=None,
                     expected_hours=0,
                     observed_hours=0,
                     coverage_pct=None,

@@ -7793,6 +7793,28 @@
             ],
             "title": "Target Source"
           },
+          "current_temperature_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Temperature C"
+          },
+          "current_setpoint_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Setpoint C"
+          },
           "expected_hours": {
             "type": "number",
             "minimum": 0.0,
@@ -7944,6 +7966,8 @@
           "room_name",
           "availability",
           "target_source",
+          "current_temperature_c",
+          "current_setpoint_c",
           "expected_hours",
           "observed_hours",
           "warmup_samples",

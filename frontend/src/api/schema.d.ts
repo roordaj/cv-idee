@@ -2717,6 +2717,10 @@ export interface components {
        * @enum {string}
        */
       target_source: 'configured_schedule' | 'special_period' | 'not_configured';
+      /** Current Temperature C */
+      current_temperature_c: number | null;
+      /** Current Setpoint C */
+      current_setpoint_c: number | null;
       /** Expected Hours */
       expected_hours: number;
       /** Observed Hours */

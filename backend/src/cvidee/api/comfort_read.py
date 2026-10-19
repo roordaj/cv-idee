@@ -10,7 +10,15 @@ from sqlalchemy.orm import Session, sessionmaker
 from cvidee.analysis.modes import classify_modes
 from cvidee.analysis.quality import apply_quality
 from cvidee.analysis.room_comfort import RoomComfortPeriod, analyze_room_comfort
-from cvidee.analysis.types import AnalysisWindow, Role, Scope, ScopeKind, SignalRef, TimeRange
+from cvidee.analysis.types import (
+    AnalysisWindow,
+    Role,
+    Scope,
+    ScopeKind,
+    SignalRef,
+    SignalTimeline,
+    TimeRange,
+)
 from cvidee.api.problems import ProblemError
 from cvidee.api.schemas.comfort import RoomComfortAnalysisResponse, RoomComfortResult
 from cvidee.api.schemas.data import RoomComfortOverride
@@ -135,6 +143,8 @@ class RoomComfortReadModel:
                     margin,
                     periods,
                 )
+                current_temperature = _current_value(timelines.get(target_ref), window.end - 1)
+                current_setpoint = _current_value(timelines.get(setpoint_ref), window.end - 1)
                 missing = [
                     BY_ROLE[Role.ROOM_TEMPERATURE].name + f" {room.name}"
                     if signal == str(target_ref)
@@ -147,6 +157,8 @@ class RoomComfortReadModel:
                         room_name=room.name,
                         availability=metrics.availability,
                         target_source=metrics.target_source,
+                        current_temperature_c=current_temperature,
+                        current_setpoint_c=current_setpoint,
                         expected_hours=metrics.expected_ms / 3_600_000,
                         observed_hours=metrics.observed_ms / 3_600_000,
                         coverage_pct=None if metrics.coverage is None else metrics.coverage * 100,
@@ -179,3 +191,8 @@ class RoomComfortReadModel:
 
 def _hours(milliseconds: int | None) -> float | None:
     return None if milliseconds is None else milliseconds / 3_600_000
+
+
+def _current_value(timeline: SignalTimeline | None, timestamp: int) -> float | None:
+    value = None if timeline is None else timeline.value_at(timestamp)
+    return float(value) if isinstance(value, int | float) and not isinstance(value, bool) else None

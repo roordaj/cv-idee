@@ -12,6 +12,8 @@ class RoomComfortResult(ApiModel):
     room_name: str
     availability: Literal["available", "limited", "not_available"]
     target_source: Literal["configured_schedule", "special_period", "not_configured"]
+    current_temperature_c: float | None
+    current_setpoint_c: float | None
     expected_hours: float = Field(ge=0)
     observed_hours: float = Field(ge=0)
     coverage_pct: float | None = Field(default=None, ge=0, le=100)

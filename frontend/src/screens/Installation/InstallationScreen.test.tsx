@@ -121,7 +121,7 @@ describe('InstallationScreen', () => {
     vi.unstubAllGlobals();
   });
 
-  it('shows boiler, circuits, unknown specs as "Onbekend" and the coming-soon comfort card', async () => {
+  it('shows boiler, circuits, unknown specs and per-room comfort controls', async () => {
     stubApi([]);
     renderScreen();
     expect(await screen.findByText('Remeha Calenta Ace')).toBeInTheDocument();
@@ -134,11 +134,33 @@ describe('InstallationScreen', () => {
     expect(modulation && within(modulation).getByText('Onbekend')).toBeInTheDocument();
     expect(screen.getByText('60 °C')).toBeInTheDocument();
     expect(screen.queryByText(/\d\s?kW/)).not.toBeInTheDocument();
-    expect(screen.getByText('Binnenkort')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Comfort per ruimte' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Woonkamer' })).toBeInTheDocument();
+    expect(screen.getByText('Comfortrooster bewerken')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Instellen' })).toHaveAttribute(
       'href',
       '/instellingen/analyse',
     );
+  });
+
+  it('saves an explicit local comfort schedule without treating it as a thermostat command', async () => {
+    const puts: unknown[] = [];
+    stubApi(puts);
+    const user = userEvent.setup();
+    renderScreen();
+    await screen.findByRole('heading', { name: 'Woonkamer' });
+    await user.selectOptions(screen.getByLabelText('Verwachting'), 'scheduled');
+    await user.click(screen.getByRole('button', { name: 'Rooster opslaan' }));
+    await waitFor(() => {
+      expect(puts).toHaveLength(1);
+    });
+    const saved = puts[0] as {
+      rooms: { key: string; comfort?: { status: string; timezone: string } }[];
+    };
+    expect(saved.rooms.find((room) => room.key === 'woonkamer')?.comfort).toMatchObject({
+      status: 'scheduled',
+      timezone: 'Europe/Amsterdam',
+    });
   });
 
   it('edits a specification through the dialog and sends the revision', async () => {
