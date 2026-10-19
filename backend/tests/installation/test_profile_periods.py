@@ -197,6 +197,76 @@ async def test_installation_round_trip_and_versioning(
     assert conflict.status_code == 409
 
 
+async def test_zones_round_trip_version_and_survive_legacy_profile_write(
+    api: httpx.AsyncClient, factory: sessionmaker[Session]
+) -> None:
+    first = (await api.get("/api/installation")).json()
+    body = {key: value for key, value in first.items() if key not in ("summary", "updated_at")}
+    body["zones"] = [
+        {"key": "woonzone", "name": "Woonzone", "circuit_key": "beneden"},
+        {"key": "slaapzone", "name": "Slaapzone", "circuit_key": "boven"},
+    ]
+    created = await api.put("/api/installation", json=body)
+    assert created.status_code == 200, created.text
+    profile = created.json()
+    assert profile["zones"] == sorted(body["zones"], key=lambda zone: zone["key"])
+    assert profile["revision"] > first["revision"]
+    body["revision"] = profile["revision"]
+    unchanged = await api.put("/api/installation", json=body)
+    assert unchanged.status_code == 200, unchanged.text
+    assert unchanged.json()["revision"] == profile["revision"]
+    with factory() as session:
+        repo = SqlInstallationProfileRepository(session)
+        old_profile = repo.get(first["revision"])
+        new_profile = repo.get(profile["revision"])
+        assert old_profile is not None
+        assert old_profile.zones == []
+        assert new_profile is not None
+        assert sorted(zone.key for zone in new_profile.zones) == [
+            "slaapzone",
+            "woonzone",
+        ]
+
+    legacy_write = {
+        key: value
+        for key, value in profile.items()
+        if key not in ("summary", "updated_at", "zones")
+    }
+    legacy_write["specifications"] = [
+        {**spec, "status": "known", "value": 60, "note": "ingesteld"}
+        if spec["key"] == "max_ch_flow_temperature"
+        else spec
+        for spec in profile["specifications"]
+    ]
+    updated = await api.put("/api/installation", json=legacy_write)
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["zones"] == sorted(body["zones"], key=lambda zone: zone["key"])
+
+
+@pytest.mark.parametrize(
+    ("zones", "message"),
+    [
+        (
+            [
+                {"key": "zone-a", "name": "A", "circuit_key": "beneden"},
+                {"key": "zone-a", "name": "A2", "circuit_key": "beneden"},
+            ],
+            "uniek",
+        ),
+        ([{"key": "zone-a", "name": "A", "circuit_key": "missing"}], "onbekend circuit"),
+    ],
+)
+async def test_installation_rejects_invalid_zones(
+    api: httpx.AsyncClient, zones: list[dict[str, str]], message: str
+) -> None:
+    first = (await api.get("/api/installation")).json()
+    body = {key: value for key, value in first.items() if key not in ("summary", "updated_at")}
+    body["zones"] = zones
+    response = await api.put("/api/installation", json=body)
+    assert response.status_code == 422
+    assert message in response.json()["detail"]
+
+
 async def test_room_comfort_schedules_are_versioned_and_noop_saves_are_skipped(
     api: httpx.AsyncClient, factory: sessionmaker[Session]
 ) -> None:

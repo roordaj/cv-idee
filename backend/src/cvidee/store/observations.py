@@ -195,6 +195,8 @@ def to_analysis_observation(
         value = None if mode is Mode.UNKNOWN else mode
     elif value_map is not None and record.state in value_map:
         value = value_map[record.state]
+    elif signal.role in (Role.ZONE_DEMAND, Role.VALVE_STATE):
+        value = _zone_boolean(record.state)
     elif record.state in ("on", "off"):
         value = record.state == "on"
     elif record.value_num is not None:
@@ -216,6 +218,16 @@ def to_analysis_observation(
         kind=record.kind,
         last_reported=last_reported,
     )
+
+
+def _zone_boolean(state: str) -> bool | None:
+    """Normalize only explicit binary state words for zone demand and valve signals."""
+    normalized = state.strip().lower()
+    if normalized in {"on", "true", "1"}:
+        return True
+    if normalized in {"off", "false", "0"}:
+        return False
+    return None
 
 
 # ------------------------------------------------------------------------------ retention

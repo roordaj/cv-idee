@@ -1918,6 +1918,8 @@ export interface components {
       boiler: components['schemas']['BoilerInfo'];
       /** Circuits */
       circuits: components['schemas']['Circuit'][];
+      /** Zones */
+      zones: components['schemas']['Zone'][];
       /** Rooms */
       rooms: components['schemas']['Room'][];
       /** Specifications */
@@ -1945,6 +1947,11 @@ export interface components {
       boiler: components['schemas']['BoilerInfo'];
       /** Circuits */
       circuits: components['schemas']['Circuit'][];
+      /**
+       * Zones
+       * @description Omit only for legacy writes to preserve the current zone inventory.
+       */
+      zones?: components['schemas']['Zone'][] | null;
       /** Rooms */
       rooms: components['schemas']['Room'][];
       /** Specifications */
@@ -3123,6 +3130,18 @@ export interface components {
      * @enum {string}
      */
     TriState: 'yes' | 'no' | 'unknown';
+    /**
+     * Zone
+     * @description A stable, circuit-scoped heating zone in the installation profile.
+     */
+    Zone: {
+      /** Key */
+      key: string;
+      /** Name */
+      name: string;
+      /** Circuit Key */
+      circuit_key: string | null;
+    };
   };
   responses: never;
   parameters: never;

@@ -56,6 +56,7 @@ from cvidee.api.schemas.installation import (
     RoomComfort,
     RoomComfortWindow,
     Specification,
+    Zone,
 )
 from cvidee.api.schemas.notifications import (
     HaExportEntity,
@@ -604,6 +605,10 @@ def installation() -> InstallationProfile:
         circuits=[
             Circuit(id="beneden", name="Beneden", kind=CircuitKind.DIRECT, emitter=EmitterType.RADIATOR, rooms=["woonkamer", "keuken", "hal"], note="Radiatoren hangen direct aan de ketel, dus ketelaanvoer en -retour zijn hier representatief."),
             Circuit(id="boven", name="Boven", kind=CircuitKind.MIXING_MANIFOLD, emitter=EmitterType.UNDERFLOOR, loops=5, rooms=["slaapkamer", "kinderkamer", "badkamer"], note="De mengverdeler mengt heet ketelwater met retourwater tot een lagere vloertemperatuur. Ketelmetingen zeggen daarom weinig over de vloer; zonder verdelersensoren geen advies per groep."),
+        ],
+        zones=[
+            Zone(key="beneden", name="Beneden", circuit_key="beneden"),
+            Zone(key="boven", name="Boven", circuit_key="boven"),
         ],
         rooms=[
             Room(key="woonkamer", name="Woonkamer", has_sensor=True, is_thermostat=True, schedule_text="07:00–22:30", setpoint=20.5, night_setpoint=17.0, comfort=RoomComfort(status="scheduled", windows=[RoomComfortWindow(weekdays=[0, 1, 2, 3, 4, 5, 6], start_time="07:00", end_time="22:30", target_temperature_c=20.5), RoomComfortWindow(kind="night", weekdays=[0, 1, 2, 3, 4, 5, 6], start_time="22:30", end_time="07:00", target_temperature_c=17.0)])),
