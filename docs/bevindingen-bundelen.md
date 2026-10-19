@@ -13,6 +13,10 @@ Scopes moeten gelijk zijn. Alleen het beleid voor kort-branden staat een bekende
 cv-circuitscope onder de ketelscope toe. Elk kind krijgt hoogstens één ouder, in een
 vaste beleidsvolgorde. Gegevenskwaliteit en tapwaterinformatie blijven zelfstandig.
 
+Een kandidaat met `insufficient_evidence` en een `supports`-relatie die niet kan worden
+gebundeld, blijft niet als losse bevinding staan. Zo worden losse meetadviezen zonder
+voldoende patrooncontext niet als afwijking gepresenteerd.
+
 Bundeling verandert de zekerheid, ernst, prioriteit of aanbeveling van de hoofdbevinding
 niet. Het aantal oorspronkelijke kandidaten is geen extra statistisch bewijs.
 Ondersteunende meetadviezen blijven afzonderlijk zichtbaar binnen de bundel.

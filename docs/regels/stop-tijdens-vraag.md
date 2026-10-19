@@ -1,11 +1,11 @@
 # `stop-tijdens-vraag` — Herhaald stoppen tijdens aanhoudende warmtevraag
 
-- **Id:** `stop-tijdens-vraag` · **Huidige versie:** 1.0.0
+- **Id:** `stop-tijdens-vraag` · **Huidige versie:** 1.1.0
 - **Code:** `backend/src/cvidee/rules/stop_during_demand.py` · **Issue:** #31
 
 ## Doel
 
-Alle volledige cv-cycli met eindreden stop_during_demand tellen mee, ongeacht brandduur. Normaal einde van warmtevraag, tapwater, datagaten en gemarkeerde perioden tellen niet mee.
+De regel ondersteunt `kort-branden`: alleen herhaalde `stop_during_demand`-cycli korter dan de standaard kortecyclusgrens van 3 minuten kunnen een bevinding onderbouwen. Langere onderbrekingen tijdens warmtevraag blijven als waarnemingen in de tijdlijn staan; herhaling alleen is geen optimalisatieadvies. Normaal einde van warmtevraag, tapwater, datagaten en gemarkeerde perioden tellen niet mee.
 
 ## Toepasbaarheid
 
@@ -40,3 +40,7 @@ Afwezigheid van het patroon is pas herstel bij voldoende gegevens en het herstel
 ### 1.0.0 — 2026-10-09
 
 - Eerste versie, met scenario- en uitsluitingstests.
+
+### 1.1.0 — 2026-10-19
+
+- Beperk de ondersteunende bevinding tot herhaalde korte stops; lange stops tijdens warmtevraag blijven alleen waarnemingen.

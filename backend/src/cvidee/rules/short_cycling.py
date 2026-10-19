@@ -55,6 +55,7 @@ from cvidee.rules.base import (
     signal_ref,
 )
 from cvidee.rules.certainty import derive_certainty
+from cvidee.rules.patterns import DEFAULT_SHORT_CYCLE_LIMIT_MIN
 
 DAY_MS: DurationMs = 24 * HOUR_MS
 MIN_SHORT_CYCLES_PER_DAY = 2
@@ -63,7 +64,7 @@ MIN_SHORT_CYCLES_PER_DAY = 2
 
 class ShortCyclingParams(RuleParams):
     short_cycle_min: float = param(
-        3.0,
+        DEFAULT_SHORT_CYCLE_LIMIT_MIN,
         title="Kortecyclusgrens",
         description="Een cv-cyclus die korter duurt dan deze grens én stopt terwijl de "
         "thermostaat nog warmte vraagt, telt als korte cyclus.",

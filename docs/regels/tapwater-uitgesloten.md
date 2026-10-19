@@ -1,11 +1,11 @@
 # `tapwater-uitgesloten` — Tapwater blijft zichtbaar, uitgesloten van cv-conclusies
 
-- **Id:** `tapwater-uitgesloten` · **Huidige versie:** 1.0.0
+- **Id:** `tapwater-uitgesloten` · **Huidige versie:** 1.1.0
 - **Code:** `backend/src/cvidee/rules/dhw.py` · **Issue:** #32
 
 ## Doel
 
-Eén info-bevinding voor als tapwater geclassificeerde branderperioden. Ook een onvolledige tapwaterperiode blijft zichtbaar; er wordt geen bekende duur verzonnen.
+Een info-bevinding wanneer in het beoordelingsvenster ten minste 10 branderperioden als tapwater zijn geclassificeerd, of wanneer minstens 4 korte cv-cycli de tapwatercontext relevant maken voor de interpretatie. Gewone individuele tapwaterperioden blijven zichtbaar in de tijdlijn zonder extra bevinding. Ook een onvolledige tapwaterperiode blijft zichtbaar; er wordt geen bekende duur verzonnen.
 
 ## Toepasbaarheid
 
@@ -40,3 +40,7 @@ Afwezigheid van het patroon is pas herstel bij voldoende gegevens en het herstel
 ### 1.0.0 — 2026-10-09
 
 - Eerste versie, met scenario- en uitsluitingstests.
+
+### 1.1.0 — 2026-10-19
+
+- Toon de tapwatercontext-bevinding alleen bij herhaalde draws of bij een kortecycli-patroon dat DHW-uitsluiting voor de interpretatie relevant maakt.

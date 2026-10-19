@@ -28,6 +28,8 @@ from cvidee.rules.base import (
 )
 
 DAY_MS = 24 * HOUR_MS
+DEFAULT_SHORT_CYCLE_LIMIT_MIN = 3.0
+"""Shared default limit used to qualify a short stop for the supporting stop rule."""
 
 
 class WindowParams(RuleParams):

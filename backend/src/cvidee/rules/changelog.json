@@ -30,16 +30,25 @@
   "stop-tijdens-vraag": {
     "1.0.0": [
       "Eerste versie, met scenario- en uitsluitingstests."
+    ],
+    "1.1.0": [
+      "Beperk de ondersteunende bevinding tot herhaalde korte stops; lange stops tijdens warmtevraag blijven alleen waarnemingen."
     ]
   },
   "tapwater-uitgesloten": {
     "1.0.0": [
       "Eerste versie, met scenario- en uitsluitingstests."
+    ],
+    "1.1.0": [
+      "Toon de tapwatercontext-bevinding alleen bij herhaalde draws of bij een kortecycli-patroon dat DHW-uitsluiting voor de interpretatie relevant maakt."
     ]
   },
   "temperatuurverloop": {
     "1.0.0": [
       "Eerste versie, met scenario- en uitsluitingstests."
+    ],
+    "1.1.0": [
+      "Toon temperatuurkandidaten met onvoldoende bewijs alleen als onderbouwing bij een overlappende kortecyclusbevinding."
     ]
   },
   "voor-na": {
