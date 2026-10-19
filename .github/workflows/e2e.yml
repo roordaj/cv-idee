@@ -37,7 +37,7 @@ jobs:
           cache-dependency-glob: backend/uv.lock
       - name: Install dependencies
         run: |
-          cd frontend && npm ci
+          npm ci --prefix frontend
           uv sync --project backend --locked
       - name: Install Playwright browser
         run: cd frontend && npx playwright install --with-deps chromium
