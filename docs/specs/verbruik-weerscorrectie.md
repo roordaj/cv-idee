@@ -13,12 +13,17 @@ als ketelgas, ruimteverwarming, rendement of besparing worden gepresenteerd. Een
 weersvergelijking is geen bewijs van oorzaak. De app stuurt geen ketel of
 thermostaat aan.
 
-De analyse toont ruwe meterwaarden naast een weers-/gebruiksvergelijking met alle
-aannames. De eerste vergelijkingsvorm selecteert alleen waargenomen perioden die
-binnen bestaande vergelijkbaarheidsgrenzen vallen; er wordt geen onbewezen
-correctiefactor toegepast. Als zulke perioden ontbreken, is de gecorrigeerde/
-vergelijkbare uitkomst niet beschikbaar en worden de ruwe waarden met de reden
-getoond.
+De analyse toont ruwe meterwaarden naast een vergelijking van geselecteerde,
+waargenomen perioden en maakt alle aannames zichtbaar. Er wordt geen onbewezen
+correctiefactor toegepast. Als geen geldige referentieperiode beschikbaar is, is
+de vergelijking niet beschikbaar en worden de ruwe waarden met de reden getoond.
+
+Voor de eerste implementatie is de methodekeuze vastgelegd in
+[ADR-005](../adr/005-gas-consumption-comparison.md): de gebruiker kiest een
+historische periode met dezelfde duur en bekijkt beide ruwe metingen. Dit is een
+beschrijvende periodevergelijking, geen weerscorrectie. Een onbekende meter-scope
+blokkeert de vergelijking; onbekend koken, tapwater of ander gebruik maakt een
+ruwe vergelijking beperkt en verhindert toeschrijving aan ruimteverwarming.
 
 ## Meter, eenheden en tellerresets
 
@@ -48,11 +53,18 @@ Dubbele waarnemingen en reconnects leveren geen kunstmatige consumptie op.
    periode, begin-/eindtellerstand en m³. Vermeld expliciet wanneer de meter ook
    koken/tapwater of onbekende toepassingen omvat. Ontbrekende tellerintervallen
    blijven onbekend.
-2. **Periodekeuze:** bied een ruwe trend en een vergelijking met eerder
-   waargenomen perioden. Selecteer referentieperioden met dezelfde duur en een
-   meetbasis die binnen de bestaande buitentemperatuur- en setpointmarges valt.
-   Gebruik beschikbare CV-bedrijfsduur, warmtevraag en zonegebruik als context;
-   ontbrekende context maakt de overeenkomst beperkt, niet gelijk.
+2. **Periodekeuze:** bied een ruwe trend en kandidaten uit eerder waargenomen
+   perioden met dezelfde duur, teller, eenheid en bevestigde meter-scope. De
+   gebruiker kiest de referentie; de app berekent geen verborgen gewogen
+   "beste match". Gebruik bestaande vergelijkbaarheidscriteria als conservatieve
+   filters: de ingestelde buitentemperatuurmarge (standaard 2 °C; tot de bestaande
+   beperkte marge van 4 °C alleen als beperkt tonen), de ingestelde minimale
+   dekking (`min_period_coverage_pct`, standaard 90%) en dezelfde waargenomen
+   setpointprofielen. Eén geldige historische periode is genoeg voor een
+   beschrijvend paar, niet voor een statistisch model of causaliteit. Deze grenzen
+   zijn geen gasmodelvalidatie. Toon beschikbare CV-bedrijfsduur, warmtevraag,
+   DHW-bedrijf en zonegebruik als afzonderlijke context. Ontbrekende context wordt
+   `unknown`, nooit gelijk verondersteld.
 3. **Geen extrapolatie buiten waarnemingen:** rapporteer alleen waarden in de
    gemeten periode of in een expliciet geselecteerde, vergelijkbare periode.
    Corrigeer geen verbruik naar hypothetisch weer buiten het waargenomen bereik en
@@ -62,13 +74,13 @@ Dubbele waarnemingen en reconnects leveren geen kunstmatige consumptie op.
    dekking, resets, profiel-/mappingversie en bijzondere perioden. Een gewijzigd
    gebruik zoals koken of tapwater is alleen vergelijkbaar als het expliciet
    bekend en voldoende gelijk is; anders vermeldt de UI dat dit onbekend blijft.
-5. **Weerscorrectie:** zolang geen gevalideerde correctiemethode en expliciete
-   configuratie beschikbaar zijn, betekent de vergelijkbare uitkomst een selectie
-   van werkelijk waargenomen, vergelijkbare perioden; noem dit geen voorspeld of
-   genormaliseerd gasvolume. Een vervolgspike bepaalt of een aanvullende
-   correctie verantwoord is. Die correctie moet ruwe waarden behouden, de
-   referentie-/buitentemperatuur en aannames tonen, binnen de gemeten context
-   blijven en bij onvoldoende bewijs `unknown` opleveren.
+   Bij onbekend gebruik blijven twee ruwe perioden inspecteerbaar met status
+   `limited`; de app noemt ze niet gelijkwaardig en schrijft geen verschil toe.
+5. **Geen weerscorrectie in de eerste versie:** de selectie toont de feitelijke
+   ruwe meterwaarden van de gekozen perioden. Verhoudingen m³/graaddag,
+   regressie-uitkomsten en voorspellingen naar hypothetisch weer blijven
+   unavailable totdat een afzonderlijk gevalideerd model, metergrens en
+   onafhankelijke invoervariabelen zijn onderbouwd. Zie ADR-005.
 6. **Geen toeschrijving:** een verbruiksverschil wordt niet aan een specifieke
    parameter, ketelinstelling, gebruiker of weersverandering toegeschreven zonder
    vergelijkbare meetbasis en een afzonderlijk onderbouwde methode.
@@ -104,8 +116,9 @@ De verbruiksanalyse is:
 
 - **Niet beschikbaar** zonder gekoppelde, bruikbare cumulatieve gasmeter.
 - **Beperkt** bij resetovergang, stale/ongeldige waarnemingen, onvoldoende
-  dekking, onbekende meter-scope, niet-vergelijkbaar weer/setpoint/gebruikscontext
-  of uitgesloten perioden.
+  dekking, niet-vergelijkbaar weer/setpoint/gebruikscontext of uitgesloten
+  perioden. Een onbekende meter-scope maakt de vergelijking niet beschikbaar;
+  ruwe consumptie blijft apart beoordeeld.
 - **Beschikbaar** voor een ruwe meteruitkomst zodra de bestaande
   kwaliteitscriteria dit toelaten. Een compleet ruwe resultaat kan beschikbaar
   zijn terwijl weers-/gebruiksvergelijking of rendement niet beschikbaar blijft.
@@ -124,8 +137,9 @@ afzonderlijk.
   onmeetbare grens als volledig gemeten wordt weergegeven.
 - Lever een vergelijkingsobject met referentie- en observatieperiode, gekozen
   meetbasis, ruwe waarden, contextverschillen, vergelijkbaarheid, uitsluitingen
-  en ontbrekende aannames. Geavanceerde gecorrigeerde output blijft optioneel en
-  vereist het besluit uit de normalisatiespike.
+  en ontbrekende aannames. Toon afzonderlijk of de ruwe vergelijking
+  `available`, `limited` of `unavailable` is. De eerste versie levert geen
+  gecorrigeerd gasvolume.
 - Rendement, euro's en weersvergelijkbaarheid krijgen afzonderlijke expliciete
   beschikbaarheidsvelden en reden-codes. Geen `0` als onbekend.
 - Gebruik de bestaande prijsinstelling, maar leg effectieve prijs-/configuratie-
@@ -137,8 +151,8 @@ afzonderlijk.
 Het scherm **Verbruik** toont bron en meter-scope, ruwe meterstand en gebruik,
 reset-/datakwaliteitsmeldingen, ruwe trend en geselecteerde vergelijkbare perioden.
 Toon daarnaast afzonderlijk of rendement en kosten beschikbaar zijn. Een grafiek
-maakt resetten en ontbrekende intervallen zichtbaar en verbindt een gekalibreerde
-of geselecteerde vergelijking met haar aannames. Geen besparingsbadge, groen
+maakt resetten en ontbrekende intervallen zichtbaar en verbindt een geselecteerde
+vergelijking met haar aannames. Geen besparingsbadge, groen
 rendementsoordeel of eurobedrag verschijnt zonder geldige basis.
 
 ## Acceptatie- en scenariotests
@@ -156,6 +170,8 @@ rendementsoordeel of eurobedrag verschijnt zonder geldige basis.
 6. Ontbrekende/weinig betrouwbare buitentemperatuur, setpoint, bedrijfsduur of
    gebruikscontext geeft geen vergelijkbare/gecorrigeerde uitkomst zonder expliciete
    reden.
+   Een ruwe vergelijking mag zichtbaar blijven als `limited`, met de ontbrekende
+   context expliciet benoemd.
 7. Perioden met vergelijkbaar weer maar ander setpoint of zonegebruik worden niet
    stilzwijgend als gelijke gebruiksperioden vergeleken.
 8. Uitgesloten bijzondere perioden beïnvloeden de vergelijking niet, maar blijven
@@ -167,15 +183,18 @@ rendementsoordeel of eurobedrag verschijnt zonder geldige basis.
 11. Een geselecteerde vergelijking gebruikt alleen waargenomen dagen en benoemt
     eventueel ongelijke meetbasis; er wordt niet buiten het gemeten weerbereik
     geëxtrapoleerd.
-12. Alle gegevensroutes zijn geauthenticeerd en er worden geen HA-bedienings-
+12. Een huishoudmeter of boiler-only meter levert geen schatting van afzonderlijk
+   ruimteverwarmingsgas wanneer koken of tapwater niet apart gemeten is.
+13. Geen graaddagratio of regressie-uitkomst verschijnt voordat de voorwaarden
+   uit ADR-005 en een scenario-gebaseerde modelvalidatie zijn gehaald.
+14. Alle gegevensroutes zijn geauthenticeerd en er worden geen HA-bedienings-
     services aangeroepen.
 
 ## Implementatievolgorde
 
-1. Voer een spike uit naar een verdedigbare weersnormalisatie versus selectie van
-   gematchte perioden, met speciale aandacht voor huishoudgas inclusief koken en
-   tapwater. Leg keuze en beperkingen vast voordat een gecorrigeerde waarde wordt
-   geïmplementeerd.
+1. Methodekeuze voor de eerste FR-31-implementatie staat in
+   [ADR-005](../adr/005-gas-consumption-comparison.md): geselecteerde ruwe perioden;
+   correctie blijft uitgesteld tot metergrens, invoer en validatie toereikend zijn.
 2. Ontwerp verbruiksscherm, meter-scope en reset-/onbekende toestanden in design v3.
 3. Voeg meter-scope, ruwe segmentuitkomsten, prijs-/configuratieherkomst en
    vergelijkings-API toe.
@@ -184,6 +203,6 @@ rendementsoordeel of eurobedrag verschijnt zonder geldige basis.
 5. Implementeer UI tegen het goedgekeurde ontwerp en contract; valideer dat alle
    labels en conclusies overeenkomen met API-waarden.
 
-Vervolgissues: #189 (normalisatiemethode-spike), #190 (design), #191 (meter-scope
-en ruwe API), #192 (selectie/correctie en vergelijking), #193 (frontend). #190
-hangt af van #189; #192 van #189 en #191; #193 van #190 en #192.
+Vervolgissues: #190 (design), #191 (meter-scope en ruwe API), #192
+(geselecteerde-perioden-vergelijking) en #193 (frontend). #190 volgt op de
+methodekeuze uit ADR-005; #192 hangt af van #191; #193 hangt af van #190 en #192.
