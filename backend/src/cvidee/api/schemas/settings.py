@@ -130,6 +130,17 @@ class AnalysisSettings(ApiModel):
         description="Zoveel korte cycli moeten er binnen één beoordeling zijn voordat de app "
         "een patroon meldt. Eén korte cyclus is nooit een waarschuwing.",
     )
+    few_active_zones_max: int | None = setting(
+        None,
+        title="Grens voor weinig actieve zones",
+        description="Alleen ingevuld als je zelf een aantal zones kiest; anders worden alleen "
+        "gemeten aantallen vergeleken zonder laag-/hooglabel of diagnose.",
+        group=_SC,
+        unit="zones",
+        step=1,
+        ge=1,
+        le=64,
+    )
     min_observation_hours: int = setting(
         6,
         title="Minimale observatieduur",

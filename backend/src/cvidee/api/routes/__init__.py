@@ -18,6 +18,7 @@ from cvidee.api.routes import (
     settings,
     signals,
     system,
+    zone_analysis,
 )
 
 router = APIRouter(prefix="/api")
@@ -37,6 +38,7 @@ for module in (
     changes,
     notifications,
     settings,
+    zone_analysis,
 ):
     router.include_router(module.router)
 

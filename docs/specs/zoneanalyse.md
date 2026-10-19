@@ -166,3 +166,18 @@ gedocumenteerde categorie, nooit een percentage.
 Vervolgissues: #164 (ontwerp), #165 (zoneprofiel en mappings), #166
 (zonecontext-analyse), #167 (frontend). #165 hangt af van #56 en #164; #166 hangt
 af van #56 en #165; #167 hangt af van #164, #165 en #166.
+
+## Implementatie van #166
+
+`GET /api/zones/analysis` groepeert volledige CV-cycli met bekende CV-warmtevraag
+naar het aantal zonevraagstatussen en, afzonderlijk, het aantal gemelde open
+klepstatussen op het cyclusstartmoment. De response bevat per bron dekking als het
+aandeel beoordeelbare cyclusstarts, korte-cycli-aantallen volgens de bestaande
+classificatie, links via cyclusstarttijd en per onvolledige telling de bekende en
+ontbrekende zones. De analyse gebruikt het profiel dat aan het einde van het
+tijdvak geldig is en knipt de start af op de profielversiegrens.
+
+De zichtbare instelling `few_active_zones_max` is optioneel en standaard leeg.
+Zonder ingestelde grens bevat de response geen laag-/hooglabel. Wanneer de grens is
+ingesteld, markeert zij uitsluitend de beschrijvende count-bins die aan die grens
+voldoen. De vergelijking geeft geen oorzaak of regeladvies.

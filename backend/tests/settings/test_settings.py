@@ -72,6 +72,25 @@ def test_defaults_noop_history_and_reverting_rejects_old_token(
     assert history[1].saved_at == datetime.fromtimestamp(NOW / 1000, UTC)
 
 
+def test_few_zone_threshold_is_visible_and_unset_by_default(
+    sessions: sessionmaker[Session],
+) -> None:
+    backend = SettingsBackend(sessions, clock=lambda: NOW)
+    current = backend.settings()
+    field = current.json_schema["properties"]["few_active_zones_max"]
+    assert current.values.few_active_zones_max is None
+    assert field["default"] is None
+    assert field["x-unit"] == "zones"
+
+    changed = backend.put_settings(
+        SettingsIn(
+            revision=current.revision,
+            values=current.values.model_copy(update={"few_active_zones_max": 2}),
+        )
+    )
+    assert changed.values.few_active_zones_max == 2
+
+
 def test_onboarding_completion_persists_without_recompute(sessions: sessionmaker[Session]) -> None:
     runner = MagicMock(spec=AnalysisRunner)
     backend = SettingsBackend(sessions, runner, clock=lambda: NOW)
