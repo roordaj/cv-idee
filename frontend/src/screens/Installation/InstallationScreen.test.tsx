@@ -52,6 +52,7 @@ const PROFILE = {
       night_setpoint: null,
     },
   ],
+  zones: [],
   specifications: [
     {
       key: 'max_ch_flow_temperature',
@@ -96,10 +97,14 @@ function stubApi(puts: unknown[]) {
     'fetch',
     vi.fn<typeof fetch>(async (input) => {
       const req = input as Request;
+      const url = new URL(req.url);
       if (req.method === 'PUT') {
         puts.push(await req.json());
         return json(PROFILE);
       }
+      if (url.pathname === '/api/signals') return json({ items: [], linked: 0, total: 0 });
+      if (url.pathname === '/api/ha/entities') return json([]);
+      if (url.pathname === '/api/comfort') return json({ rooms: [] });
       return json(PROFILE);
     }),
   );
@@ -161,6 +166,54 @@ describe('InstallationScreen', () => {
       status: 'scheduled',
       timezone: 'Europe/Amsterdam',
     });
+  });
+
+  it('validates and saves zones in the versioned installation profile', async () => {
+    const puts: unknown[] = [];
+    stubApi(puts);
+    const user = userEvent.setup();
+    renderScreen();
+    await user.click(await screen.findByRole('button', { name: 'Zone toevoegen' }));
+    await user.type(screen.getByLabelText('Zonenaam zone-1'), 'Woonkamer');
+    await user.click(screen.getByRole('button', { name: 'Profiel opslaan' }));
+    await waitFor(() => {
+      expect(puts).toHaveLength(1);
+    });
+    expect(puts[0]).toMatchObject({
+      revision: 3,
+      zones: [{ key: 'zone-1', name: 'Woonkamer', circuit_key: 'beneden' }],
+    });
+  });
+
+  it('shows a clear validation error for duplicate zone keys', async () => {
+    const profile = {
+      ...PROFILE,
+      zones: [
+        { key: 'woonkamer', name: 'Woonkamer', circuit_key: 'beneden' },
+        { key: 'boven', name: 'Boven', circuit_key: 'boven' },
+      ],
+    };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>((input) => {
+        const req = input as Request;
+        const url = new URL(req.url);
+        if (url.pathname === '/api/signals')
+          return Promise.resolve(json({ items: [], linked: 0, total: 0 }));
+        if (url.pathname === '/api/ha/entities') return Promise.resolve(json([]));
+        if (url.pathname === '/api/comfort') return Promise.resolve(json({ rooms: [] }));
+        return Promise.resolve(json(profile));
+      }),
+    );
+    const user = userEvent.setup();
+    renderScreen();
+    const keys = await screen.findAllByLabelText(/Zonesleutel/);
+    const secondKey = keys[1];
+    if (!secondKey) throw new Error('Second zone key input not found');
+    await user.clear(secondKey);
+    await user.type(secondKey, 'woonkamer');
+    await user.click(screen.getByRole('button', { name: 'Profiel opslaan' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/komt meer dan één keer/);
   });
 
   it('edits a specification through the dialog and sends the revision', async () => {

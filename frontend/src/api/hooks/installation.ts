@@ -20,6 +20,8 @@ export function useUpdateInstallation() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: installationKey }),
         queryClient.invalidateQueries({ queryKey: ['comfort-analysis'] }),
+        queryClient.invalidateQueries({ queryKey: ['zone-analysis'] }),
+        queryClient.invalidateQueries({ queryKey: ['signals'] }),
       ]);
     },
   });
@@ -29,6 +31,14 @@ export function useRoomComfortAnalysis() {
   return useQuery({
     queryKey: ['comfort-analysis'],
     queryFn: async () => unwrap(await api().GET('/api/comfort')),
+  });
+}
+
+export function useZoneAnalysis(range: { from?: string; to?: string } = {}) {
+  return useQuery({
+    queryKey: ['zone-analysis', range],
+    queryFn: async () =>
+      unwrap(await api().GET('/api/zones/analysis', { params: { query: range } })),
   });
 }
 

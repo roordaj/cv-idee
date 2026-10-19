@@ -56,6 +56,7 @@ export function useUpdateSignal() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: signalKeys.all }),
         queryClient.invalidateQueries({ queryKey: signalKeys.analyses }),
+        queryClient.invalidateQueries({ queryKey: ['zone-analysis'] }),
         queryClient.invalidateQueries({ queryKey: systemKeys.status }),
       ]);
     },

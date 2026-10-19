@@ -14,6 +14,7 @@ import { cx } from '../../components/tone.ts';
 import styles from './Installation.module.css';
 import { SpecDialog } from './SpecDialog.tsx';
 import { RoomComfortPanel } from './RoomComfortPanel.tsx';
+import { ZoneConfigurationPanel } from './ZoneConfigurationPanel.tsx';
 import { specText, type InstallationProfile, type Specification } from './specFormat.ts';
 
 type Circuit = InstallationProfile['circuits'][number];
@@ -196,6 +197,7 @@ export function InstallationScreen() {
             </Card>
             <RoomComfortPanel profile={installation.data} />
           </div>
+          <ZoneConfigurationPanel profile={installation.data} />
           {editing ? (
             <SpecDialog
               key={editing.key}
