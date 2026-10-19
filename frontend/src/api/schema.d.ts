@@ -236,6 +236,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/reports/{kind}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Report
+     * @description Build a read-only snapshot for the previous or specified complete local period.
+     */
+    get: operations['get_report'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/quality': {
     parameters: {
       query?: never;
@@ -2340,6 +2360,104 @@ export interface components {
      * @enum {string}
      */
     Relevance: 'energy' | 'comfort' | 'operational_stability' | 'data_reliability';
+    /** ReportAdvice */
+    ReportAdvice: {
+      /** Finding Id */
+      finding_id: string;
+      /** Title */
+      title: string;
+      status: components['schemas']['RecommendationStatus'];
+      /** Action */
+      action: string;
+      /** Missing Signals */
+      missing_signals: string[];
+    };
+    /** ReportChange */
+    ReportChange: {
+      /** Change Id */
+      change_id: string;
+      /**
+       * At
+       * Format: date-time
+       * @description ISO 8601 timestamp in UTC.
+       * @example 2026-10-04T10:00:00Z
+       */
+      at: string;
+      /** Parameter */
+      parameter: string;
+      /** Old Value */
+      old_value: string;
+      /** New Value */
+      new_value: string;
+      /** Reason */
+      reason: string;
+      evaluation: components['schemas']['ReportChangeEvaluation'] | null;
+    };
+    /** ReportChangeEvaluation */
+    ReportChangeEvaluation: {
+      verdict: components['schemas']['EvaluationVerdict'];
+      /** Summary */
+      summary: string | null;
+      reference: components['schemas']['TimeRange'];
+      observation: components['schemas']['TimeRange'];
+      /** Comparability */
+      comparability: {
+        [key: string]: unknown;
+      }[];
+      /** Metrics */
+      metrics: {
+        [key: string]: unknown;
+      }[];
+    };
+    /**
+     * ReportPeriodKind
+     * @enum {string}
+     */
+    ReportPeriodKind: 'day' | 'week';
+    /** ReportSnapshot */
+    ReportSnapshot: {
+      kind: components['schemas']['ReportPeriodKind'];
+      period: components['schemas']['TimeRange'];
+      /**
+       * Generated At
+       * Format: date-time
+       * @description ISO 8601 timestamp in UTC.
+       * @example 2026-10-04T10:00:00Z
+       */
+      generated_at: string;
+      quality: components['schemas']['QualityResponse'];
+      cycle_summary: components['schemas']['CycleSummary'];
+      /** Cycles */
+      cycles: components['schemas']['Cycle'][];
+      /** Findings */
+      findings: components['schemas']['FindingSummary'][];
+      /** Open Advice */
+      open_advice: components['schemas']['ReportAdvice'][];
+      /** Status Changes */
+      status_changes: components['schemas']['ReportStatusChange'][];
+      /** Changes */
+      changes: components['schemas']['ReportChange'][];
+      /**
+       * Has More Cycles
+       * @description True when more than 500 cycles fall in the period.
+       */
+      has_more_cycles: boolean;
+    };
+    /** ReportStatusChange */
+    ReportStatusChange: {
+      /**
+       * At
+       * Format: date-time
+       * @description ISO 8601 timestamp in UTC.
+       * @example 2026-10-04T10:00:00Z
+       */
+      at: string;
+      /** Finding Id */
+      finding_id: string;
+      /** Title */
+      title: string;
+      status: components['schemas']['RecommendationStatus'];
+    };
     /**
      * Role
      * @description Canonical signal roles (requirements §2, technical plan §3.5).
@@ -3403,6 +3521,51 @@ export interface operations {
         content: {
           'application/problem+json': components['schemas']['Problem'];
           'application/json': components['schemas']['Problem'];
+        };
+      };
+      /** @description Validation error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+      /** @description Not implemented (start the backend with CVIDEE_STUB_DATA=1 for example data) */
+      501: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+    };
+  };
+  get_report: {
+    parameters: {
+      query?: {
+        /** @description Local date; for a week this must be Monday. Defaults to the previous complete period. */
+        reference_date?: string | null;
+      };
+      header?: never;
+      path: {
+        kind: components['schemas']['ReportPeriodKind'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReportSnapshot'];
         };
       };
       /** @description Validation error */
