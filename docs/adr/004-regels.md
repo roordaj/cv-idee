@@ -98,7 +98,7 @@ class Rule(Protocol):
 | `scope_key` | dedupesleutel binnen de regel; nooit een tijdstip. Dedupe = `(rule_id, scope_key)` (FR-39) | `boiler:ch` |
 | `category`, `title` | categorie en titel | Cycli · "Herhaald kort branden …" |
 | `severity` | `high` / `medium` / `low` / `info` (ernst) | Hoog |
-| `certainty` | §5 | Matig |
+| `certainty` | §5 | Redelijk |
 | `relevance` | `energy` / `comfort` / `operational_stability` / `data_reliability`; verplicht behalve bij `info` | bedrijfsstabiliteit, energie |
 | `observation` | **alleen** meetwaarden en tijdvak (FR-21) | "In 18 van 24 cv-cycli stopt …" |
 | `period`, `signals` | tijdvak en gebruikte signalen | Zo 4 okt 06:00–10:10; vlamstatus, … |
@@ -171,6 +171,7 @@ Iedere regel vult `CertaintyCriteria` in (en dezelfde tabel in zijn regeldocumen
 | `reasonable` | idem | blijft `moderate` |
 | `high` | idem | blijft `reasonable` |
 | `allow_measured` | regel mag `high_measured` geven voor kandidaten met `measured=True` | blijft `high` |
+| `lower_for_missing_signals` | optionele signalen verlagen het zekerheidsoordeel van de waarneming | regelafhankelijk; `false` wanneer signalen alleen mogelijke oorzaken onderscheiden |
 | `max_certainty` | plafond, bv. `reasonable` voor regels die alleen correleren (FR-18) | — |
 
 Een veld `None` doet niet mee. Een rij `None` (`reasonable`/`high`) betekent "niveau niet bereikbaar"; een rij `Thresholds()` betekent "bereikt zodra de rij erboven gehaald is". **Een onbekende waarde in de onderbouwing (`None`) haalt een drempel nooit** — onbekend is geen "genoeg".
@@ -180,7 +181,7 @@ Een veld `None` doet niet mee. Een rij `None` (`reasonable`/`high`) betekent "ni
 1. Een `minimum`-drempel niet gehaald → `insufficient_evidence` (reden-codes per drempel).
 2. `repetition_days < structural_repetition_days` → `preliminary` (`not_structural`).
 3. Start op `moderate`; `reasonable` gehaald → `reasonable`; daarbovenop `high` gehaald → `high`; `measured` én `allow_measured` → `high_measured`.
-4. **Ontbrekende signalen verlagen één stap**: `missing_signals` niet leeg → één stap lager, één keer (ongeacht het aantal), en nooit onder `moderate` — *voorlopig* en *onvoldoende bewijs* gaan over de hoeveelheid data, niet over welke signalen er zijn.
+4. **Regelafhankelijke ontbrekende signalen**: als `lower_for_missing_signals` waar is en `missing_signals` niet leeg, één stap lager (ongeacht het aantal), nooit onder `moderate`. Een regel zet dit uit wanneer de ontbrekende signalen alleen oorzaken onderscheiden en niet nodig zijn om de waarneming vast te stellen.
 5. Plafond `max_certainty`.
 
 De uitkomst bevat reden-codes (`below_min_coverage`, `not_structural`, `reasonable_met`, `lowered_for_missing_signals`, `capped`, …) zodat de UI kan uitleggen waarom ("Matig: redelijk, één stap lager omdat zoneklep, verdeler en pomp ontbreken"). De afleiding is monotoon: meer dekking, cycli of herhaling geeft nooit een zwakkere categorie (property-test).
@@ -189,7 +190,8 @@ De uitkomst bevat reden-codes (`below_min_coverage`, `not_structural`, `reasonab
 
 | Bevinding | Onderbouwing | Uitkomst |
 |---|---|---|
-| B-014 `kort-branden` | 93 % dekking, 24 relevante cycli, 3 van 7 dagen; zoneklep/verdeler/pomp ontbreken | criteria van #30 geven *redelijk*, −1 voor ontbrekende signalen → **Matig** (test `test_design_b014_is_moderate`) |
+| B-014 `kort-branden` | 93 % dekking, 24 relevante cycli, 3 van 7 dagen; zoneklep/verdeler/pomp ontbreken | patroon haalt *redelijk*; ontbrekende oorzaakmetingen staan bij de hypotheses en verlagen het patroon niet → **Redelijk** |
+| Scenario 02 `kort-branden` | 72 uur, 475 korte stops, drie of meer herhalingsdagen; oorzaakmetingen ontbreken | hoge dekking, cycli en herhaling → **Hoog**; hypotheses blijven onzeker |
 | B-015 `dataverlies` | de app mat de onderbreking zelf; `allow_measured`, `measured=True` | **Hoog (gemeten)** |
 | B-012 `hydraulisch` | verdelersignalen ontbreken; minimum niet haalbaar | **Onvoldoende bewijs** + advies `measurement` "plaats temperatuursensoren op verdeleraanvoer en -retour" |
 | B-016 `tapwater-uitgesloten` | modus direct gerapporteerd, 100 % dekking, interpretatie "uitgesloten" | **Hoog** (`info`, geen advies) |

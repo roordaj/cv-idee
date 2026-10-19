@@ -1,6 +1,6 @@
 # `kort-branden` — herhaald kort branden tijdens warmtevraag
 
-- **Id:** `kort-branden` · **Huidige versie:** 1.1.0 · **Categorie:** `cycles` (UI: "Cycli")
+- **Id:** `kort-branden` · **Huidige versie:** 1.2.0 · **Categorie:** `cycles` (UI: "Cycli")
 - **Code:** `backend/src/cvidee/rules/short_cycling.py` · **Issue:** #30
 - **Requirements:** FR-14, FR-23, FR-24, FR-28
 
@@ -58,11 +58,11 @@ Criteria-sjabloon (ADR-004 §5). Lege cel = niet van toepassing. Ontbrekende opt
 | minimum (anders *onvoldoende bewijs*) | ≥ 80 % | | ≥ `min_observation_h` (6 u) | | |
 | structureel (anders *voorlopig*) | | | | ≥ `structural_days` van `window_days` (2 van 7) | |
 | *redelijk* | ≥ 90 % | ≥ 12 | | ≥ 3 | |
-| *hoog* | ≥ 95 % | ≥ 30 | | ≥ 5 | |
+| *hoog* | ≥ 95 % | ≥ 30 | | ≥ 3 | |
 | *hoog (gemeten)* | niet bereikbaar (interpretatie nodig) | | | | |
 | plafond (`max_certainty`) | *hoog* | | | | |
 
-Dekking: laagste dekking van `flame`, `operating_mode` en `heat_demand`. Relevante cycli: volledige cv-cycli buiten gemarkeerde perioden. Waargenomen uren: brandduur plus pauzes van die cycli (uren zonder gegevens tellen niet). Een dag telt voor de herhaling bij ≥ 2 korte cycli op die dag.
+Dekking: laagste dekking van `flame`, `operating_mode` en `heat_demand`. Relevante cycli: volledige cv-cycli buiten gemarkeerde perioden. Waargenomen uren: brandduur plus pauzes van die cycli (uren zonder gegevens tellen niet). Een dag telt voor de herhaling bij ≥ 2 korte cycli op die dag. De zekerheid gaat over het waargenomen cyclipatroon. Ontbrekende optionele hydraulische of temperatuurmetingen beperken de hypotheses, maar verlagen de zekerheid van dat gemeten patroon niet.
 
 ## Hypotheses
 
@@ -97,4 +97,10 @@ Het patroon is voorbij als in de beoordelingsperiode minder dan `min_short_cycle
 
 ### 1.1.0 — 2026-10-19
 
-- Voeg bij ontbrekende modus- of warmtevraagsignalen een meetuitkomst toe als voldoende volledige, korte branderperioden daadwerkelijk zijn waargenomen; leid geen bedrijfsmodus of eindreden af.
+- Rapporteer herhaald gemeten korte branderperioden als onvoldoende bewijs wanneer modus of warmtevraag ontbreekt; leid geen cv-eindreden af.
+
+### 1.2.0 — 2026-10-19
+
+- Scheid de zekerheid van het gemeten cyclipatroon van ontbrekende metingen die alleen mogelijke oorzaken helpen onderscheiden.
+- Laat drie dagen herhaling volstaan voor de hoge categorie wanneer ook dekking en aantal cycli aan de hoge criteria voldoen.
+

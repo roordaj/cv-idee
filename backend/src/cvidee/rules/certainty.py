@@ -92,7 +92,7 @@ def derive_certainty(
                 level = Certainty.HIGH_MEASURED
                 reasons.append(CertaintyReason.MEASURED)
 
-    if evidence.missing_signals:
+    if criteria.lower_for_missing_signals and evidence.missing_signals:
         lowered = level.lowered(1, floor=Certainty.MODERATE)
         if lowered is not level:
             level = lowered

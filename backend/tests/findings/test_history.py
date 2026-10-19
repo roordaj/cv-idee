@@ -156,9 +156,8 @@ def test_packaged_changelog_matches_documented_versions() -> None:
     assert changes_since("kort-branden", "0.9.0", "1.0.0") == ["Eerste versie."]
     assert changes_since("kort-branden", "1.0.0", "1.0.0") == []
     assert changes_since("kort-branden", "1.0.0", "1.1.0") == [
-        "Voeg bij ontbrekende modus- of warmtevraagsignalen een meetuitkomst toe als voldoende "
-        "volledige, korte branderperioden daadwerkelijk zijn waargenomen; leid geen "
-        "bedrijfsmodus of eindreden af."
+        "Rapporteer herhaald gemeten korte branderperioden als onvoldoende bewijs wanneer modus "
+        "of warmtevraag ontbreekt; leid geen cv-eindreden af."
     ]
 
 
@@ -180,14 +179,14 @@ async def test_status_snapshot_keeps_original_profile_after_profile_edit(
         spec = next(spec for spec in updated.specs if spec.key == MAX_FLOW)
         spec.status, spec.value_num = SpecStatus.KNOWN, 45
         SqlInstallationProfileRepository(session).save_new_version(updated)
-    monkeypatch.setattr(runner.registry.get("kort-branden"), "version", "1.2.0")
+    monkeypatch.setattr(runner.registry.get("kort-branden"), "version", "1.3.0")
     await client.post(f"/api/findings/{old['finding_id']}/status", json={"status": "done"})
     new = (await client.get("/api/history")).json()["items"][0]
     assert new["profile_version"] == old["profile_version"]
     assert "Maximale CV-aanvoer: onbekend" in new["settings_text"]
     assert "45 °C" not in new["settings_text"]
-    assert new["rule"]["version"] == "1.1.0"
-    assert "1.1.0 naar 1.2.0" in new["rule_now_text"]
+    assert new["rule"]["version"] == "1.2.0"
+    assert "1.2.0 naar 1.3.0" in new["rule_now_text"]
 
 
 async def test_accepting_open_advice_records_current_display_then_freezes_it(

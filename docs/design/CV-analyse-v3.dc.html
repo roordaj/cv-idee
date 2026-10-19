@@ -706,7 +706,7 @@ function buildSim() {
 }
 
 const FINDINGS = (st) => [
-  { id: 'B-014', cat: 'Cycli', when: 'vandaag 06:00–10:10', ernst: 'Hoog', ernstClass: 'tag tag-accent', zekerheid: 'Matig', relevantie: 'bedrijfsstabiliteit, energie', regel: 'kort-branden v1.3',
+  { id: 'B-014', cat: 'Cycli', when: 'vandaag 06:00–10:10', ernst: 'Hoog', ernstClass: 'tag tag-accent', zekerheid: 'Redelijk', relevantie: 'bedrijfsstabiliteit, energie', regel: 'kort-branden v1.3',
     title: 'Herhaald kort branden tijdens aanhoudende warmtevraag',
     dekking: '93 % · 30 min onbekend', cycli: `${st.shortN} van ${st.cvWN} cv-cycli`, herhaling: '3 van laatste 7 dagen', ontbreekt: 'Zoneklep, verdeler, pomp',
     observatie: `In ${st.shortN} van ${st.cvWN} cv-cycli stopt de brander binnen 3 minuten terwijl de warmtevraag blijft bestaan. De werkelijke aanvoer overschrijdt de gewenste aanvoer (55 °C) vaak vlak vóór de stop; modulatie staat dan op het minimum (19 %).`,

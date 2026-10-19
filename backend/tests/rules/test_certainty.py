@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
@@ -17,13 +19,13 @@ from cvidee.rules.base import (
 from cvidee.rules.certainty import CertaintyReason, derive_certainty
 
 # Shaped like kort-branden: min 6 relevant cycles and 80 % coverage, structural on 2 of
-# 7 days, reasonable from 12 cycles / 90 % / 3 days, high from 30 cycles / 95 % / 5 days.
+# 7 days, reasonable from 12 cycles / 90 % / 3 days, high from 30 cycles / 95 % / 3 days.
 CRITERIA = CertaintyCriteria(
     minimum=Thresholds(coverage=0.8, relevant_cycles=6),
     structural_repetition_days=2,
     repetition_window_days=7,
     reasonable=Thresholds(coverage=0.9, relevant_cycles=12, repetition_days=3),
-    high=Thresholds(coverage=0.95, relevant_cycles=30, repetition_days=5),
+    high=Thresholds(coverage=0.95, relevant_cycles=30, repetition_days=3),
 )
 
 
@@ -89,9 +91,8 @@ def test_missing_signals_lower_one_step_but_not_below_moderate() -> None:
     assert CertaintyReason.LOWERED_FOR_MISSING_SIGNALS not in floor.reasons
 
 
-def test_design_b014_is_moderate() -> None:
-    """B-014: 93 % coverage, 24 relevant cycles, 3 of 7 days, zone/manifold/pump missing →
-    reasonable lowered one step → "Matig"."""
+def test_design_b014_is_reasonable() -> None:
+    """B-014: cause measurements are missing, while the observed pattern is reasonable."""
     ev = EvidenceSummary(
         coverage=0.93,
         relevant_cycles=24,
@@ -100,7 +101,10 @@ def test_design_b014_is_moderate() -> None:
         repetition_window_days=7,
         missing_signals=(signal_ref(Role.PUMP_STATE),),
     )
-    assert derive_certainty(ev, CRITERIA).certainty is Certainty.MODERATE
+    assert (
+        derive_certainty(ev, replace(CRITERIA, lower_for_missing_signals=False)).certainty
+        is Certainty.REASONABLE
+    )
 
 
 def test_measured_only_when_allowed() -> None:

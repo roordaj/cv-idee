@@ -144,7 +144,7 @@ _TEMPERATURE_ROLES = (
 
 class ShortCyclingRule(BaseRule[ShortCyclingParams]):
     id = "kort-branden"
-    version = "1.1.0"
+    version = "1.2.0"
     category = Category.CYCLES
     required_signals = frozenset({Role.FLAME, Role.OPERATING_MODE, Role.HEAT_DEMAND})
     optional_signals = frozenset(
@@ -170,7 +170,8 @@ class ShortCyclingRule(BaseRule[ShortCyclingParams]):
             structural_repetition_days=p.structural_days,
             repetition_window_days=p.window_days,
             reasonable=Thresholds(coverage=0.9, relevant_cycles=12, repetition_days=3),
-            high=Thresholds(coverage=0.95, relevant_cycles=30, repetition_days=5),
+            high=Thresholds(coverage=0.95, relevant_cycles=30, repetition_days=3),
+            lower_for_missing_signals=False,
             max_certainty=Certainty.HIGH,
         )
 
