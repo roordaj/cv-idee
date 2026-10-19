@@ -31,7 +31,7 @@ def read_summary(session: Session, now: int) -> dict[str, ExportValue]:
     end = now - config.settle_ms
     start = end - 6 * 3_600_000
     window = AnalysisWindow(start, start, end)
-    observations, events = load_window_input(session, mapped, sources, window)
+    observations, events = load_window_input(session, mapped, sources, window, config)
     result = run_pipeline(observations, events, config, window, now)
     timelines = {t.signal: t for t in result.timelines}
     statuses = {

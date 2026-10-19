@@ -169,12 +169,12 @@ class TestModeCodes:
     def test_mode_code_nan_is_not_a_code(self) -> None:
         assert mode_code(float("nan")) is None
 
-    def test_provisional_default_mapping(self) -> None:
+    def test_no_unvalidated_default_mapping(self) -> None:
         """Design v3: "Statuscode ketel; 1 = CV, 2 = tapwater" (to be confirmed by #5)."""
         default = PipelineConfig(signals=())
-        assert default.mode_mapping == PROVISIONAL_MODE_MAPPING
-        assert map_mode_code("1", default.mode_mapping) is Mode.CH
-        assert map_mode_code("2", default.mode_mapping) is Mode.DHW
+        assert default.mode_mapping == ()
+        assert map_mode_code("1", default.mode_mapping) is None
+        assert map_mode_code("2", default.mode_mapping) is None
 
 
 class TestDirect:
@@ -218,17 +218,17 @@ class TestDirect:
         segments = classify({FLAME: [at(-10, None)], DEMAND: [at(-10, None)]})
         assert all(s.mode is not Mode.FAULT_BLOCKING for s in segments)
 
-    def test_unmapped_code_falls_back_to_inference(self) -> None:
+    def test_unmapped_code_stays_unknown(self) -> None:
         segments = classify(
             {STATUS: [at(-10, "0", POLL)], FLAME: [at(-10, True, POLL)], DEMAND: ALWAYS_DEMAND}
         )
-        assert summary(segments) == [(0, 60, Mode.CH, INFERRED)]
+        assert summary(segments) == [(0, 60, Mode.UNKNOWN, NONE)]
 
-    def test_unknown_status_falls_back_to_inference(self) -> None:
+    def test_unknown_status_stays_unknown(self) -> None:
         segments = classify(
             {STATUS: [at(-10, None)], FLAME: [at(-10, False, POLL)], DEMAND: NO_DEMAND}
         )
-        assert summary(segments) == [(0, 60, Mode.STANDBY, INFERRED)]
+        assert summary(segments) == [(0, 60, Mode.UNKNOWN, NONE)]
 
     def test_mapping_is_configurable(self) -> None:
         config = PipelineConfig(signals=CONFIG.signals, mode_mapping=(("dhw", Mode.DHW),))
@@ -386,7 +386,7 @@ class TestAfterrun:
         assert summary(segments) == [
             (0, 10, Mode.CH, DIRECT),
             (10, 13, Mode.AFTERRUN, DIRECT),
-            (13, 60, Mode.STANDBY, INFERRED),
+            (13, 60, Mode.UNKNOWN, NONE),
         ]
 
 

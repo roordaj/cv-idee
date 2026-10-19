@@ -1,3 +1,4 @@
+import { modeTableText, parseModeTable } from './modeMapping';
 import { Check, CircleAlert, Loader2 } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useHaEntities, useUpdateSignal } from '../../api/hooks/signals.ts';
@@ -40,6 +41,8 @@ export function SignalPanel({ signal, signals }: SignalPanelProps) {
   const [location, setLocation] = useState(signal.location ?? '');
   const [kind, setKind] = useState<ValueKind | null>(signal.value_kind);
   const [meaning, setMeaning] = useState(signal.meaning ?? '');
+  const [modeTable, setModeTable] = useState(modeTableText(signal.value_map));
+  const [modeError, setModeError] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [confirmUnlink, setConfirmUnlink] = useState(false);
   const [ageError, setAgeError] = useState<string | null>(null);
@@ -70,6 +73,16 @@ export function SignalPanel({ signal, signals }: SignalPanelProps) {
 
   const save = (nextEntityId: string | null) => {
     setSaved(false);
+    const parsed = parseModeTable(modeTable);
+    if (signal.role === 'operating_mode' && nextEntityId !== null) {
+      const error =
+        parsed.error ??
+        (parsed.table && !meaning.trim()
+          ? 'Leg de herkomst en betekenis van deze statuscodes vast.'
+          : null);
+      setModeError(error);
+      if (error) return;
+    }
     const maxAge = nextEntityId === null ? signal.max_age_s : validateAge();
     if (maxAge === undefined) return;
     update.mutate(
@@ -77,6 +90,7 @@ export function SignalPanel({ signal, signals }: SignalPanelProps) {
         signalId: signal.id,
         body: {
           entity_id: nextEntityId,
+          ...(signal.role === 'operating_mode' ? { value_map: parsed.table } : {}),
           unit: unit.trim() || null,
           location: location.trim() || null,
           value_kind: kind,
@@ -101,6 +115,11 @@ export function SignalPanel({ signal, signals }: SignalPanelProps) {
   };
 
   const pick = (picked: HaEntity) => {
+    if (signal.role === 'operating_mode' && picked.id !== entityId) {
+      setModeTable('');
+      setMeaning('');
+      setModeError(null);
+    }
     setEntityId(picked.id);
     if (!unit && picked.unit) setUnit(picked.unit);
     setPickerOpen(false);
@@ -272,8 +291,37 @@ export function SignalPanel({ signal, signals }: SignalPanelProps) {
             options={VALUE_KINDS}
           />
         </div>
+        {signal.role === 'operating_mode' && (
+          <>
+            <label className={styles.field}>
+              Statuscodes voor deze bron
+              <textarea
+                className={styles.input}
+                rows={7}
+                value={modeTable}
+                placeholder={'0 = stand-by\n3 = cv\n4 = tapwater\n6 = naloop'}
+                onChange={(e) => {
+                  setModeTable(e.target.value);
+                }}
+                aria-invalid={!!modeError}
+                aria-describedby="mode-mapping-help"
+              />
+            </label>
+            <p id="mode-mapping-help" className={styles.hint}>
+              Voer alleen gecontroleerde betekenissen voor deze entiteit in. Leeg of niet gekoppeld
+              betekent onbekend. Overgangscodes zijn geen bewijs van branden. De voorbeeldcodes zijn
+              geen universele ketelinstelling. Bij een andere entiteit wordt de tabel gewist.
+              Versie: {signal.mapping_version ?? 'nog niet opgeslagen'}.
+            </p>
+            {modeError && (
+              <div role="alert" className={styles.error}>
+                {modeError}
+              </div>
+            )}
+          </>
+        )}
         <label className={styles.field}>
-          Betekenis
+          {signal.role === 'operating_mode' ? 'Herkomst en betekenis van statuscodes' : 'Betekenis'}
           <textarea
             className={styles.input}
             rows={3}

@@ -58,7 +58,13 @@ class Signal(ApiModel):
     )
     expected_resolution_s: float | None = Field(default=None, ge=0.001, le=86400)
     valid_from: UtcDateTime | None = None
-    value_map: dict[str, float | str | bool | None] | None = None
+    value_map: dict[str, float | str | bool | None] | None = Field(
+        default=None,
+        description="Brongebonden waardetabel. Voor operating_mode uitsluitend canonieke "
+        "modi ch/dhw/standby/afterrun/fault_blocking/unknown; meaning legt de herkomst vast.",
+    )
+
+    mapping_version: int | None = Field(default=None, description="Immutable mapping version id.")
 
 
 class SignalList(ApiModel):
@@ -79,7 +85,11 @@ class SignalMappingUpdate(ApiModel):
     expects_regular_updates: bool | None = None
     expected_resolution_s: float | None = Field(default=None, ge=0.001, le=86400)
     valid_from: UtcDateTime | None = None
-    value_map: dict[str, float | str | bool | None] | None = None
+    value_map: dict[str, float | str | bool | None] | None = Field(
+        default=None,
+        description="Brongebonden waardetabel. Voor operating_mode uitsluitend canonieke "
+        "modi ch/dhw/standby/afterrun/fault_blocking/unknown; meaning legt de herkomst vast.",
+    )
 
 
 class HaEntity(ApiModel):

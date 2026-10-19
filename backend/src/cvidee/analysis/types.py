@@ -813,10 +813,11 @@ class PairTolerance:
 
 
 PROVISIONAL_MODE_MAPPING: tuple[tuple[str, Mode], ...] = (("1", Mode.CH), ("2", Mode.DHW))
-"""Provisional status-code → mode mapping for the Calenta Ace, taken from design v3
-(``sensor.remeha_status``: "1 = CV, 2 = tapwater"). To be confirmed or replaced by the CAN
-inventory (#5); unmapped codes fall back to inference (ADR-002 §3.3). Fault/blocking codes are
-only known after #5 and are added as ``(code, Mode.FAULT_BLOCKING)`` entries."""
+"""Legacy design-example codes, for explicit synthetic fixtures only. Never defaults.
+
+The real AM012 source does not use these meanings. Production mappings belong to a
+versioned, source-specific signal mapping (FR-01/FR-09).
+"""
 
 
 @dataclass(frozen=True, slots=True)
@@ -825,10 +826,12 @@ class PipelineConfig:
     chunked == whole only holds for the same snapshot (``config_hash``)."""
 
     signals: tuple[SignalConfig, ...]
-    mode_mapping: tuple[tuple[str, Mode], ...] = PROVISIONAL_MODE_MAPPING
-    """Status/mode code → mode; first match wins. Codes are compared as stripped strings
-    (numeric codes as integers, ``1.0`` → ``"1"``). Default: :data:`PROVISIONAL_MODE_MAPPING`
-    until the CAN inventory (#5) confirms the Calenta Ace codes."""
+    mode_mapping: tuple[tuple[str, Mode], ...] = ()
+    """Explicit status/mode code table; no universal protocol defaults.
+
+    Synthetic/replay callers can supply their own table. Runtime signal mappings
+    convert validated source codes to typed Mode values before classification.
+    """
     demand_flow_setpoint_min_c: float = 20.0
     """Without a known heat-demand value, a known flow setpoint at or above this value counts
     as heat demand when inferring modes (requirements §2: "warmtevraag of gewenste

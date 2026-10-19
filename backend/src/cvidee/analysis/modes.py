@@ -3,10 +3,11 @@
 Decision per instant ``t`` (the result does not depend on input order):
 
 1. **Device-reported.** The operating-mode/status signal is known at ``t`` and its code is in
-   ``config.mode_mapping`` → that mode with certainty ``DIRECT`` and source
+   its source-specific mapping (or explicit ``config.mode_mapping``) → that mode with
+   certainty ``DIRECT`` and source
    ``operating_mode@boiler``. This is the only way to get ``FAULT_BLOCKING``: faults and
    blockings are shown as device messages with their source (requirements §8), never inferred.
-2. **Inferred** (no mode signal, signal unknown, or an unmapped code) with certainty
+2. **Inferred** (no mapped mode signal) with certainty
    ``INFERRED`` ("beperkte zekerheid"). Heat demand comes from the heat-demand signal, or,
    when that is not known, from the flow setpoint (``>= config.demand_flow_setpoint_min_c``).
 
@@ -111,8 +112,7 @@ def map_mode_code(code: str, mapping: Sequence[tuple[str, Mode]]) -> Mode | None
     """Map a status/mode code to a mode; ``None`` for unmapped codes.
 
     Codes are compared after stripping whitespace; the first matching entry wins. An
-    unmapped code is not evidence of any mode: :func:`classify_modes` then falls back to
-    inference (``INFERRED``, or ``UNKNOWN`` if the inference signals are unknown).
+    unmapped code is not evidence of any mode: :func:`classify_modes` keeps it unknown.
     """
     wanted = code.strip()
     for candidate, mode in mapping:
@@ -177,6 +177,7 @@ class _Inputs:
     """Signal values on one elementary piece (``None`` = unknown or not mapped)."""
 
     code_mode: Mode | None
+    mode_mapped: bool
     flame: bool | None
     demand: bool | None
     demand_source: SignalRef | None
@@ -203,8 +204,12 @@ def _decision(
     pump_mapped: bool,
     config: PipelineConfig,
 ) -> tuple[Mode, ModeCertainty, tuple[SignalRef, ...]]:
-    if inputs.code_mode is not None:
+    if inputs.code_mode is not None and inputs.code_mode is not Mode.UNKNOWN:
         return inputs.code_mode, ModeCertainty.DIRECT, (OPERATING_MODE,)
+    if inputs.mode_mapped:
+        # A mapped but unvalidated, transitional or missing status is not evidence
+        # for an inferred active mode, even when flame or heat demand is known.
+        return Mode.UNKNOWN, ModeCertainty.NONE, (OPERATING_MODE,)
 
     unknown = (Mode.UNKNOWN, ModeCertainty.NONE, ())
     if inputs.flame is None or inputs.demand is None or inputs.demand_source is None:
@@ -242,7 +247,11 @@ def _read(
 
     raw_code = value(OPERATING_MODE)
     code = None if raw_code is None else mode_code(raw_code)
-    code_mode = None if code is None else map_mode_code(code, config.mode_mapping)
+    code_mode = (
+        raw_code
+        if isinstance(raw_code, Mode)
+        else (None if code is None else map_mode_code(code, config.mode_mapping))
+    )
 
     demand = _as_bool(value(HEAT_DEMAND))
     demand_source: SignalRef | None = HEAT_DEMAND
@@ -250,7 +259,14 @@ def _read(
         setpoint = _as_float(value(FLOW_SETPOINT))
         demand = None if setpoint is None else setpoint >= config.demand_flow_setpoint_min_c
         demand_source = None if setpoint is None else FLOW_SETPOINT
-    return _Inputs(code_mode, _as_bool(value(FLAME)), demand, demand_source, _as_bool(value(PUMP)))
+    return _Inputs(
+        code_mode,
+        OPERATING_MODE in timelines,
+        _as_bool(value(FLAME)),
+        demand,
+        demand_source,
+        _as_bool(value(PUMP)),
+    )
 
 
 def classify_modes(

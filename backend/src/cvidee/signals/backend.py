@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from cvidee.analysis.types import (
     HOUR_MS,
+    Mode,
     ObservationKind,
     Role,
     Scope,
@@ -170,6 +171,7 @@ class SignalsBackend:
             if mapping is None
             else datetime.fromtimestamp(mapping.valid_from_ts / 1000, UTC),
             value_map=None if mapping is None else mapping.value_map,
+            mapping_version=None if mapping is None else mapping.id,
         )
 
     def signal_list(self) -> SignalList:
@@ -285,6 +287,10 @@ class SignalsBackend:
         }
         if old is not None:
             values.update({field: getattr(old, field) for field in values})
+        if role is Role.OPERATING_MODE and old is not None and old.source_entity_id != entity.id:
+            # Semantics proven for one source must never follow an entity replacement.
+            values["value_map"] = None
+            values["meaning"] = None
         for api_name, field in {
             "unit": "unit",
             "location": "location",
@@ -296,6 +302,19 @@ class SignalsBackend:
                 value = getattr(body, api_name)
                 if value is not None or api_name in ("location", "meaning", "value_map"):
                     values[field] = info.unit if field == "unit" else value
+        if role is Role.OPERATING_MODE and values["value_map"]:
+            table = values["value_map"]
+            if not isinstance(values["meaning"], str) or not values["meaning"].strip():
+                raise _invalid("Leg de herkomst en betekenis van deze statuscode-mapping vast.")
+            if any(not code.strip() or code != code.strip() for code in table):
+                raise _invalid("Statuscodes mogen niet leeg zijn of spaties rondom bevatten.")
+            if any(
+                not isinstance(value, str) or value not in set(Mode) for value in table.values()
+            ):
+                raise _invalid(
+                    "Koppel statuscodes alleen aan ch, dhw, standby, afterrun, "
+                    "fault_blocking of unknown."
+                )
         if body.value_kind is not None:
             values["kind"] = ValueKind[body.value_kind.upper()]
         if body.max_age_s is not None:

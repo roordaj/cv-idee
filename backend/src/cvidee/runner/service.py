@@ -51,6 +51,7 @@ from cvidee.runner.sources import (
     earliest_data_ts,
     load_mapped_signals,
     load_window_input,
+    mode_mapping_snapshot,
 )
 from cvidee.settings.repository import current_revision, effective_values, pipeline_settings
 from cvidee.store.derived import SqlAnalysisRunRepository, SqlDerivedDataRepository
@@ -305,7 +306,7 @@ class AnalysisRunner:
         try:
             with self._sessions.begin() as session:
                 observations, events = load_window_input(
-                    session, mapped, self.settings.sources, window
+                    session, mapped, self.settings.sources, window, config
                 )
                 result = run_pipeline(observations, events, config, window, now)
                 SqlDerivedDataRepository(session).replace_from(window.emit_from, result, run_id)
@@ -322,6 +323,8 @@ class AnalysisRunner:
                     "settings": {}
                     if settings_values is None
                     else settings_values.model_dump(mode="json"),
+                    "operating_mode_mappings": mode_mapping_snapshot(mapped),
+                    "pipeline_mode_mapping": dict(config.mode_mapping),
                     "observations": len(observations),
                     "connection_events": len(events),
                     "cycles": len(result.cycles),

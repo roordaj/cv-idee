@@ -72,15 +72,15 @@ runner: upsert → 6 rules (cvidee.rules, ADR-004) → findings
 
 ### 3.3 Modes
 
-- Met modus-/statussignaal: mapping (configureerbaar, standaard voor de Calenta Ace na #5) → zekerheid `DIRECT`.
+- Met modus-/statussignaal: expliciet brongebonden mapping (#123) → zekerheid `DIRECT`.
 - Zonder modussignaal: afgeleid uit vlam, warmtevraag, gewenste aanvoer, pomp → `INFERRED` ("beperkte zekerheid", FR-09).
 - `AFTERRUN`: pomp/naloopstatus na vlam-uit zonder vraag, maximaal `afterrun_max_ms` (standaard 15 min).
 - Ontbreken de signalen om te beslissen → `UNKNOWN` met zekerheid `NONE`. Onbekend wordt nooit standby.
 
 **Aanvulling (#24).** Uitwerking in `analysis/modes.py`:
 
-- **Mapping.** `PipelineConfig.mode_mapping` (eerste treffer wint; numerieke codes als geheel getal, `1.0` → `"1"`). Voorlopige standaard uit ontwerp v3: `1` = CV, `2` = tapwater (`PROVISIONAL_MODE_MAPPING`); #5 bevestigt of vervangt dit en levert de storings-/blokkeringscodes. `FAULT_BLOCKING` ontstaat alleen uit een gemapte code (apparaatmelding, bron `operating_mode@boiler`), nooit afgeleid. Een apparaatcode wint altijd, ook een `AFTERRUN`-code (niet afgekapt; de cyclusfase kapt zelf af op `afterrun_max_ms`).
-- **Geen, onbekende of niet-gemapte code** → afleiden (`INFERRED`). Warmtevraag = warmtevraagsignaal, of, als dat niet bekend is, gewenste aanvoer ≥ `demand_flow_setpoint_min_c` (voorlopig 20 °C).
+- **Mapping (bijgewerkt #123).** Er bestaat geen universele statuscodetabel. De versieerbare `SignalMapping.value_map` koppelt broncodes aan canonieke modi; `meaning` bewaart de herkomst/betekenis. De koppeling geldt alleen voor de gekozen bronentiteit en haar datatijdversie. Onbekende, ongevalideerde of ontbrekende status bij een gekoppelde bron blijft `UNKNOWN` en valt niet terug op vlam-/vraaginferentie. Zonder gekoppelde modusbron blijft inferentie beperkt mogelijk. `PipelineConfig.mode_mapping` is standaard leeg; synthetische fixtures/replays leveren hun eigen expliciete tabel. De ontwerpvoorbeelden 1=CV en 2=tapwater zijn geen ketelprotocol. `FAULT_BLOCKING` ontstaat uitsluitend uit een expliciet gekoppelde apparaatcode; overgangscode 8 wordt niet als storing aangenomen.
+- **Geen gekoppelde modusbron** → afleiden (`INFERRED`). Een gekoppelde bron met onbekende of niet-gemapte code blijft `UNKNOWN`. Warmtevraag = warmtevraagsignaal, of, als dat niet bekend is, gewenste aanvoer ≥ `demand_flow_setpoint_min_c` (voorlopig 20 °C).
   - vlam aan + vraag → `CH`; vlam aan zonder vraag → `DHW` (combiketel; houdt tapwater uit CV-statistiek, scenario 4), behalve binnen `afterrun_max_ms` nadat er tijdens dezelfde brandperiode nog vraag was (uitlopen na einde vraag → `CH`, zodat scenario 3 `DEMAND_ENDED` blijft);
   - vlam uit + vraag → `CH`; vlam uit zonder vraag → `AFTERRUN` zolang de pomp loopt, binnen `afterrun_max_ms` na een bekende vlam-uit-overgang en tot de eerste bekende pomp-uit; anders `STANDBY`. Zonder gekoppelde pomp wordt geen naloop afgeleid (`STANDBY`); een gekoppelde maar onbekende pomp binnen dat venster → `UNKNOWN`.
   - vlam of vraag onbekend → `UNKNOWN`. Na onbekende tijd (ADR-003 §5.4) begint geen naloopvenster: er is geen bekende vlam-uit-overgang.
