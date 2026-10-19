@@ -143,7 +143,7 @@ _TEMPERATURE_ROLES = (
 
 class ShortCyclingRule(BaseRule[ShortCyclingParams]):
     id = "kort-branden"
-    version = "1.0.0"
+    version = "1.1.0"
     category = Category.CYCLES
     required_signals = frozenset({Role.FLAME, Role.OPERATING_MODE, Role.HEAT_DEMAND})
     optional_signals = frozenset(
@@ -171,6 +171,85 @@ class ShortCyclingRule(BaseRule[ShortCyclingParams]):
             reasonable=Thresholds(coverage=0.9, relevant_cycles=12, repetition_days=3),
             high=Thresholds(coverage=0.95, relevant_cycles=30, repetition_days=5),
             max_certainty=Certainty.HIGH,
+        )
+
+    def unavailable_evidence(
+        self, ctx: RuleContext, params: RuleParams
+    ) -> Sequence[FindingCandidate]:
+        """Report observable short burns without assigning a mode or end reason."""
+        params = self.typed(params)
+        missing_core = ctx.unmapped((signal_ref(Role.OPERATING_MODE), signal_ref(Role.HEAT_DEMAND)))
+        if len(missing_core) != 2 or not ctx.is_mapped(signal_ref(Role.FLAME)):
+            return ()
+        limit_ms = round(params.short_cycle_min * MINUTE_MS)
+        cycles = tuple(
+            c
+            for c in ctx.cycles_in(ctx.period)
+            if c.complete
+            and c.mode is Mode.UNKNOWN
+            and c.end_reason is EndReason.UNDETERMINED
+            and c.duration_ms < limit_ms
+            and not ctx.is_excluded(TimeRange(c.start, c.end or c.start + 1))
+        )
+        if len(cycles) < params.min_short_cycles:
+            return ()
+        first, last = cycles[0], cycles[-1]
+        pattern_period = TimeRange(first.start, last.end or last.start + 1)
+        missing = tuple(
+            sorted(
+                {
+                    *missing_core,
+                    *ctx.unmapped(
+                        (signal_ref(Role.RETURN_TEMPERATURE), signal_ref(Role.MODULATION))
+                    ),
+                    *(
+                        signal_ref(Role.ROOM_TEMPERATURE, key)
+                        for key in ctx.profile.scope_keys(Role.ROOM_TEMPERATURE.scope_kind)
+                    ),
+                }
+            )
+        )
+        evidence = EvidenceSummary(
+            coverage=0.0,
+            unknown_ms=ctx.period.duration_ms,
+            relevant_cycles=len(cycles),
+            pattern_cycles=len(cycles),
+            missing_signals=missing,
+        )
+        return (
+            FindingCandidate(
+                scope_key="boiler:ch",
+                category=self.category,
+                title="Korte branderperioden, maar onvoldoende gegevens voor beoordeling",
+                severity=Severity.INFO,
+                certainty=Certainty.INSUFFICIENT_EVIDENCE,
+                relevance=(),
+                observation=(
+                    f"Er zijn {len(cycles)} volledige branderperioden korter dan "
+                    f"{_minutes(params.short_cycle_min)} gemeten. De bedrijfsmodus en "
+                    "eindreden zijn onbekend; dit zijn geen vastgestelde korte cv-cycli "
+                    "tijdens warmtevraag."
+                ),
+                period=pattern_period,
+                signals=(signal_ref(Role.FLAME),),
+                evidence=evidence,
+                recommendation=RecommendationDraft(
+                    kind=RecommendationKind.MEASUREMENT,
+                    action="Koppel de ontbrekende signalen en herhaal daarna de analyse.",
+                    reason=(
+                        "De cycli zijn geteld, maar kunnen niet aan cv-bedrijf of een "
+                        "eindreden worden gekoppeld."
+                    ),
+                    expected_effect="Een beoordeling van korte cv-cycli wordt mogelijk.",
+                    comfort_impact="Geen wijziging aan de installatie.",
+                    conditions="Gebruik gegevens uit dezelfde installatieperiode.",
+                    evaluation="Herhaal de analyse zodra de ontbrekende signalen beschikbaar zijn.",
+                    success_criterion=(
+                        "Bedrijfsmodus en warmtevraag zijn tijdens de cycli beschikbaar."
+                    ),
+                ),
+                refs=(PeriodRef(pattern_period, "niet-geclassificeerde korte branderperioden"),),
+            ),
         )
 
     def _evaluate(self, ctx: RuleContext, params: ShortCyclingParams) -> Sequence[FindingCandidate]:

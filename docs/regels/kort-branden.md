@@ -1,6 +1,6 @@
 # `kort-branden` — herhaald kort branden tijdens warmtevraag
 
-- **Id:** `kort-branden` · **Huidige versie:** 1.0.0 · **Categorie:** `cycles` (UI: "Cycli")
+- **Id:** `kort-branden` · **Huidige versie:** 1.1.0 · **Categorie:** `cycles` (UI: "Cycli")
 - **Code:** `backend/src/cvidee/rules/short_cycling.py` · **Issue:** #30
 - **Requirements:** FR-14, FR-23, FR-24, FR-28
 
@@ -20,6 +20,8 @@ Detecteert dat de brander herhaaldelijk binnen de kortecyclusgrens stopt terwijl
 | Bundelen (`supports`) | geen; `stop-tijdens-vraag` (#31) ondersteunt deze regel |
 
 Een korte cyclus is een volledige cv-cyclus met eindreden `stop_during_demand` (de pipeline bepaalt of de warmtevraag na de stop aanhield) en een duur korter dan `short_cycle_min`. Onvolledige cycli (open, datagat) tellen niet mee.
+
+Als modus of warmtevraag ontbreekt, maakt de regel geen cv-diagnose. Alleen bij ten minste `min_short_cycles` volledige, gemeten, niet-geclassificeerde branderperioden korter dan de grens toont zij een informatieve bevinding met zekerheid *onvoldoende bewijs* en een meetadvies. De waarneming zegt expliciet dat deze perioden niet als korte cv-cycli tijdens warmtevraag zijn vastgesteld. Andere ontbrekende signalen worden in `missing_signals` vermeld. Deze uitkomst geldt niet als een evaluatie van het patroon en kan een eerdere diagnose niet oplossen.
 
 ## Signalen
 
@@ -92,3 +94,7 @@ Het patroon is voorbij als in de beoordelingsperiode minder dan `min_short_cycle
 ### 1.0.0 — 2026-10-05
 
 - Eerste versie.
+
+### 1.1.0 — 2026-10-19
+
+- Voeg bij ontbrekende modus- of warmtevraagsignalen een meetuitkomst toe als voldoende volledige, korte branderperioden daadwerkelijk zijn waargenomen; leid geen bedrijfsmodus of eindreden af.

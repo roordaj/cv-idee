@@ -193,7 +193,19 @@ class RuleRegistry:
         if not rule.applies_to(ctx.profile):
             return RuleOutcome(snapshot, False, availability)
         if availability.status is AvailabilityStatus.UNAVAILABLE:
-            return RuleOutcome(snapshot, True, availability)
+            candidates = tuple(
+                sorted(
+                    rule.unavailable_evidence(ctx, params),
+                    key=lambda c: (c.scope_key, c.period.start),
+                )
+            )
+            keys = [c.scope_key for c in candidates]
+            if len(keys) != len(set(keys)):
+                raise ValueError(f"rule {rule_id} emitted several candidates for one scope_key")
+            for candidate in candidates:
+                if rule_id in candidate.supports:
+                    raise ValueError(f"rule {rule_id}: a candidate cannot support its own rule")
+            return RuleOutcome(snapshot, True, availability, candidates)
         candidates = tuple(
             sorted(rule.evaluate(ctx, params), key=lambda c: (c.scope_key, c.period.start))
         )
