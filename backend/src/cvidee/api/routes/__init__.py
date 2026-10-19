@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from cvidee.api.health import router as health_router
 from cvidee.api.routes import (
     changes,
+    comfort,
     data,
     findings,
     ha,
@@ -23,6 +24,7 @@ router = APIRouter(prefix="/api")
 router.include_router(health_router)
 for module in (
     system,
+    comfort,
     signals,
     ha,
     installation,

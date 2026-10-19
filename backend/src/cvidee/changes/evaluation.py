@@ -6,7 +6,7 @@ from dataclasses import asdict, replace
 from datetime import UTC, datetime
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from cvidee.analysis.change_evaluation import (
@@ -18,6 +18,7 @@ from cvidee.analysis.change_evaluation import (
     period_metrics,
 )
 from cvidee.analysis.quality import apply_quality
+from cvidee.analysis.room_comfort import RoomComfortPeriod
 from cvidee.analysis.types import AnalysisWindow, PipelineConfig, TimeRange
 from cvidee.api.schemas.changes import (
     ChangeEvaluation as EvaluationOut,
@@ -29,6 +30,8 @@ from cvidee.api.schemas.changes import (
     MetricComparison,
 )
 from cvidee.api.schemas.common import TimeRange as RangeOut
+from cvidee.api.schemas.data import RoomComfortOverride
+from cvidee.api.schemas.installation import RoomComfort
 from cvidee.api.schemas.settings import AnalysisSettings
 from cvidee.changes.log import VERDICTS
 from cvidee.findings.history import snapshot_transition
@@ -43,6 +46,7 @@ from cvidee.store.enums import (
     SnapshotTrigger,
 )
 from cvidee.store.models import Change, ChangeEvaluation, Recommendation, SpecialPeriod
+from cvidee.store.models import InstallationProfile as ProfileRow
 
 RULE_VERSION = EVALUATION_VERSION
 
@@ -124,6 +128,16 @@ def render_evaluation(fact: EvaluationFact) -> EvaluationOut:
             comparable=Comparability.YES
             if min(before.coverage, after.coverage) >= fact.policy.min_coverage
             else Comparability.LIMITED,
+        ),
+        ConditionRow(
+            label="Comfortdoelen per profielversie",
+            before="Meerdere profielversies"
+            if before.comfort_profile_mixed
+            else "Eén profielversie",
+            after="Meerdere profielversies" if after.comfort_profile_mixed else "Eén profielversie",
+            comparable=Comparability.LIMITED
+            if before.comfort_profile_mixed or after.comfort_profile_mixed
+            else Comparability.YES,
         ),
     ]
     old_coverage, new_coverage = dict(before.room_coverage), dict(after.room_coverage)
@@ -244,6 +258,78 @@ def render_evaluation(fact: EvaluationFact) -> EvaluationOut:
     )
 
 
+def _comfort_context(
+    session: Session,
+    window: TimeRange,
+    special_periods: list[SpecialPeriod],
+) -> tuple[dict[str, RoomComfort], dict[str, tuple[RoomComfortPeriod, ...]], bool]:
+    rows = list(
+        session.scalars(
+            select(ProfileRow)
+            .where(
+                ProfileRow.valid_from_ts < window.end,
+                or_(ProfileRow.valid_to_ts.is_(None), ProfileRow.valid_to_ts > window.start),
+            )
+            .order_by(ProfileRow.valid_from_ts, ProfileRow.id)
+        )
+    )
+    profile = next(
+        (
+            row
+            for row in rows
+            if row.valid_from_ts <= window.start
+            and (row.valid_to_ts is None or row.valid_to_ts > window.start)
+        ),
+        None,
+    )
+    if profile is None:
+        return {}, {}, True
+    mixed = (
+        len(rows) != 1
+        or profile.valid_from_ts > window.start
+        or (profile.valid_to_ts is not None and profile.valid_to_ts < window.end)
+    )
+    room_details = profile.details.get("rooms", {})
+    comfort_by_room = {
+        room.key: RoomComfort.model_validate(
+            room_details.get(room.key, {}).get(
+                "comfort", {"status": "not_configured", "windows": []}
+            )
+        )
+        for room in profile.rooms
+    }
+    periods_by_room: dict[str, list[RoomComfortPeriod]] = {key: [] for key in comfort_by_room}
+    for period in special_periods:
+        start = max(window.start, period.start_ts)
+        end = min(window.end, period.end_ts or window.end)
+        if start >= end:
+            continue
+        overrides = {
+            override.room_key: override
+            for raw_override in period.room_overrides
+            if (override := RoomComfortOverride.model_validate(raw_override)).room_key
+            in periods_by_room
+        }
+        for room_key, room_periods in periods_by_room.items():
+            room_override = overrides.get(room_key)
+            room_periods.append(
+                RoomComfortPeriod(
+                    start=start,
+                    end=end,
+                    excluded=period.exclude_from_comparisons,
+                    override_kind=None if room_override is None else room_override.kind,
+                    override_target_c=None
+                    if room_override is None
+                    else room_override.target_temperature_c,
+                )
+            )
+    return (
+        comfort_by_room,
+        {key: tuple(periods) for key, periods in periods_by_room.items()},
+        mixed,
+    )
+
+
 def evaluate_stored_change(
     session: Session,
     change: Change,
@@ -274,7 +360,6 @@ def evaluate_stored_change(
     periods = list(
         session.scalars(
             select(SpecialPeriod).where(
-                SpecialPeriod.exclude_from_comparisons.is_(True),
                 SpecialPeriod.start_ts < observation.end,
                 SpecialPeriod.end_ts.is_(None) | (SpecialPeriod.end_ts > reference.start),
             )
@@ -285,9 +370,32 @@ def evaluate_stored_change(
             max(reference.start, p.start_ts), min(observation.end, p.end_ts or observation.end)
         )
         for p in periods
+        if p.exclude_from_comparisons
     )
-    before = period_metrics(reference, quality.timelines, cycles, modes, exclusions, policy)
-    after = period_metrics(observation, quality.timelines, cycles, modes, exclusions, policy)
+    before_comfort, before_periods, before_mixed = _comfort_context(session, reference, periods)
+    after_comfort, after_periods, after_mixed = _comfort_context(session, observation, periods)
+    before = period_metrics(
+        reference,
+        quality.timelines,
+        cycles,
+        modes,
+        exclusions,
+        policy,
+        before_comfort,
+        before_periods,
+        before_mixed,
+    )
+    after = period_metrics(
+        observation,
+        quality.timelines,
+        cycles,
+        modes,
+        exclusions,
+        policy,
+        after_comfort,
+        after_periods,
+        after_mixed,
+    )
     overlaps = tuple(
         session.scalars(
             select(Change.human_id)
@@ -358,7 +466,10 @@ def evaluate_stored_change(
     )
     row.comparability = [condition.model_dump(mode="json") for condition in rendered.conditions]
     row.metrics = [metric.model_dump(mode="json") for metric in rendered.metrics]
-    row.excluded_periods, row.overlapping_change_ids = [p.id for p in periods], list(overlaps)
+    row.excluded_periods, row.overlapping_change_ids = (
+        [p.id for p in periods if p.exclude_from_comparisons],
+        list(overlaps),
+    )
     row.rule_version = RULE_VERSION
     row.config_hash = hashlib.sha256(
         canonical_json(
@@ -366,6 +477,10 @@ def evaluate_stored_change(
                 "policy": asdict(policy),
                 "pipeline": config.config_hash,
                 "rollback_spec": None if recommendation is None else recommendation.rollback_spec,
+                "room_comfort": {
+                    "before": _comfort_hash_context(before_comfort, before_periods, before_mixed),
+                    "after": _comfort_hash_context(after_comfort, after_periods, after_mixed),
+                },
             }
         ).encode()
     ).hexdigest()
@@ -410,6 +525,32 @@ def evaluate_stored_change(
             )
     session.flush()
     return fact
+
+
+def _comfort_hash_context(
+    comfort: dict[str, RoomComfort],
+    periods: dict[str, tuple[RoomComfortPeriod, ...]],
+    mixed: bool,
+) -> dict[str, object]:
+    return {
+        "profiles_mixed": mixed,
+        "rooms": {
+            key: {
+                "comfort": value.model_dump(mode="json"),
+                "periods": [
+                    {
+                        "start": period.start,
+                        "end": period.end,
+                        "excluded": period.excluded,
+                        "override_kind": period.override_kind,
+                        "override_target_c": period.override_target_c,
+                    }
+                    for period in periods.get(key, ())
+                ],
+            }
+            for key, value in comfort.items()
+        },
+    }
 
 
 def evaluate_changes(

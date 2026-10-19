@@ -1,4 +1,9 @@
 {
+  "comfort-per-ruimte": {
+    "1.0.0": [
+      "Eerste versie met comfortverlies tegenover expliciete per-ruimte doelen."
+    ]
+  },
   "dataverlies": {
     "1.0.0": [
       "Eerste versie, met scenario- en uitsluitingstests."

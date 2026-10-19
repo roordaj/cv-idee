@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator, Iterator
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -265,6 +266,30 @@ async def test_installation_rejects_invalid_zones(
     response = await api.put("/api/installation", json=body)
     assert response.status_code == 422
     assert message in response.json()["detail"]
+
+
+async def test_room_comfort_endpoint_returns_per_room_availability(
+    api: httpx.AsyncClient,
+) -> None:
+    start = datetime(2026, 10, 18, tzinfo=UTC)
+    end = datetime(2026, 10, 19, tzinfo=UTC)
+    response = await api.get(
+        "/api/comfort", params={"from": start.isoformat(), "to": end.isoformat()}
+    )
+    assert response.status_code == 200, response.text
+    result = response.json()
+    assert result["profile_version"]
+    assert len(result["rooms"]) == 6
+    assert {room["availability"] for room in result["rooms"]} == {"not_available"}
+    assert all(room["comfort_loss_target_hours"] is None for room in result["rooms"])
+
+
+async def test_room_comfort_endpoint_rejects_invalid_time_range(api: httpx.AsyncClient) -> None:
+    response = await api.get(
+        "/api/comfort",
+        params={"from": "2026-10-20T00:00:00Z", "to": "2026-10-19T00:00:00Z"},
+    )
+    assert response.status_code == 422
 
 
 async def test_room_comfort_schedules_are_versioned_and_noop_saves_are_skipped(

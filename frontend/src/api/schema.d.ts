@@ -64,6 +64,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/comfort': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Room Comfort
+     * @description Return independent comfort metrics by room for a UTC range (default: last 7 days).
+     */
+    get: operations['get_room_comfort'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/signals': {
     parameters: {
       query?: never;
@@ -1639,6 +1659,11 @@ export interface components {
       /** Definition */
       definition: string;
     };
+    /** HTTPValidationError */
+    HTTPValidationError: {
+      /** Detail */
+      detail?: components['schemas']['ValidationError'][];
+    };
     /**
      * HaConnectionState
      * @enum {string}
@@ -2595,6 +2620,29 @@ export interface components {
       /** Windows */
       windows?: components['schemas']['RoomComfortWindow'][];
     };
+    /** RoomComfortAnalysisResponse */
+    RoomComfortAnalysisResponse: {
+      /**
+       * Start
+       * Format: date-time
+       * @description ISO 8601 timestamp in UTC.
+       * @example 2026-10-04T10:00:00Z
+       */
+      start: string;
+      /**
+       * End
+       * Format: date-time
+       * @description ISO 8601 timestamp in UTC.
+       * @example 2026-10-04T10:00:00Z
+       */
+      end: string;
+      /** Profile Version */
+      profile_version: string;
+      /** Comfort Margin C */
+      comfort_margin_c: number;
+      /** Rooms */
+      rooms: components['schemas']['RoomComfortResult'][];
+    };
     /**
      * RoomComfortOverride
      * @description A room-specific expectation during an existing special period.
@@ -2609,6 +2657,53 @@ export interface components {
       kind: 'no_expectation' | 'normal_schedule' | 'temporary_target';
       /** Target Temperature C */
       target_temperature_c?: number | null;
+    };
+    /** RoomComfortResult */
+    RoomComfortResult: {
+      /** Room Key */
+      room_key: string;
+      /** Room Name */
+      room_name: string;
+      /**
+       * Availability
+       * @enum {string}
+       */
+      availability: 'available' | 'limited' | 'not_available';
+      /**
+       * Target Source
+       * @enum {string}
+       */
+      target_source: 'configured_schedule' | 'special_period' | 'not_configured';
+      /** Expected Hours */
+      expected_hours: number;
+      /** Observed Hours */
+      observed_hours: number;
+      /** Coverage Pct */
+      coverage_pct?: number | null;
+      /** Comfort Loss Target Hours */
+      comfort_loss_target_hours?: number | null;
+      /** Comfort Loss Setpoint Hours */
+      comfort_loss_setpoint_hours?: number | null;
+      /** Overshoot Target Hours */
+      overshoot_target_hours?: number | null;
+      /** Max Overshoot Target C */
+      max_overshoot_target_c?: number | null;
+      /** Overshoot Setpoint Hours */
+      overshoot_setpoint_hours?: number | null;
+      /** Max Overshoot Setpoint C */
+      max_overshoot_setpoint_c?: number | null;
+      /** Mean Target Deviation C */
+      mean_target_deviation_c?: number | null;
+      /** Mean Setpoint Deviation C */
+      mean_setpoint_deviation_c?: number | null;
+      /** Warmup Mean Minutes */
+      warmup_mean_minutes?: number | null;
+      /** Warmup Samples */
+      warmup_samples: number;
+      /** Warmup Incomplete */
+      warmup_incomplete: boolean;
+      /** Missing Signals */
+      missing_signals: string[];
     };
     /**
      * RoomComfortWindow
@@ -3130,6 +3225,19 @@ export interface components {
      * @enum {string}
      */
     TriState: 'yes' | 'no' | 'unknown';
+    /** ValidationError */
+    ValidationError: {
+      /** Location */
+      loc: (string | number)[];
+      /** Message */
+      msg: string;
+      /** Error Type */
+      type: string;
+      /** Input */
+      input?: unknown;
+      /** Context */
+      ctx?: Record<string, never>;
+    };
     /**
      * Zone
      * @description A stable, circuit-scoped heating zone in the installation profile.
@@ -3227,6 +3335,38 @@ export interface operations {
         content: {
           'application/problem+json': components['schemas']['Problem'];
           'application/json': components['schemas']['Problem'];
+        };
+      };
+    };
+  };
+  get_room_comfort: {
+    parameters: {
+      query?: {
+        from?: string | null;
+        to?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['RoomComfortAnalysisResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
         };
       };
     };

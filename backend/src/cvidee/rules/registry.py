@@ -230,6 +230,7 @@ def default_registry() -> RuleRegistry:
     from cvidee.rules.data_quality import DataLossRule, StaleSensorRule
     from cvidee.rules.dhw import DhwExcludedRule
     from cvidee.rules.hydraulic import HydraulicRule
+    from cvidee.rules.room_comfort import RoomComfortRule
     from cvidee.rules.short_cycling import ShortCyclingRule
     from cvidee.rules.stop_during_demand import StopDuringDemandRule
     from cvidee.rules.temperature import TemperatureRule
@@ -244,5 +245,6 @@ def default_registry() -> RuleRegistry:
             StaleSensorRule(),
             DhwExcludedRule(),
             HydraulicRule(),
+            RoomComfortRule(),
         )
     )
