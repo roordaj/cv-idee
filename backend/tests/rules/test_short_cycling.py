@@ -6,8 +6,9 @@ from dataclasses import replace
 
 import pytest
 
-from cvidee.analysis.types import HOUR_MS, MINUTE_MS, BurnerCycle, Mode, TimeRange
+from cvidee.analysis.types import HOUR_MS, MINUTE_MS, BurnerCycle, EndReason, Mode, Role, TimeRange
 from cvidee.rules.base import (
+    AvailabilityStatus,
     Certainty,
     RecommendationKind,
     RuleContext,
@@ -50,9 +51,50 @@ def burst(day: int, count: int, *, hour: int = 6, mode: Mode = Mode.CH) -> tuple
 def test_registered_with_identity() -> None:
     registry = default_registry()
     assert "kort-branden" in registry
-    assert registry.get("kort-branden").version == "1.0.0"
+    assert registry.get("kort-branden").version == "1.1.0"
     schema = registry.params_json_schema("kort-branden")
     assert schema["properties"]["short_cycle_min"]["x-unit"] == "min"
+
+
+def test_unclassified_short_burns_emit_measurement_only_outcome() -> None:
+    cycles = tuple(
+        replace(c, mode=Mode.UNKNOWN, end_reason=EndReason.UNDETERMINED) for c in burst(1, 5)
+    )
+    flame_only = tuple(s for s in boiler_signals() if s.signal.role is Role.FLAME)
+    context = replace(ctx(cycles), signals=flame_only)
+    outcome = default_registry().evaluate("kort-branden", context, PARAMS)
+    assert outcome.availability.status is AvailabilityStatus.UNAVAILABLE
+    assert not outcome.evaluated
+    (finding,) = outcome.candidates
+    assert finding.certainty is Certainty.INSUFFICIENT_EVIDENCE
+    assert finding.recommendation is not None
+    assert finding.recommendation.kind is RecommendationKind.MEASUREMENT
+    assert finding.hypotheses == ()
+    assert finding.evidence.pattern_cycles == 5
+    assert {signal.role for signal in finding.evidence.missing_signals} >= {
+        Role.OPERATING_MODE,
+        Role.HEAT_DEMAND,
+        Role.RETURN_TEMPERATURE,
+        Role.MODULATION,
+        Role.ROOM_TEMPERATURE,
+    }
+
+
+def test_unclassified_long_burns_stay_silent() -> None:
+    cycles = tuple(
+        replace(
+            cycle(T0 + DAY_MS + i * HOUR_MS, 5.0),
+            mode=Mode.UNKNOWN,
+            end_reason=EndReason.UNDETERMINED,
+        )
+        for i in range(5)
+    )
+    context = replace(
+        ctx(cycles), signals=tuple(s for s in boiler_signals() if s.signal.role is Role.FLAME)
+    )
+    outcome = default_registry().evaluate("kort-branden", context, PARAMS)
+    assert outcome.availability.status is AvailabilityStatus.UNAVAILABLE
+    assert not outcome.candidates
 
 
 def test_single_short_cycle_is_no_finding() -> None:

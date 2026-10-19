@@ -963,6 +963,12 @@ class Rule(Protocol):
         """Pure evaluation. Must be deterministic and independent of input order."""
         ...
 
+    def unavailable_evidence(
+        self, ctx: RuleContext, params: RuleParams
+    ) -> Sequence[FindingCandidate]:
+        """Optional measurement-only findings when required signals are unavailable."""
+        ...
+
 
 class BaseRule[P: RuleParams](ABC):
     """Convenience base implementing :class:`Rule` with typed parameters.
@@ -995,6 +1001,17 @@ class BaseRule[P: RuleParams](ABC):
 
     def evaluate(self, ctx: RuleContext, params: RuleParams) -> Sequence[FindingCandidate]:
         return self._evaluate(ctx, self.typed(params))
+
+    def unavailable_evidence(
+        self, ctx: RuleContext, params: RuleParams
+    ) -> Sequence[FindingCandidate]:
+        """Optional measurement-only outcomes when required signals are unavailable.
+
+        These candidates are persisted without treating the rule as evaluated, so they
+        cannot resolve a prior diagnostic finding.
+        """
+        del ctx, params
+        return ()
 
     def typed(self, params: RuleParams) -> P:
         """``params`` as this rule's parameter type (validated if another type is given)."""
