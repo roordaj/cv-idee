@@ -150,6 +150,9 @@ class SpecialPeriod(Base):
     start_ts: Mapped[int] = ts_column()
     end_ts: Mapped[int | None] = ts_column(nullable=True)
     description: Mapped[str | None] = mapped_column(String(140))
+    room_overrides: Mapped[list[dict[str, Any]]] = mapped_column(
+        JSON, default=list, server_default="[]"
+    )
     exclude_from_baseline: Mapped[bool] = mapped_column(Boolean, default=True)
     exclude_from_comparisons: Mapped[bool] = mapped_column(Boolean, default=True)
     exclude_from_ch_conclusions: Mapped[bool] = mapped_column(Boolean, default=True)

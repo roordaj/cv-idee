@@ -2565,6 +2565,66 @@ export interface components {
       setpoint: number | null;
       /** Night Setpoint */
       night_setpoint: number | null;
+      /** @description A recurring user comfort schedule; null on legacy writes means preserve it. */
+      comfort?: components['schemas']['RoomComfort'] | null;
+    };
+    /**
+     * RoomComfort
+     * @description Explicit user intent; unconfigured stays distinct from no expectation.
+     */
+    RoomComfort: {
+      /**
+       * Status
+       * @default not_configured
+       * @enum {string}
+       */
+      status: 'not_configured' | 'scheduled' | 'no_expectation';
+      /**
+       * Timezone
+       * @default Europe/Amsterdam
+       * @constant
+       */
+      timezone: 'Europe/Amsterdam';
+      /** Windows */
+      windows?: components['schemas']['RoomComfortWindow'][];
+    };
+    /**
+     * RoomComfortOverride
+     * @description A room-specific expectation during an existing special period.
+     */
+    RoomComfortOverride: {
+      /** Room Key */
+      room_key: string;
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: 'no_expectation' | 'normal_schedule' | 'temporary_target';
+      /** Target Temperature C */
+      target_temperature_c?: number | null;
+    };
+    /**
+     * RoomComfortWindow
+     * @description One recurring local-time comfort target for selected weekdays.
+     */
+    RoomComfortWindow: {
+      /**
+       * Kind
+       * @default comfort
+       * @enum {string}
+       */
+      kind: 'comfort' | 'night';
+      /**
+       * Weekdays
+       * @description Monday=0 through Sunday=6.
+       */
+      weekdays: number[];
+      /** Start Time */
+      start_time: string;
+      /** End Time */
+      end_time: string;
+      /** Target Temperature C */
+      target_temperature_c: number;
     };
     /** RuleRef */
     RuleRef: {
@@ -2897,6 +2957,8 @@ export interface components {
        *     }
        */
       excluded_from: components['schemas']['PeriodExclusions'];
+      /** Room Overrides */
+      room_overrides?: components['schemas']['RoomComfortOverride'][];
       /** Id */
       id: string;
       /**
@@ -2935,6 +2997,8 @@ export interface components {
        *     }
        */
       excluded_from: components['schemas']['PeriodExclusions'];
+      /** Room Overrides */
+      room_overrides?: components['schemas']['RoomComfortOverride'][];
     };
     /**
      * SpecialPeriodKind

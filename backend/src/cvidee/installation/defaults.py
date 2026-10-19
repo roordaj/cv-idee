@@ -67,6 +67,11 @@ def default_profile(now_ts: int) -> InstallationProfile:
                     "schedule_text": None,
                     "setpoint": None,
                     "night_setpoint": None,
+                    "comfort": {
+                        "status": "not_configured",
+                        "timezone": "Europe/Amsterdam",
+                        "windows": [],
+                    },
                 }
                 for key in _NAMES
             },

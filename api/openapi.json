@@ -7387,6 +7387,17 @@
               }
             ],
             "title": "Night Setpoint"
+          },
+          "comfort": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RoomComfort"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A recurring user comfort schedule; null on legacy writes means preserve it."
           }
         },
         "additionalProperties": false,
@@ -7401,6 +7412,124 @@
           "night_setpoint"
         ],
         "title": "Room"
+      },
+      "RoomComfort": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "not_configured",
+              "scheduled",
+              "no_expectation"
+            ],
+            "title": "Status",
+            "default": "not_configured"
+          },
+          "timezone": {
+            "type": "string",
+            "const": "Europe/Amsterdam",
+            "title": "Timezone",
+            "default": "Europe/Amsterdam"
+          },
+          "windows": {
+            "items": {
+              "$ref": "#/components/schemas/RoomComfortWindow"
+            },
+            "type": "array",
+            "title": "Windows"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "RoomComfort",
+        "description": "Explicit user intent; unconfigured stays distinct from no expectation."
+      },
+      "RoomComfortOverride": {
+        "properties": {
+          "room_key": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Room Key"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "no_expectation",
+              "normal_schedule",
+              "temporary_target"
+            ],
+            "title": "Kind"
+          },
+          "target_temperature_c": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Temperature C"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "room_key",
+          "kind"
+        ],
+        "title": "RoomComfortOverride",
+        "description": "A room-specific expectation during an existing special period."
+      },
+      "RoomComfortWindow": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "comfort",
+              "night"
+            ],
+            "title": "Kind",
+            "default": "comfort"
+          },
+          "weekdays": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "maxItems": 7,
+            "minItems": 1,
+            "title": "Weekdays",
+            "description": "Monday=0 through Sunday=6."
+          },
+          "start_time": {
+            "type": "string",
+            "pattern": "^(?:[01]\\d|2[0-3]):[0-5]\\d$",
+            "title": "Start Time"
+          },
+          "end_time": {
+            "type": "string",
+            "pattern": "^(?:[01]\\d|2[0-3]):[0-5]\\d$",
+            "title": "End Time"
+          },
+          "target_temperature_c": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Target Temperature C"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "weekdays",
+          "start_time",
+          "end_time",
+          "target_temperature_c"
+        ],
+        "title": "RoomComfortWindow",
+        "description": "One recurring local-time comfort target for selected weekdays."
       },
       "RuleRef": {
         "properties": {
@@ -8400,6 +8529,13 @@
               "ch_conclusions": true
             }
           },
+          "room_overrides": {
+            "items": {
+              "$ref": "#/components/schemas/RoomComfortOverride"
+            },
+            "type": "array",
+            "title": "Room Overrides"
+          },
           "id": {
             "type": "string",
             "title": "Id"
@@ -8468,6 +8604,13 @@
               "comparisons": true,
               "ch_conclusions": true
             }
+          },
+          "room_overrides": {
+            "items": {
+              "$ref": "#/components/schemas/RoomComfortOverride"
+            },
+            "type": "array",
+            "title": "Room Overrides"
           }
         },
         "additionalProperties": false,
