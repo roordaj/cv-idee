@@ -86,8 +86,10 @@ export function QualityScreen() {
       />
       {haStatus.data?.configured && Math.abs(haStatus.data.clock_offset_ms) > 2000 ? (
         <Callout tone="warning" title="Klokverschil Home Assistant">
-          De klok van Home Assistant loopt circa {formatNumber(Math.abs(haStatus.data.clock_offset_ms) / 1000, 1)}
-          {' '}s {haStatus.data.clock_offset_ms > 0 ? 'achter' : 'voor'} op de app. Tijdstippen zijn gecorrigeerd.
+          De klok van Home Assistant loopt circa{' '}
+          {formatNumber(Math.abs(haStatus.data.clock_offset_ms) / 1000, 1)} s{' '}
+          {haStatus.data.clock_offset_ms > 0 ? 'achter' : 'voor'} op de app. Tijdstippen zijn
+          gecorrigeerd.
         </Callout>
       ) : null}
 
