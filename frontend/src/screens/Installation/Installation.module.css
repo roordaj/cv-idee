@@ -241,3 +241,44 @@
   grid-template-columns: repeat(auto-fit, minmax(115px, 1fr));
   gap: 8px;
 }
+.zoneConfig {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  scroll-margin-top: 24px;
+}
+.zoneCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr));
+  gap: 12px;
+}
+.zoneCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #e7e9ee;
+  border-radius: 14px;
+  overflow-wrap: anywhere;
+}
+.zoneTitle,
+.mappingFoot,
+.zoneSave {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.zoneSignal {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid #eef0f3;
+}
+.errorText {
+  color: #a92536;
+  font-size: 12px;
+}

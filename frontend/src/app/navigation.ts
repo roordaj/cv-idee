@@ -4,6 +4,7 @@ import {
   History,
   House,
   LayoutDashboard,
+  Layers,
   Lightbulb,
   Plug,
   Settings2,
@@ -22,6 +23,7 @@ export type ScreenKey =
   | 'signalen'
   | 'installatie'
   | 'kwaliteit'
+  | 'zones'
   | 'meldingen'
   | 'analyse-instellingen';
 
@@ -114,6 +116,16 @@ export const SCREENS: readonly ScreenDef[] = [
     icon: ShieldCheck,
     tone: 'amber',
     section: 'instellingen',
+  },
+  {
+    key: 'zones',
+    path: 'zones',
+    label: 'Zones',
+    title: 'Zoneanalyse',
+    subtitle: 'Zonevraag en gemelde klepstatus naast bestaande CV-cycli',
+    icon: Layers,
+    tone: 'blue',
+    section: 'analyse',
   },
   {
     key: 'meldingen',

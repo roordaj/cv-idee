@@ -20,6 +20,7 @@ export function useUpdateSettings() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: settingsKey }),
         queryClient.invalidateQueries({ queryKey: ['status'] }),
+        queryClient.invalidateQueries({ queryKey: ['zone-analysis'] }),
       ]);
     },
   });
