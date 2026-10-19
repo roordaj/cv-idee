@@ -250,6 +250,7 @@
                       <sc-for list="{{ sel.adviceRows }}" as="r" hint-placeholder-count="8">
                         <div style="display:flex;flex-wrap:wrap;gap:2px 10px;padding:7px 0;border-bottom:1px solid #eef0f3"><span style="color:#5b6475;flex:0 0 104px">{{ r.k }}</span><span style="flex:1 1 160px;min-width:0">{{ r.v }}</span></div>
                       </sc-for>
+                      <button onClick="{{ goExperiment }}" style="align-self:flex-start;margin-top:8px;padding:0;border:0;background:transparent;color:#a2421a;font-weight:700;text-align:left;cursor:pointer">Start begeleid experiment met één wijziging →</button>
                     </div>
                   </sc-if>
                   <sc-if value="{{ sel.noAdvice }}" hint-placeholder-val="{{ false }}">
@@ -269,7 +270,7 @@
                     <div style="font-size:13px;background:#e7effb;color:#2659a8;border-radius:12px;padding:10px 12px">Komt terug op 11 okt, of eerder bij verslechtering (meer korte cycli of comfortverlies).</div>
                   </sc-if>
                   <sc-if value="{{ sel.isDone }}" hint-placeholder-val="{{ false }}">
-                    <div style="font-size:13px;background:#e4f4ea;color:#1d6b3c;border-radius:12px;padding:10px 12px">Leg de wijziging vast (parameter, oude en nieuwe waarde), dan wordt het effect voor/na gemeten. <a href="#" onClick="{{ goWijzigingen }}" style="color:#1d6b3c;font-weight:700">Wijziging vastleggen →</a></div>
+                    <div style="font-size:13px;background:#e4f4ea;color:#1d6b3c;border-radius:12px;padding:10px 12px">Leg één handmatig uitgevoerde wijziging vast. Volg het effect met de bestaande voor/na-evaluatie. <a href="#" onClick="{{ goWijzigingen }}" style="color:#1d6b3c;font-weight:700">Wijziging vastleggen →</a><button onClick="{{ goExperiment }}" style="display:block;margin-top:8px;padding:0;border:0;background:transparent;color:#1d6b3c;font-weight:700;text-align:left;cursor:pointer">Start begeleid experiment →</button></div>
                   </sc-if>
                   <textarea value="{{ noteText }}" onChange="{{ onNote }}" placeholder="Notitie, bijv.: groepen 3 en 4 van de verdeler stonden dicht." style="width:100%;min-height:72px;padding:10px 12px;border:1px solid #dfe2e8;border-radius:12px;background:#fff;color:#1d2433;resize:vertical"></textarea>
                   <div style="font-size:12px;color:#8a92a3">{{ sel.saveLine }}</div>
@@ -389,6 +390,7 @@
               <span style="width:40px;height:40px;border-radius:12px;background:#fff;display:grid;place-items:center;flex:none">{{ ch.icon }}</span>
               <div style="display:flex;flex-direction:column;gap:4px"><div style="font-size:12px;font-weight:700">Resultaat voor/na<sc-if value="{{ showFR }}"> · FR-30, FR-32</sc-if></div><div style="font-size:20px;font-weight:800;line-height:1.25">{{ ch.verdict }}</div><div style="font-size:14px;line-height:1.55;max-width:760px">{{ ch.verdictText }}</div></div>
             </div>
+            <button onClick="{{ goExperiment }}" style="align-self:flex-start;display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;border:1px solid #d9d0f4;background:#f3effc;color:#3f2a85;font-weight:700;cursor:pointer">{{ I.activity }}Volg deze wijziging als begeleid experiment</button>
 
             <sc-if value="{{ ch.hasMetrics }}" hint-placeholder-val="{{ true }}">
               <div style="background:#fff;border:1px solid #e7e9ee;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:4px">
@@ -418,6 +420,73 @@
               </div>
             </div>
           </div>
+        </div>
+      </sc-if>
+
+      <!-- BEGELEID EXPERIMENT -->
+      <sc-if value="{{ is.experiment }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+            <span style="width:44px;height:44px;border-radius:14px;background:#efeafb;color:#7c5cd6;display:grid;place-items:center">{{ I.activity }}</span>
+            <div style="flex:1;min-width:220px"><h1 style="font-size:24px;font-weight:800">Begeleid experiment<sc-if value="{{ showFR }}"> · FR-33, FR-34</sc-if></h1><p style="color:#5b6475">{{ experiment.change }} · één wijziging · dezelfde evaluatie als bij Voor/na</p></div>
+            <button onClick="{{ backToChange }}" style="padding:8px 12px;border:1px solid #dfe2e8;border-radius:10px;background:#fff;color:#2659a8;font-weight:700;cursor:pointer">Terug naar wijziging {{ experiment.change }}</button>
+          </div>
+          <div style="background:#e1f4f1;color:#0f6b61;border-radius:14px;padding:13px 15px;font-size:13px;line-height:1.55;display:flex;gap:10px"><span>{{ I.shield }}</span><span>Alleen-lezen: je voert een instelling zelf uit op de ketel of thermostaat. CV-analyse voert geen wijziging uit en bewaart geen bedieningscommando.</span></div>
+          <div style="background:#fff;border:1px solid #e7e9ee;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px">
+            <strong style="font-size:13px">Voorbeeldsituatie voor deze ontwerpcontrole</strong>
+            <div role="group" aria-label="Gegevenssituatie" style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ experiment.cases }}" as="c" hint-placeholder-count="4"><button aria-pressed="{{ c.selected }}" onClick="{{ c.pick }}" style="padding:7px 11px;border:1px solid {{ c.border }};border-radius:999px;background:{{ c.bg }};color:{{ c.fg }};font-weight:600;cursor:pointer">{{ c.label }}</button></sc-for></div>
+          </div>
+          <div role="group" aria-label="Voorbeeldstatus experiment" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px"><sc-for list="{{ experiment.steps }}" as="step" hint-placeholder-count="4"><button aria-current="{{ step.current }}" onClick="{{ step.pick }}" style="padding:10px;border:1px solid {{ step.border }};border-radius:12px;background:{{ step.bg }};color:{{ step.fg }};font-weight:700;text-align:left;cursor:pointer"><span style="display:block;font-size:11px;opacity:.75">{{ step.number }}</span>{{ step.label }}</button></sc-for></div>
+
+          <sc-if value="{{ experiment.preparing }}" hint-placeholder-val="{{ true }}">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:14px">
+              <section style="background:#fff;border:1px solid #e7e9ee;border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:12px" aria-labelledby="experiment-change-title">
+                <h2 id="experiment-change-title" style="font-size:17px;font-weight:800">Wijziging registreren</h2>
+                <p style="font-size:13px;color:#5b6475;line-height:1.5">Vul dit in nadat je de wijziging zelf hebt uitgevoerd. Er is precies één parameter per experiment.</p>
+                <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:#5b6475">Parameter<select aria-label="Parameter" style="padding:9px 12px;border:1px solid #dfe2e8;border-radius:10px;background:#fff;color:#1d2433"><option>Maximale CV-aanvoer</option><option>Pompstand</option><option>Stooklijn eTwist</option><option>Thermostaatprogramma</option></select></label>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px"><label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:#5b6475">Oude waarde<input aria-label="Oude waarde" placeholder="Bekende huidige waarde" style="padding:9px 12px;border:1px solid #dfe2e8;border-radius:10px;color:#1d2433"></label><label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:#5b6475">Nieuwe waarde<input aria-label="Nieuwe waarde" placeholder="Door jou gekozen waarde" style="padding:9px 12px;border:1px solid #dfe2e8;border-radius:10px;color:#1d2433"></label></div>
+                <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:#5b6475">Uitgevoerd op<input aria-label="Uitgevoerd op" type="datetime-local" value="2026-10-04T08:30" style="padding:9px 12px;border:1px solid #dfe2e8;border-radius:10px;color:#1d2433"></label>
+                <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:#5b6475">Reden<textarea aria-label="Reden" placeholder="Waarom voer je deze wijziging uit?" style="min-height:68px;padding:9px 12px;border:1px solid #dfe2e8;border-radius:10px;color:#1d2433"></textarea></label>
+                <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:#5b6475">Gekoppeld advies (optioneel)<select aria-label="Gekoppeld advies" style="padding:9px 12px;border:1px solid #dfe2e8;border-radius:10px;background:#fff;color:#1d2433"><option>B-011 · aanvoer terugzetten</option><option>Geen advies</option></select></label>
+                <div style="background:#fce8eb;color:#a92536;border-radius:10px;padding:10px 12px;font-size:12px" role="alert"><strong>Voorbeeld van een fout na opslaan:</strong> voor een lagere-aanvoerproef moet de nieuwe waarde lager zijn dan de oude waarde; een tijdstip in de toekomst is ongeldig.</div>
+                <button onClick="{{ experiment.start }}" style="align-self:flex-start;padding:10px 14px;border:0;border-radius:11px;background:#7c5cd6;color:#fff;font-weight:700;cursor:pointer">Wijziging vastleggen en observatie starten</button>
+              </section>
+              <section style="background:#fff;border:1px solid #e7e9ee;border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:10px" aria-labelledby="lower-flow-title">
+                <h2 id="lower-flow-title" style="font-size:17px;font-weight:800">Proef met lagere aanvoer</h2>
+                <p style="font-size:13px;color:#5b6475;line-height:1.5">Alle relevante ruimten en de bestaande vergelijkbaarheidsvoorwaarden moeten voldoende gegevens hebben.</p>
+                <sc-if value="{{ experiment.canLowerFlow }}" hint-placeholder-val="{{ false }}"><div style="background:#e4f4ea;color:#1d6b3c;border-radius:12px;padding:12px;font-size:13px"><strong>Voorstel beschikbaar op basis van de huidige gegevens.</strong><p>Huidige maximale CV-aanvoer: 60 °C · volgens installatieprofiel. Kies zelf een lagere waarde; de app stelt geen stapgrootte of besparing voor.</p><ul style="margin:8px 0 0;padding-left:20px"><li>CV-kengetallen, buitentemperatuur en comfortdekking voldoen aan de bestaande vergelijkingsinstellingen.</li><li>Geen overlappende wijziging, afwijkend setpoint of uitgesloten periode in de vergelijking.</li><li>Voor elke relevante ruimte zijn de meting, het setpoint en het bestaande terugdraaicriterium beschikbaar.</li></ul></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px"><sc-for list="{{ experiment.rooms }}" as="room" hint-placeholder-count="4"><div style="background:#f8f9fb;border-radius:12px;padding:11px;font-size:12px"><strong style="display:block">{{ room.name }}</strong><span>Gemeten comfortreferentie: {{ room.reference }}</span><span style="display:block">Setpoint: {{ room.setpoint }} · dekking: {{ room.coverage }}</span><span style="display:block">Bestaand criterium: {{ room.rollback }}</span></div></sc-for></div></sc-if>
+                <sc-if value="{{ experiment.limited }}" hint-placeholder-val="{{ true }}"><div style="background:#fcf3dc;color:#6b4c05;border-radius:12px;padding:12px;font-size:13px"><strong>Voorstel niet beschikbaar: onvoldoende comfortdekking.</strong><ul style="margin:8px 0 0;padding-left:20px"><li>Slaapkamer: actuele temperatuur is verouderd.</li><li>Kinderkamer: setpoint ontbreekt.</li><li>Een woonkamerwaarde alleen zegt niets over comfort boven.</li></ul>Er wordt geen lagere waarde voorgesteld.</div></sc-if>
+                <sc-if value="{{ experiment.empty }}" hint-placeholder-val="{{ false }}"><div role="status" style="background:#f8f9fb;color:#5b6475;border-radius:12px;padding:12px;font-size:13px">Nog geen wijziging geregistreerd. Koppel één handmatig uitgevoerde wijziging om een experiment voor te bereiden.</div></sc-if>
+                <sc-if value="{{ experiment.conflict }}" hint-placeholder-val="{{ false }}"><div style="background:#fce8eb;color:#a92536;border-radius:12px;padding:12px;font-size:13px"><strong>Voorstel niet beschikbaar: perioden zijn niet geïsoleerd.</strong><p style="margin-top:5px">Er is een tweede parameterwijziging in de observatieperiode (W-06). De bestaande evaluatie kan het effect niet aan deze wijziging toeschrijven.</p></div></sc-if>
+                <div style="font-size:12px;color:#5b6475">Gebruikt uitsluitend bestaande instellingen voor vergelijkingsduur, weer, dekking, comfortmarge en terugdraaigrens.</div>
+              </section>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ experiment.running }}" hint-placeholder-val="{{ false }}">
+            <section style="background:#fff;border:1px solid #e7e9ee;border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:12px" aria-labelledby="experiment-running-title">
+              <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap"><div><h2 id="experiment-running-title" style="font-size:18px;font-weight:800">Observatie loopt</h2><p style="font-size:13px;color:#5b6475;margin-top:3px">Maximale CV-aanvoer · wijziging handmatig uitgevoerd op 4 okt 2026, 08:30</p></div><span style="padding:4px 10px;border-radius:999px;background:#e7effb;color:#2659a8;font-size:12px;font-weight:700">Lopend</span></div>
+              <div><div style="display:flex;justify-content:space-between;font-size:12px;color:#5b6475"><span>Observatieperiode · ingestelde duur</span><strong>3 van 7 dagen</strong></div><div role="progressbar" aria-label="Voortgang observatieperiode" aria-valuemin="0" aria-valuemax="7" aria-valuenow="3" style="height:10px;background:#eef0f3;border-radius:999px;margin-top:6px"><span style="display:block;width:43%;height:100%;background:#7c5cd6;border-radius:999px"></span></div><div style="font-size:12px;color:#5b6475;margin-top:5px">Referentie 27 sep–3 okt · Observatie 4–10 okt</div></div>
+              <sc-if value="{{ experiment.limited }}" hint-placeholder-val="{{ true }}"><div style="background:#fcf3dc;color:#6b4c05;border-radius:12px;padding:12px;font-size:13px">Slaapkamerdekking is beperkt; kinderkamersetpoint ontbreekt. Deze gegevens tellen niet als comfortabel. De uitkomst blijft voorlopig.</div></sc-if>
+              <sc-if value="{{ experiment.conflict }}" hint-placeholder-val="{{ false }}"><div style="background:#fce8eb;color:#a92536;border-radius:12px;padding:12px;font-size:13px">Extra wijziging W-06 gevonden. Individuele toeschrijving is niet mogelijk; de observatie blijft zichtbaar als conflict.</div></sc-if>
+              <div style="display:flex;gap:8px;flex-wrap:wrap"><button onClick="{{ experiment.evaluate }}" style="padding:9px 13px;border:0;border-radius:10px;background:#7c5cd6;color:#fff;font-weight:700;cursor:pointer">Bekijk huidige evaluatie</button><button onClick="{{ experiment.finish }}" style="padding:9px 13px;border:1px solid #dfe2e8;border-radius:10px;background:#fff;color:#3d4452;font-weight:600;cursor:pointer">Experiment beëindigen</button></div>
+            </section>
+          </sc-if>
+
+          <sc-if value="{{ experiment.evaluating }}" hint-placeholder-val="{{ false }}">
+            <section style="background:#fff;border:1px solid #e7e9ee;border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:12px" aria-labelledby="experiment-evaluation-title">
+              <div><h2 id="experiment-evaluation-title" style="font-size:18px;font-weight:800">Voor/na-evaluatie</h2><p style="font-size:13px;color:#5b6475">Dezelfde uitkomst en kengetallen als bij de gekoppelde wijziging.</p></div>
+              <sc-if value="{{ experiment.full }}" hint-placeholder-val="{{ false }}"><div style="background:#fcf3dc;color:#6b4c05;border-radius:14px;padding:14px"><strong>Afweging · terugdraaicriterium geactiveerd</strong><p style="margin-top:4px">Minder korte cycli, maar slaapkamercomfort verslechterde en de bestaande grens is overschreden. Dit is geen verbetering.</p></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px"><div style="background:#f8f9fb;border-radius:12px;padding:12px"><strong>CV-starts per uur</strong><p>4,1 → 2,6 · minder</p></div><div style="background:#f8f9fb;border-radius:12px;padding:12px"><strong>Korte cycli</strong><p>61 % → 34 % · minder</p></div><div style="background:#fce8eb;border-radius:12px;padding:12px"><strong>Slaapkamer onder setpoint</strong><p>1,2 → 5,8 u/week · grens 4 u/week overschreden</p></div></div><div style="font-size:13px"><strong>Terugdraaicriterium:</strong> slaapkamer meer dan 4 u/week meer dan 0,5 °C onder setpoint. Jij beslist en voert het terugzetten zelf uit.</div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px"><sc-for list="{{ experiment.rooms }}" as="room" hint-placeholder-count="4"><div style="background:#f8f9fb;border-radius:12px;padding:11px;font-size:12px"><strong style="display:block">{{ room.name }}</strong><span>Referentie {{ room.reference }} · setpoint {{ room.setpoint }}</span><span style="display:block">Dekking {{ room.coverage }}</span></div></sc-for></div><h3 style="font-size:14px;font-weight:800">Vergelijkbaarheid van perioden</h3><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px"><sc-for list="{{ experiment.conditions }}" as="condition" hint-placeholder-count="4"><div style="background:#f8f9fb;border-radius:11px;padding:10px;font-size:12px"><strong>{{ condition.k }}</strong><p>{{ condition.voor }} → {{ condition.na }} · {{ condition.ok }}</p></div></sc-for></div></sc-if>
+              <sc-if value="{{ experiment.limited }}" hint-placeholder-val="{{ true }}"><div style="background:#fcf3dc;color:#6b4c05;border-radius:14px;padding:14px"><strong>Onvoldoende bewijs</strong><p style="margin-top:4px">De observatie is onvolledig: slaapkamerdata is verouderd en setpointdata voor de kinderkamer ontbreekt. Er wordt geen tussentijdse verbetering afgeleid.</p></div></sc-if>
+              <sc-if value="{{ experiment.conflict }}" hint-placeholder-val="{{ false }}"><div style="background:#fce8eb;color:#a92536;border-radius:14px;padding:14px"><strong>Niet toe te schrijven</strong><p style="margin-top:4px">Pompstand en maximale aanvoer zijn in overlappende perioden gewijzigd. Geen afzonderlijk effect wordt gerapporteerd.</p></div></sc-if>
+              <div style="background:#f8f9fb;border-radius:12px;padding:12px;font-size:12px;color:#5b6475">Vergelijkbaarheid en datadekking per ruimte staan bij de bestaande voor/na-evaluatie. Bij gelijke status en uitkomst ontstaat geen dubbele advieshistorie.</div>
+              <button onClick="{{ experiment.finish }}" style="align-self:flex-start;padding:9px 13px;border:0;border-radius:10px;background:#7c5cd6;color:#fff;font-weight:700;cursor:pointer">Afronden</button>
+            </section>
+          </sc-if>
+
+          <sc-if value="{{ experiment.completed }}" hint-placeholder-val="{{ false }}"><section style="background:#fff;border:1px solid #e7e9ee;border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:10px"><h2 style="font-size:18px;font-weight:800">Experiment afgerond</h2><p style="font-size:14px">De bestaande evaluatie is bewaard bij wijziging {{ experiment.change }}. De wijziging en advieshistorie blijven beschikbaar.</p><button onClick="{{ backToChange }}" style="align-self:flex-start;padding:9px 13px;border:1px solid #dfe2e8;border-radius:10px;background:#fff;color:#2659a8;font-weight:700;cursor:pointer">Terug naar voor/na-evaluatie</button></section></sc-if>
+
+          <section style="background:#fff;border:1px solid #e7e9ee;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:8px" aria-labelledby="experiment-validation-title"><h2 id="experiment-validation-title" style="font-size:16px;font-weight:800">Validatie- en conflictstates</h2><sc-if value="{{ experiment.conflict }}" hint-placeholder-val="{{ false }}"><div role="alert" style="background:#fce8eb;color:#a92536;border-radius:10px;padding:10px 12px;font-size:12px">Conflict: meerdere wijzigingen overlappen. Status “Niet toe te schrijven”; er wordt geen individueel effect getoond.</div></sc-if><sc-if value="{{ experiment.empty }}" hint-placeholder-val="{{ false }}"><div role="status" style="background:#f8f9fb;color:#5b6475;border-radius:10px;padding:10px 12px;font-size:12px">Lege staat: er is nog geen wijziging aan dit experiment gekoppeld. Kies één wijziging via het wijzigingslogboek.</div></sc-if><div style="font-size:12px;color:#5b6475">De volgorde is toetsenbordbedienbaar; focus is zichtbaar op elke knop en elk veld. Fouten staan direct bij het betreffende veld en gebruiken een foutmelding zonder de invoer te wissen.</div></section>
         </div>
       </sc-if>
 
@@ -1000,7 +1069,7 @@ class Component extends DCLogic {
     super(props);
     this.sim = buildSim(); this.mainRef = React.createRef();
     this.state = {
-      mw: 900, ww: (typeof window !== 'undefined' ? window.innerWidth : 1200), screen: props.startScreen ?? 'overzicht', fid: 'B-014', cid: 'W-07', sid: 7, hid: 1, cyc: null, range: '6 uur',
+      mw: 900, ww: (typeof window !== 'undefined' ? window.innerWidth : 1200), screen: props.startScreen ?? 'overzicht', fid: 'B-014', cid: 'W-07', sid: 7, hid: 1, cyc: null, range: '6 uur', experimentStage: 'prepare', experimentCase: 'limited',
       status: { 'B-014': 'open', 'B-011': 'terug', 'B-015': 'open', 'B-012': 'open', 'B-016': 'open' }, notes: {},
       notify: { Hoog: 'Direct', Middel: 'Dagbundel', Laag: 'Weekrapport', Info: 'Geen' }, tg: [true, true]
     };
@@ -1087,6 +1156,37 @@ class Component extends DCLogic {
     const changes = CHANGES.map(c => { const col = c.id === 'W-06' ? 'amber' : tone[c.tone][0]; return { ...c, icon: I[c.id === 'W-05' ? 'clock' : 'sliders'], iBg: C[col][1], iFg: C[col][2],
       open: () => this.setState({ cid: c.id }), bg: S.cid === c.id ? '#fff7f2' : 'transparent', ring: ring(S.cid === c.id) }; });
 
+    const experimentStages = [
+      { id: 'prepare', label: 'Voorbereiden' }, { id: 'running', label: 'Lopend' },
+      { id: 'evaluate', label: 'Evalueren' }, { id: 'complete', label: 'Afronden' }
+    ].map((step, i) => ({ ...step, number: String(i + 1), current: S.experimentStage === step.id ? 'step' : 'false',
+      border: S.experimentStage === step.id ? '#7c5cd6' : '#e7e9ee', bg: S.experimentStage === step.id ? '#f3effc' : '#fff', fg: S.experimentStage === step.id ? '#3f2a85' : '#5b6475',
+      pick: () => this.setState({ experimentStage: step.id }) }));
+    const experimentCases = [
+      { id: 'empty', label: 'Nog geen wijziging' }, { id: 'limited', label: 'Ontbrekende data' },
+      { id: 'conflict', label: 'Overlappende wijziging' }, { id: 'full', label: 'Volledige data' }
+    ].map(item => ({ ...item, selected: S.experimentCase === item.id, border: S.experimentCase === item.id ? '#7c5cd6' : '#dfe2e8',
+      bg: S.experimentCase === item.id ? '#f3effc' : '#fff', fg: S.experimentCase === item.id ? '#3f2a85' : '#3d4452',
+      pick: () => this.setState({ experimentCase: item.id }) }));
+    const experiment = {
+      change: S.cid, cases: experimentCases, steps: experimentStages,
+      preparing: S.experimentStage === 'prepare', running: S.experimentStage === 'running',
+      evaluating: S.experimentStage === 'evaluate', completed: S.experimentStage === 'complete',
+      empty: S.experimentCase === 'empty', limited: S.experimentCase === 'limited',
+      conflict: S.experimentCase === 'conflict', full: S.experimentCase === 'full',
+      canLowerFlow: S.experimentCase === 'full',
+      rooms: [
+        { name: 'Woonkamer', reference: '20,4 °C', setpoint: '20,5 °C', coverage: '100 %', rollback: 'bestaande grens uit instellingen' },
+        { name: 'Slaapkamer', reference: '17,6 °C', setpoint: '18,0 °C', coverage: '98,1 %', rollback: 'meer dan 4 u/week > 0,5 °C onder setpoint' },
+        { name: 'Kinderkamer', reference: 'volgens ruimteanalyse', setpoint: 'volgens profiel', coverage: 'voldoet aan bestaande eis', rollback: 'bestaande grens uit instellingen' },
+        { name: 'Badkamer', reference: 'volgens ruimteanalyse', setpoint: 'volgens profiel', coverage: 'voldoet aan bestaande eis', rollback: 'bestaande grens uit instellingen' }
+      ],
+      conditions: ch.cond,
+      start: () => this.setState({ experimentStage: 'running' }),
+      evaluate: () => this.setState({ experimentStage: 'evaluate' }),
+      finish: () => this.setState({ experimentStage: 'complete' })
+    };
+
     const hcol = s => /ongunstig|Open/.test(s) ? 'rose' : /geslaagd/.test(s) ? 'green' : 'slate';
     const history = HISTORY.map((x, i) => ({ ...x, icon: I[/geslaagd/.test(x.status) ? 'checkCircle' : /Afgewezen/.test(x.status) ? 'x' : 'bulb'], iBg: C[hcol(x.status)][1], iFg: C[hcol(x.status)][2],
       pick: () => this.setState({ hid: i }), ring: S.hid === i ? '0 0 0 2px #7c5cd6' : 'none' }));
@@ -1133,6 +1233,8 @@ class Component extends DCLogic {
       noteText: S.notes[S.fid] ?? '', onNote: e => { const v = e.target.value; this.setState(s => ({ notes: { ...s.notes, [s.fid]: v } })); },
       goBevindingen: () => this.go('bevindingen'), goKwaliteit: () => this.go('kwaliteit'), goCycli: () => this.go('cycli'),
       goWijzigingen: e => { e && e.preventDefault(); this.go('wijzigingen'); }, openB011: () => this.setState({ fid: 'B-011', screen: 'bevindingen' }),
+      goExperiment: () => this.setState(s => ({ screen: 'experiment', experimentStage: 'prepare', cid: s.screen === 'wijzigingen' ? s.cid : 'W-07' })),
+      backToChange: () => this.setState({ screen: 'wijzigingen' }), experiment,
       stats: st, miniChart: this.miniChart(), chart: this.chart(), cycles,
       ranges: ['6 uur', '24 uur', '7 dagen'].map(r => ({ label: r, pick: () => this.setState({ range: r }), bg: S.range === r ? '#ea6a2f' : 'transparent', fg: S.range === r ? '#fff' : '#5b6475' })),
       cycleKpis: [kp('Starts per uur (CV)', st.perUur, 'over ' + st.obs + ' u met gegevens', 'repeat', 'orange'), kp('CV-cycli', String(st.cvN), '+ ' + st.twN + ' tapwater (uitgesloten)', 'flame', 'orange'),
