@@ -24,6 +24,7 @@ export type ScreenKey =
   | 'installatie'
   | 'kwaliteit'
   | 'zones'
+  | 'rapporten'
   | 'meldingen'
   | 'analyse-instellingen';
 
@@ -124,6 +125,16 @@ export const SCREENS: readonly ScreenDef[] = [
     title: 'Zoneanalyse',
     subtitle: 'Zonevraag en gemelde klepstatus naast bestaande CV-cycli',
     icon: Layers,
+    tone: 'blue',
+    section: 'analyse',
+  },
+  {
+    key: 'rapporten',
+    path: 'rapporten',
+    label: 'Rapporten',
+    title: 'Rapporten',
+    subtitle: 'Dag- en weekoverzicht van je installatie',
+    icon: Activity,
     tone: 'blue',
     section: 'analyse',
   },

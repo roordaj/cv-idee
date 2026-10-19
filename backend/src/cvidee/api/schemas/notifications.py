@@ -21,6 +21,12 @@ class NotificationPolicyIn(ApiModel):
     channels: SeverityChannels
     bundle_related: bool = Field(description="Bundel meldingen die bij hetzelfde patroon horen.")
     renotify_on_worsening: bool = Field(description="Opnieuw melden als het erger wordt.")
+    daily_report_enabled: bool = Field(
+        default=False, description="Verstuur dagelijks een rapport via Home Assistant."
+    )
+    weekly_report_enabled: bool = Field(
+        default=False, description="Verstuur wekelijks een rapport via Home Assistant."
+    )
 
 
 class NotificationPolicy(NotificationPolicyIn):

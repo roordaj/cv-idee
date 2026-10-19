@@ -892,6 +892,152 @@
         }
       }
     },
+    "/api/reports/{kind}/snapshots": {
+      "post": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Create Report Snapshot",
+        "description": "Create and retain one immutable snapshot for preview and subsequent exports.",
+        "operationId": "create_report_snapshot",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ReportPeriodKind"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportSnapshotIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedReportSnapshot"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not implemented (start the backend with CVIDEE_STUB_DATA=1 for example data)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reports/{kind}/delivery-status": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Report Delivery Status",
+        "description": "Return opt-in and delivery state for the selected report period.",
+        "operationId": "report_delivery_status",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ReportPeriodKind"
+            }
+          },
+          {
+            "name": "reference_date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "description": "Local report date; Monday for a week.",
+              "title": "Reference Date"
+            },
+            "description": "Local report date; Monday for a week."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportDeliveryStatus"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not implemented (start the backend with CVIDEE_STUB_DATA=1 for example data)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/reports/{kind}/html": {
       "get": {
         "tags": [
@@ -924,6 +1070,22 @@
                 }
               ],
               "title": "Reference Date"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Snapshot Id"
             }
           }
         ],
@@ -1004,6 +1166,22 @@
               ],
               "title": "Reference Date"
             }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Snapshot Id"
+            }
           }
         ],
         "responses": {
@@ -1082,6 +1260,22 @@
                 }
               ],
               "title": "Reference Date"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Snapshot Id"
             }
           }
         ],
@@ -4306,6 +4500,24 @@
         ],
         "title": "CoverageSegmentKind"
       },
+      "CreatedReportSnapshot": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "report": {
+            "$ref": "#/components/schemas/ReportSnapshot"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "report"
+        ],
+        "title": "CreatedReportSnapshot"
+      },
       "Cycle": {
         "properties": {
           "number": {
@@ -7010,6 +7222,18 @@
             "title": "Renotify On Worsening",
             "description": "Opnieuw melden als het erger wordt."
           },
+          "daily_report_enabled": {
+            "type": "boolean",
+            "title": "Daily Report Enabled",
+            "description": "Verstuur dagelijks een rapport via Home Assistant.",
+            "default": false
+          },
+          "weekly_report_enabled": {
+            "type": "boolean",
+            "title": "Weekly Report Enabled",
+            "description": "Verstuur wekelijks een rapport via Home Assistant.",
+            "default": false
+          },
           "recovery_text": {
             "type": "string",
             "title": "Recovery Text",
@@ -7040,6 +7264,18 @@
             "type": "boolean",
             "title": "Renotify On Worsening",
             "description": "Opnieuw melden als het erger wordt."
+          },
+          "daily_report_enabled": {
+            "type": "boolean",
+            "title": "Daily Report Enabled",
+            "description": "Verstuur dagelijks een rapport via Home Assistant.",
+            "default": false
+          },
+          "weekly_report_enabled": {
+            "type": "boolean",
+            "title": "Weekly Report Enabled",
+            "description": "Verstuur wekelijks een rapport via Home Assistant.",
+            "default": false
           }
         },
         "additionalProperties": false,
@@ -7921,6 +8157,48 @@
         ],
         "title": "ReportChangeEvaluation"
       },
+      "ReportDeliveryStatus": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "available": {
+            "type": "boolean",
+            "title": "Available"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DeliveryStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "enabled",
+          "available",
+          "status",
+          "error"
+        ],
+        "title": "ReportDeliveryStatus"
+      },
       "ReportPeriodKind": {
         "type": "string",
         "enum": [
@@ -8009,6 +8287,26 @@
           "has_more_cycles"
         ],
         "title": "ReportSnapshot"
+      },
+      "ReportSnapshotIn": {
+        "properties": {
+          "reference_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference Date",
+            "description": "Local date; Monday for a week."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ReportSnapshotIn"
       },
       "ReportStatusChange": {
         "properties": {

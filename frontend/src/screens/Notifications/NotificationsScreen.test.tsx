@@ -9,6 +9,8 @@ const POLICY = {
   channels: { high: 'direct', medium: 'daily_digest', low: 'weekly_report', info: 'none' },
   bundle_related: true,
   renotify_on_worsening: false,
+  daily_report_enabled: false,
+  weekly_report_enabled: false,
   recovery_text: '3 dagen zonder patroon, bij vergelijkbaar weer en ≥ 90 % gegevens',
 };
 

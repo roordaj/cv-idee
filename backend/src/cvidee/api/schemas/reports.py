@@ -1,5 +1,6 @@
 """Daily and weekly report snapshots (FR-40)."""
 
+from datetime import date
 from enum import StrEnum
 from typing import Any
 
@@ -8,7 +9,7 @@ from pydantic import Field
 from cvidee.api.schemas.common import ApiModel, TimeRange, UtcDateTime
 from cvidee.api.schemas.data import Cycle, CycleSummary, QualityResponse
 from cvidee.api.schemas.findings import FindingSummary
-from cvidee.store.enums import EvaluationVerdict, RecommendationStatus
+from cvidee.store.enums import DeliveryStatus, EvaluationVerdict, RecommendationStatus
 
 
 class ReportPeriodKind(StrEnum):
@@ -64,3 +65,19 @@ class ReportSnapshot(ApiModel):
     status_changes: list[ReportStatusChange]
     changes: list[ReportChange]
     has_more_cycles: bool = Field(description="True when more than 500 cycles fall in the period.")
+
+
+class ReportSnapshotIn(ApiModel):
+    reference_date: date | None = Field(default=None, description="Local date; Monday for a week.")
+
+
+class CreatedReportSnapshot(ApiModel):
+    id: str
+    report: ReportSnapshot
+
+
+class ReportDeliveryStatus(ApiModel):
+    enabled: bool
+    available: bool
+    status: DeliveryStatus | None
+    error: str | None

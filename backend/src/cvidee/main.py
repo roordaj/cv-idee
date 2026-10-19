@@ -16,7 +16,9 @@ from cvidee import __version__
 from cvidee.analysis.types import Role
 from cvidee.api import router as api_router
 from cvidee.api.auth import ApiTokenMiddleware
+from cvidee.api.live_read import LiveReadModel
 from cvidee.api.problems import install_problem_handlers
+from cvidee.api.report_read import ReportsReadModel
 from cvidee.api.spa import create_spa_router
 from cvidee.api.stubs.store import StubStore
 from cvidee.config import Settings, get_settings
@@ -138,8 +140,15 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     await imports.recover()
     export = ExportService(settings, app.state.session_factory)
     app.state.ha_export = export
+    report_monitoring = LiveReadModel(
+        app.state.session_factory, settings, app.state.ha_client, export
+    )
+    reports = ReportsReadModel(app.state.session_factory, report_monitoring)
     notifications = NotificationService(
-        app.state.session_factory, app.state.ha_client, settings.notify_target
+        app.state.session_factory,
+        app.state.ha_client,
+        settings.notify_target,
+        report_builder=reports.report,
     )
     app.state.notifications = notifications
     if not settings.stub_data:

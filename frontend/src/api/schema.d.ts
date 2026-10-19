@@ -276,6 +276,46 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/reports/{kind}/snapshots': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Create Report Snapshot
+     * @description Create and retain one immutable snapshot for preview and subsequent exports.
+     */
+    post: operations['create_report_snapshot'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/reports/{kind}/delivery-status': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Report Delivery Status
+     * @description Return opt-in and delivery state for the selected report period.
+     */
+    get: operations['report_delivery_status'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/reports/{kind}/html': {
     parameters: {
       query?: never;
@@ -1328,6 +1368,12 @@ export interface components {
      * @enum {string}
      */
     CoverageSegmentKind: 'connection_lost' | 'stale' | 'not_mapped' | 'data_gap' | 'unknown';
+    /** CreatedReportSnapshot */
+    CreatedReportSnapshot: {
+      /** Id */
+      id: string;
+      report: components['schemas']['ReportSnapshot'];
+    };
     /** Cycle */
     Cycle: {
       /**
@@ -2337,6 +2383,18 @@ export interface components {
        */
       renotify_on_worsening: boolean;
       /**
+       * Daily Report Enabled
+       * @description Verstuur dagelijks een rapport via Home Assistant.
+       * @default false
+       */
+      daily_report_enabled: boolean;
+      /**
+       * Weekly Report Enabled
+       * @description Verstuur wekelijks een rapport via Home Assistant.
+       * @default false
+       */
+      weekly_report_enabled: boolean;
+      /**
        * Recovery Text
        * @description Recovery criterion summary (from the settings, read-only here).
        */
@@ -2355,6 +2413,18 @@ export interface components {
        * @description Opnieuw melden als het erger wordt.
        */
       renotify_on_worsening: boolean;
+      /**
+       * Daily Report Enabled
+       * @description Verstuur dagelijks een rapport via Home Assistant.
+       * @default false
+       */
+      daily_report_enabled: boolean;
+      /**
+       * Weekly Report Enabled
+       * @description Verstuur wekelijks een rapport via Home Assistant.
+       * @default false
+       */
+      weekly_report_enabled: boolean;
     };
     /** OverviewResponse */
     OverviewResponse: {
@@ -2663,6 +2733,16 @@ export interface components {
         [key: string]: unknown;
       }[];
     };
+    /** ReportDeliveryStatus */
+    ReportDeliveryStatus: {
+      /** Enabled */
+      enabled: boolean;
+      /** Available */
+      available: boolean;
+      status: components['schemas']['DeliveryStatus'] | null;
+      /** Error */
+      error: string | null;
+    };
     /**
      * ReportPeriodKind
      * @enum {string}
@@ -2696,6 +2776,14 @@ export interface components {
        * @description True when more than 500 cycles fall in the period.
        */
       has_more_cycles: boolean;
+    };
+    /** ReportSnapshotIn */
+    ReportSnapshotIn: {
+      /**
+       * Reference Date
+       * @description Local date; Monday for a week.
+       */
+      reference_date?: string | null;
     };
     /** ReportStatusChange */
     ReportStatusChange: {
@@ -4135,10 +4223,102 @@ export interface operations {
       };
     };
   };
+  create_report_snapshot: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        kind: components['schemas']['ReportPeriodKind'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ReportSnapshotIn'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CreatedReportSnapshot'];
+        };
+      };
+      /** @description Validation error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+      /** @description Not implemented (start the backend with CVIDEE_STUB_DATA=1 for example data) */
+      501: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+    };
+  };
+  report_delivery_status: {
+    parameters: {
+      query: {
+        /** @description Local report date; Monday for a week. */
+        reference_date: string;
+      };
+      header?: never;
+      path: {
+        kind: components['schemas']['ReportPeriodKind'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReportDeliveryStatus'];
+        };
+      };
+      /** @description Validation error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+      /** @description Not implemented (start the backend with CVIDEE_STUB_DATA=1 for example data) */
+      501: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+    };
+  };
   download_report_html: {
     parameters: {
       query?: {
         reference_date?: string | null;
+        snapshot_id?: string | null;
       };
       header?: never;
       path: {
@@ -4183,6 +4363,7 @@ export interface operations {
     parameters: {
       query?: {
         reference_date?: string | null;
+        snapshot_id?: string | null;
       };
       header?: never;
       path: {
@@ -4227,6 +4408,7 @@ export interface operations {
     parameters: {
       query?: {
         reference_date?: string | null;
+        snapshot_id?: string | null;
       };
       header?: never;
       path: {

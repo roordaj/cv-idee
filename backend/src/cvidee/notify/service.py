@@ -6,7 +6,7 @@ import logging
 import re
 import time
 from collections.abc import Callable
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from datetime import time as clock_time
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -14,6 +14,7 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session, sessionmaker
 
+from cvidee.api.schemas.reports import ReportPeriodKind, ReportSnapshot
 from cvidee.ingest.ha_client import HAClient, HAError
 from cvidee.notify.backend import read_policy
 from cvidee.store.enums import (
@@ -197,9 +198,11 @@ class NotificationService:
         *,
         clock: Callable[[], int] = lambda: time.time_ns() // 1_000_000,
         interval_s: float = 60,
+        report_builder: Callable[[ReportPeriodKind, date], ReportSnapshot] | None = None,
     ) -> None:
         self.sessions, self.client = sessions, client
         self.target = target
+        self.report_builder = report_builder
         self.clock, self.interval_s = clock, interval_s
         self._stop = asyncio.Event()
         self._lock = asyncio.Lock()
@@ -229,6 +232,82 @@ class NotificationService:
                 )
             )
 
+    def _plan_reports(self, now: int) -> None:
+        """Queue enabled reports after the 08:00 Amsterdam boundary, once per period."""
+        if self.target is None or self.report_builder is None:
+            return
+        local = datetime.fromtimestamp(now / 1000, UTC).astimezone(AMSTERDAM)
+        if local.time() < clock_time(8):
+            return
+        schedules: list[tuple[ReportPeriodKind, date, bool]] = []
+        yesterday = local.date() - timedelta(days=1)
+        schedules.append((ReportPeriodKind.DAY, yesterday, False))
+        if local.weekday() == 0:
+            schedules.append((ReportPeriodKind.WEEK, local.date() - timedelta(days=7), True))
+        with self.sessions() as session:
+            policy = read_policy(session)
+            enabled = {
+                ReportPeriodKind.DAY: policy.daily_report_enabled,
+                ReportPeriodKind.WEEK: policy.weekly_report_enabled,
+            }
+        for kind, period_date, weekly in schedules:
+            if not enabled[kind]:
+                continue
+            key = f"{kind.value}:{period_date.isoformat()}"
+            try:
+                report = self.report_builder(kind, period_date)
+                body = (
+                    f"Periode: {period_date.strftime('%d-%m-%Y')}"
+                    + (
+                        f" t/m {(period_date + timedelta(days=6)).strftime('%d-%m-%Y')}"
+                        if weekly
+                        else ""
+                    )
+                    + f" · {report.cycle_summary.ch_cycles + report.cycle_summary.dhw_cycles} cycli"
+                    + f" · {len(report.findings)} bevindingen · {len(report.changes)} wijzigingen"
+                )
+                failure = None
+            except Exception:
+                logger.exception("Could not build %s report for %s", kind.value, period_date)
+                body = "Het rapport kon niet worden opgebouwd; opnieuw proberen."
+                failure = "Rapport opbouwen mislukt."
+            with self.sessions.begin() as session:
+                session.execute(text("BEGIN IMMEDIATE"))
+                row = session.scalar(
+                    select(Notification).where(
+                        Notification.payload["report_period"].as_string() == key
+                    )
+                )
+                if row is None:
+                    row = Notification(
+                        kind=(
+                            NotificationKind.WEEKLY_REPORT
+                            if weekly
+                            else NotificationKind.DAILY_DIGEST
+                        ),
+                        channel=NotificationChannel.DIRECT,
+                        finding_id=None,
+                        severity=None,
+                        title="Weekrapport CV-analyse" if weekly else "Dagrapport CV-analyse",
+                        body=body,
+                        payload={
+                            "kind": "report",
+                            "report_period": key,
+                            "report_kind": kind.value,
+                        },
+                        delivery_status=DeliveryStatus.FAILED
+                        if failure
+                        else DeliveryStatus.PENDING,
+                        ha_event_fired=False,
+                        error=failure,
+                        created_at_ts=now,
+                    )
+                    session.add(row)
+                elif row.delivery_status is DeliveryStatus.FAILED and failure is None:
+                    row.body = body
+                    row.delivery_status = DeliveryStatus.PENDING
+                    row.error = None
+
     def _load(self, ident: int) -> Notification:
         with self.sessions() as session:
             row = session.get(Notification, ident)
@@ -246,6 +325,12 @@ class NotificationService:
     def _push_enabled(self, row: Notification) -> bool:
         with self.sessions() as session:
             policy = read_policy(session)
+            if row.payload.get("kind") == "report":
+                return (
+                    policy.daily_report_enabled
+                    if row.payload.get("report_kind") == ReportPeriodKind.DAY.value
+                    else policy.weekly_report_enabled
+                )
             members = (
                 [row]
                 if row.finding_id is not None
@@ -270,6 +355,7 @@ class NotificationService:
     async def tick(self) -> None:
         async with self._lock:
             ids = await asyncio.to_thread(self._plan, self.clock())
+            await asyncio.to_thread(self._plan_reports, self.clock())
             if self.client is None or not self.client.connected:
                 return
             for ident in ids:
@@ -278,6 +364,11 @@ class NotificationService:
     async def _deliver(self, ident: int) -> None:
         assert self.client is not None
         row = await asyncio.to_thread(self._load, ident)
+        if row.payload.get("kind") == "report" and not await asyncio.to_thread(
+            self._push_enabled, row
+        ):
+            await asyncio.to_thread(self._record, ident, delivery_status=DeliveryStatus.SUPPRESSED)
+            return
         try:
             if (
                 self.target

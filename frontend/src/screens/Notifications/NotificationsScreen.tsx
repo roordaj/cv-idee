@@ -47,17 +47,56 @@ const TRANSPORT_LABEL = { mqtt: 'MQTT', fallback: 'REST', none: 'Niet actief' } 
 function PolicyCards({ policy }: { policy: Policy }) {
   const update = useUpdateNotificationPolicy();
   const save = (
-    patch: Partial<Pick<Policy, 'channels' | 'bundle_related' | 'renotify_on_worsening'>>,
+    patch: Partial<
+      Pick<
+        Policy,
+        | 'channels'
+        | 'bundle_related'
+        | 'renotify_on_worsening'
+        | 'daily_report_enabled'
+        | 'weekly_report_enabled'
+      >
+    >,
   ) => {
     update.mutate({
       channels: policy.channels,
       bundle_related: policy.bundle_related,
       renotify_on_worsening: policy.renotify_on_worsening,
+      daily_report_enabled: policy.daily_report_enabled,
+      weekly_report_enabled: policy.weekly_report_enabled,
       ...patch,
     });
   };
   return (
     <>
+      <Card className={styles.card}>
+        <h2 className={styles.h3}>Rapportmeldingen</h2>
+        <p className={styles.sub}>
+          Verstuur een samenvatting via het ingestelde Home Assistant-meldingsdoel.
+        </p>
+        <Toggle
+          label="Dagrapport dagelijks versturen"
+          checked={policy.daily_report_enabled}
+          onChange={(daily_report_enabled) => {
+            save({ daily_report_enabled });
+          }}
+        />
+        <Toggle
+          label="Weekrapport wekelijks versturen"
+          checked={policy.weekly_report_enabled}
+          onChange={(weekly_report_enabled) => {
+            save({ weekly_report_enabled });
+          }}
+        />
+        {update.isError ? (
+          <ErrorCallout
+            subject="de rapportmeldingen"
+            onRetry={() => {
+              update.reset();
+            }}
+          />
+        ) : null}
+      </Card>
       <Card className={styles.card}>
         <h2 className={styles.h3}>Kanaal per ernst</h2>
         {SEVERITIES.map((s) => (

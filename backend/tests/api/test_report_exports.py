@@ -39,6 +39,7 @@ from cvidee.main import create_app
 from cvidee.rules.base import Category, Certainty, Severity
 from cvidee.store.engine import create_db_engine, create_session_factory, database_url
 from cvidee.store.enums import EvaluationVerdict, FindingLifecycle, RecommendationStatus
+from cvidee.store.models import ReportSnapshotRecord
 from cvidee.store.schema import upgrade_to_head
 
 START = datetime(2026, 10, 18, 22, tzinfo=UTC)
@@ -290,3 +291,40 @@ async def test_report_downloads_use_existing_api_token_auth(tmp_path: Path) -> N
 
     assert unauthorized.status_code == 401
     assert authorized.status_code == 200
+
+
+async def test_exports_use_the_created_immutable_snapshot(tmp_path: Path) -> None:
+    db_url = database_url(tmp_path / "snapshot-reports.sqlite")
+    upgrade_to_head(db_url)
+    factory = create_session_factory(create_db_engine(db_url))
+    app = create_app(
+        Settings.model_validate(
+            {"CVIDEE_STUB_DATA": "1", "CVIDEE_DB_PATH": str(tmp_path / "snapshot-reports.sqlite")}
+        )
+    )
+    app.state.session_factory = factory
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        created = await client.post(
+            "/api/reports/day/snapshots", json={"reference_date": "2026-10-18"}
+        )
+        assert created.status_code == 200
+        snapshot = created.json()
+        with factory.begin() as session:
+            record = session.get(ReportSnapshotRecord, snapshot["id"])
+            assert record is not None
+            record.snapshot = {**record.snapshot, "generated_at": "2001-01-01T00:00:00Z"}
+        exported = await client.get(f"/api/reports/day/html?snapshot_id={snapshot['id']}")
+        delivery = await client.get("/api/reports/day/delivery-status?reference_date=2026-10-18")
+    assert exported.status_code == 200
+    assert 'filename="cv-rapport-day-2026-10-18.html"' in exported.headers["content-disposition"]
+    assert "Gegevenskwaliteit" in exported.text
+    assert "01-01-2001 01:00" in exported.text
+    assert delivery.status_code == 200
+    assert delivery.json() == {
+        "enabled": False,
+        "available": False,
+        "status": None,
+        "error": None,
+    }
