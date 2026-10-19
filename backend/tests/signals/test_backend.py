@@ -253,6 +253,8 @@ async def test_no_gas_keeps_cycles_available_and_efficiency_requires_both(
         await seed_role(backend, role, entity, state)
     analyses = {item.id.value: item for item in backend.analyses().items}
     assert analyses["cycles"].status.value == "available"
+    assert analyses["before_after"].status.value == "unavailable"
+    assert "geen wijziging vastgelegd" in analyses["before_after"].note
     assert analyses["consumption"].status.value == "unavailable"
     assert "Gasgegevens ontbreken" in analyses["consumption"].note
     await seed_role(backend, "gas_cumulative", "sensor.gas", "100")
@@ -296,4 +298,4 @@ async def test_real_routes_work_without_stub(backend: SignalsBackend) -> None:
             "/api/signals/flame@boiler", json={"entity_id": "binary_sensor.flame"}
         )
         assert linked.status_code == 200, linked.text
-        assert len((await client.get("/api/analyses")).json()["items"]) == 8
+        assert len((await client.get("/api/analyses")).json()["items"]) == 9

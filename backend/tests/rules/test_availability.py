@@ -2,17 +2,20 @@
 
 from __future__ import annotations
 
-from cvidee.analysis.types import MINUTE_MS, Role
+from cvidee.analysis.change_evaluation import EvaluationFact, PeriodMetrics
+from cvidee.analysis.types import MINUTE_MS, Role, TimeRange
 from cvidee.rules.availability import (
     AvailabilityPolicy,
     SignalRequirement,
     analysis_requirements,
     assess,
     assess_analyses,
+    assess_before_after,
 )
 from cvidee.rules.base import (
     AnalysisId,
     Availability,
+    AvailabilityIssue,
     AvailabilityStatus,
     InstallationFacts,
     IssueKind,
@@ -37,6 +40,63 @@ def by_analysis(
 def test_table_covers_every_analysis_in_design_order() -> None:
     assert list(analysis_requirements(AvailabilityPolicy())) == list(AnalysisId)
     assert [a.analysis for a in assess_analyses((), PROFILE)] == list(AnalysisId)
+
+
+def _change_fact(
+    *, verdict: str, weather: str = "yes", setpoints: str = "yes", overlap_ids: tuple[str, ...] = ()
+) -> EvaluationFact:
+    metrics = PeriodMetrics(
+        coverage=1.0,
+        observed_hours=24.0,
+        starts_per_hour=1.0,
+        median_burn_s=600.0,
+        short_share=0.0,
+        flow_stable_c=45.0,
+        outdoor_c=8.0,
+        outdoor_coverage=1.0,
+        cold_hours=(),
+        room_coverage=(),
+        setpoints=(),
+        cycles=24,
+        excluded_ms=0,
+    )
+    period = TimeRange(0, 24 * 60 * 60 * 1000)
+    return EvaluationFact(
+        change_id="W-01",
+        reference=period,
+        observation=period,
+        before=metrics,
+        after=metrics,
+        verdict=verdict,
+        weather=weather,
+        setpoints=setpoints,
+        overlap_ids=overlap_ids,
+        rollback=False,
+        summary="synthetic test fact",
+    )
+
+
+def test_before_after_availability_uses_evidence_and_comparability() -> None:
+    assert assess_before_after(()).status is UNAVAILABLE
+    available = assess_before_after((_change_fact(verdict="improved"),))
+    assert available.status is AVAILABLE
+    limited = assess_before_after(
+        (
+            _change_fact(
+                verdict="not_attributable",
+                weather="no",
+                overlap_ids=("W-02",),
+            ),
+        )
+    )
+    assert limited.status is LIMITED
+    assert {issue.kind for issue in limited.issues} == {
+        IssueKind.OVERLAPPING_CHANGES,
+        IssueKind.WEATHER_NOT_COMPARABLE,
+    }
+    insufficient = assess_before_after((_change_fact(verdict="insufficient_evidence"),))
+    assert insufficient.status is UNAVAILABLE
+    assert insufficient.issues == (AvailabilityIssue(IssueKind.INSUFFICIENT_COMPARISON_EVIDENCE),)
 
 
 def test_no_gas_meter_cycles_available_consumption_unavailable() -> None:

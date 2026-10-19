@@ -2344,7 +2344,8 @@
           "zones",
           "hydraulic",
           "consumption",
-          "efficiency"
+          "efficiency",
+          "before_after"
         ],
         "title": "AnalysisId",
         "description": "Analyses with an availability status (design v3 ``ANALYSES``)."

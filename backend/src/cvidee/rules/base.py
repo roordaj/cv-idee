@@ -310,6 +310,8 @@ class AnalysisId(StrEnum):
     """Verbruik."""
     EFFICIENCY = "efficiency"
     """Rendement."""
+    BEFORE_AFTER = "before_after"
+    """Voor/na-evaluatie van vastgelegde wijzigingen."""
 
 
 class IssueKind(StrEnum):
@@ -325,6 +327,11 @@ class IssueKind(StrEnum):
     RESOLUTION_UNKNOWN = "resolution_unknown"
     NO_SCOPE_IN_PROFILE = "no_scope_in_profile"
     """A per-room/zone/manifold role, but the profile has no such entity."""
+    NO_CHANGE_DATA = "no_change_data"
+    INSUFFICIENT_COMPARISON_EVIDENCE = "insufficient_comparison_evidence"
+    OVERLAPPING_CHANGES = "overlapping_changes"
+    WEATHER_NOT_COMPARABLE = "weather_not_comparable"
+    SETPOINTS_NOT_COMPARABLE = "setpoints_not_comparable"
 
 
 @dataclass(frozen=True, slots=True, order=True)
@@ -332,7 +339,7 @@ class AvailabilityIssue:
     """One structured reason (no UI text: the API/UI renders it in Dutch)."""
 
     kind: IssueKind
-    role: Role
+    role: Role | None = None
     scope_key: str | None = None
     required: bool = True
     """``False`` for optional signals (they can only make an analysis limited)."""
@@ -358,8 +365,10 @@ class Availability:
     def _missing(self, *, required_only: bool) -> tuple[SignalRef, ...]:
         refs: set[SignalRef] = set()
         for issue in self.issues:
-            if issue.kind in (IssueKind.NOT_MAPPED, IssueKind.NO_DATA) and (
-                issue.required or not required_only
+            if (
+                issue.role is not None
+                and issue.kind in (IssueKind.NOT_MAPPED, IssueKind.NO_DATA)
+                and (issue.required or not required_only)
             ):
                 refs.add(signal_ref(issue.role, issue.scope_key))
         return tuple(sorted(refs))

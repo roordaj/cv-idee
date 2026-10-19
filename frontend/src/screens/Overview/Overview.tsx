@@ -83,6 +83,7 @@ const ANALYSIS_ICON: Record<AnalysisId, LucideIcon> = {
   hydraulic: Droplet,
   consumption: Flame,
   efficiency: Activity,
+  before_after: Activity,
 };
 
 const KPI_STYLE: Record<string, { icon: LucideIcon; tone: Tone }> = {

@@ -172,6 +172,7 @@ class FindingsStage:
         metrics = tuple(
             m for kind in MetricWindowKind for m in derived.metric_values(kind, period.start, now)
         )
+        change_evaluations = evaluate_changes(session, now, settings_values, config)
         ctx = RuleContext(
             now=now,
             period=period,
@@ -187,6 +188,7 @@ class FindingsStage:
                     settings_values.min_assessment_coverage_pct / 100,
                     settings_values.flame_resolution_s * 1000,
                 ),
+                change_evaluations,
             ),
             cycles=tuple(derived.burner_cycles(period.start, now)),
             mode_segments=tuple(derived.mode_segments(period.start, now)),
@@ -195,7 +197,7 @@ class FindingsStage:
             special_periods=rule_periods(session, period),
             timelines=timelines,
             config_hash=config.config_hash,
-            change_evaluations=evaluate_changes(session, now, settings_values, config),
+            change_evaluations=change_evaluations,
         )
         recovery = (
             self.recovery
