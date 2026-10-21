@@ -60,6 +60,10 @@ def backend(sessions: sessionmaker[Session]) -> SignalsBackend:
             HAState("sensor.heat", "10", {"unit_of_measurement": "kWh"}, last_reported=NOW),
             HAState("sensor.power", "100", {"unit_of_measurement": "W"}, last_reported=NOW),
             HAState("binary_sensor.zone_demand", "on", last_reported=NOW),
+            HAState("sensor.loop_a_flow", "32", {"unit_of_measurement": "°C"}, last_reported=NOW),
+            HAState("sensor.loop_a_return", "27", {"unit_of_measurement": "°C"}, last_reported=NOW),
+            HAState("sensor.loop_b_flow", "33", {"unit_of_measurement": "°C"}, last_reported=NOW),
+            HAState("sensor.loop_b_return", "28", {"unit_of_measurement": "°C"}, last_reported=NOW),
         ]
     )
     return SignalsBackend(
@@ -109,6 +113,72 @@ async def test_zone_mappings_follow_the_current_profile_inventory(
     with backend.sessions() as session:
         (mapping,) = load_mapped_signals(session)
         assert mapping.mapping_id == mapping_id
+
+
+async def test_loop_scoped_temperature_mappings_are_explicit_and_versioned(
+    backend: SignalsBackend,
+) -> None:
+    config = ConfigBackend(backend.sessions, clock=lambda: NOW)
+    profile = config.installation_profile()
+    body = profile.model_dump(exclude={"summary", "updated_at"})
+    body["circuits"][1]["loops_inventory"] = [
+        {"key": "loop-a", "label": "Woonkamerlus"},
+        {"key": "loop-b", "label": "Slaapkamerlus"},
+    ]
+    saved = config.put_installation(InstallationProfileIn.model_validate(body))
+    assert [loop.key for loop in saved.circuits[1].loops_inventory or []] == ["loop-a", "loop-b"]
+
+    entities = {
+        "loop_flow_temperature@loop:loop-a": "sensor.loop_a_flow",
+        "loop_return_temperature@loop:loop-a": "sensor.loop_a_return",
+        "loop_flow_temperature@loop:loop-b": "sensor.loop_b_flow",
+        "loop_return_temperature@loop:loop-b": "sensor.loop_b_return",
+    }
+    for signal_id, entity_id in entities.items():
+        mapped = await backend.update_signal(signal_id, SignalMappingUpdate(entity_id=entity_id))
+        assert mapped.scope_kind is ScopeKind.LOOP
+    with backend.sessions() as session:
+        mappings = load_mapped_signals(session)
+    refs = {str(mapping.signal): mapping for mapping in mappings}
+    assert set(refs).intersection(entities) == set(entities)
+    assert refs["loop_flow_temperature@loop:loop-a"].signal.scope.key == "loop-a"
+    assert refs["loop_return_temperature@loop:loop-a"].signal.scope.key == "loop-a"
+    assert refs["loop_flow_temperature@loop:loop-b"].signal.scope.key == "loop-b"
+    assert refs["loop_return_temperature@loop:loop-b"].signal.scope.key == "loop-b"
+
+    with pytest.raises(ProblemError) as error:
+        await backend.update_signal(
+            "loop_flow_temperature@loop:missing",
+            SignalMappingUpdate(entity_id="sensor.loop_a_flow"),
+        )
+    assert error.value.problem.status == 404
+
+    body = saved.model_dump(exclude={"summary", "updated_at"})
+    body["revision"] = saved.revision
+    body["circuits"][1]["loops_inventory"] = [{"key": "loop-b", "label": "Slaapkamerlus"}]
+    backend.clock = lambda: NOW + 1
+    ConfigBackend(backend.sessions, clock=lambda: NOW + 1).put_installation(
+        InstallationProfileIn.model_validate(body)
+    )
+    with backend.sessions() as session:
+        history = list(
+            session.scalars(
+                select(SignalMapping).where(
+                    SignalMapping.role.in_(
+                        [Role.LOOP_FLOW_TEMPERATURE.value, Role.LOOP_RETURN_TEMPERATURE.value]
+                    )
+                )
+            )
+        )
+    removed = [mapping for mapping in history if mapping.scope_key == "loop:loop-a"]
+    assert len(removed) == 2
+    assert all(mapping.valid_to_ts == NOW + 1 for mapping in removed)
+    backend.clock = lambda: NOW + 2
+    available_ids = {signal.id for signal in backend.signal_list().items}
+    assert "loop_flow_temperature@loop:loop-a" not in available_ids
+    assert "loop_return_temperature@loop:loop-a" not in available_ids
+    assert "loop_flow_temperature@loop:loop-b" in available_ids
+    assert "loop_return_temperature@loop:loop-b" in available_ids
 
 
 async def test_heartbeat_controls_staleness(backend: SignalsBackend) -> None:

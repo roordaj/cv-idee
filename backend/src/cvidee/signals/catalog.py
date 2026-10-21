@@ -118,6 +118,20 @@ CATALOGUE = (
         max_age_s=60,
         heartbeat_expected=True,
     ),
+    SignalDefinitionInfo(
+        Role.LOOP_FLOW_TEMPERATURE,
+        "Lusaanvoer",
+        "°C",
+        max_age_s=60,
+        heartbeat_expected=True,
+    ),
+    SignalDefinitionInfo(
+        Role.LOOP_RETURN_TEMPERATURE,
+        "Lusretour",
+        "°C",
+        max_age_s=60,
+        heartbeat_expected=True,
+    ),
     SignalDefinitionInfo(Role.FLOW_RATE, "Debiet", "L/min", max_age_s=60, heartbeat_expected=True),
     SignalDefinitionInfo(
         Role.PUMP_STATE, "Pompstatus", None, "boolean", ValueKind.REPORTED, max_age_s=60

@@ -244,6 +244,88 @@ async def test_zones_round_trip_version_and_survive_legacy_profile_write(
     assert updated.json()["zones"] == sorted(body["zones"], key=lambda zone: zone["key"])
 
 
+async def test_loop_inventory_is_versioned_and_survives_legacy_profile_write(
+    api: httpx.AsyncClient, factory: sessionmaker[Session]
+) -> None:
+    first = (await api.get("/api/installation")).json()
+    body = {key: value for key, value in first.items() if key not in ("summary", "updated_at")}
+    assert body["circuits"][1]["loops"] == 5
+    assert body["circuits"][1]["loops_inventory"] == []
+    body["circuits"][1]["loops_inventory"] = [
+        {"key": "lus-woonkamer", "label": "Woonkamer"},
+        {"key": "lus-slaapkamer", "label": "Slaapkamer"},
+    ]
+    created = await api.put("/api/installation", json=body)
+    assert created.status_code == 200, created.text
+    updated = created.json()
+    assert updated["revision"] > first["revision"]
+    assert updated["circuits"][1]["loops"] == 5
+    assert updated["circuits"][1]["loops_inventory"] == sorted(
+        body["circuits"][1]["loops_inventory"], key=lambda loop: loop["key"]
+    )
+    with factory() as session:
+        repo = SqlInstallationProfileRepository(session)
+        old = repo.get(first["revision"])
+        current = repo.get(updated["revision"])
+        assert old is not None
+        assert current is not None
+        assert old.details["circuits"]["boven"].get("loops_inventory", []) == []
+        assert [
+            loop["key"] for loop in current.details["circuits"]["boven"]["loops_inventory"]
+        ] == [
+            "lus-woonkamer",
+            "lus-slaapkamer",
+        ]
+
+    legacy = {key: value for key, value in updated.items() if key not in ("summary", "updated_at")}
+    for circuit in legacy["circuits"]:
+        circuit.pop("loops_inventory")
+    preserved = await api.put("/api/installation", json=legacy)
+    assert preserved.status_code == 200, preserved.text
+    assert preserved.json()["circuits"][1]["loops_inventory"] == sorted(
+        body["circuits"][1]["loops_inventory"], key=lambda loop: loop["key"]
+    )
+
+
+@pytest.mark.parametrize(
+    ("circuits", "message"),
+    [
+        (
+            [
+                {
+                    "id": "beneden",
+                    "kind": "mixing_manifold",
+                    "loops_inventory": [{"key": "shared", "label": "A"}],
+                },
+                {"id": "boven", "loops_inventory": [{"key": "shared", "label": "B"}]},
+            ],
+            "uniek",
+        ),
+        (
+            [
+                {
+                    "id": "beneden",
+                    "loops_inventory": [{"key": "lus-direct", "label": "Direct"}],
+                },
+                {"id": "boven"},
+            ],
+            "geen mengverdeler",
+        ),
+    ],
+)
+async def test_installation_rejects_invalid_loop_inventory(
+    api: httpx.AsyncClient, circuits: list[dict[str, object]], message: str
+) -> None:
+    first = (await api.get("/api/installation")).json()
+    body = {key: value for key, value in first.items() if key not in ("summary", "updated_at")}
+    by_id = {circuit["id"]: circuit for circuit in body["circuits"]}
+    for change in circuits:
+        by_id[change["id"]].update(change)
+    response = await api.put("/api/installation", json=body)
+    assert response.status_code == 422
+    assert message in response.json()["detail"]
+
+
 @pytest.mark.parametrize(
     ("zones", "message"),
     [

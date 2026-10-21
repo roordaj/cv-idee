@@ -19,12 +19,23 @@ class BoilerInfo(ApiModel):
     heat_demand_source: str
 
 
+class Loop(ApiModel):
+    """One explicitly identified underfloor-heating loop."""
+
+    key: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=64)]
+    label: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=128)]
+
+
 class Circuit(ApiModel):
     id: str
     name: str
     kind: CircuitKind
     emitter: EmitterType
     loops: int | None = Field(default=None, ge=1, description="Underfloor groups, if known.")
+    loops_inventory: list[Loop] | None = Field(
+        default=None,
+        description="Stable loop identities; omit in legacy writes to preserve the inventory.",
+    )
     rooms: list[str] = Field(description="Room keys served by this circuit.")
     note: str = ""
 

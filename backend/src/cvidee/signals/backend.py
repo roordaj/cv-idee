@@ -137,8 +137,8 @@ class SignalsBackend:
             for mapping in load_mapped_signals(session)
             if mapping.valid_at(now)
             and (
-                mapping.signal.scope.kind is not ScopeKind.ZONE
-                or mapping.signal.scope.key in profile.scope_keys(ScopeKind.ZONE)
+                mapping.signal.scope.kind not in (ScopeKind.ZONE, ScopeKind.LOOP)
+                or mapping.signal.scope.key in profile.scope_keys(mapping.signal.scope.kind)
             )
         )
         return sorted(ids)

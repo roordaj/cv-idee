@@ -135,6 +135,7 @@ class ScopeKind(StrEnum):
     ZONE = "zone"
     CIRCUIT = "circuit"
     MANIFOLD = "manifold"
+    LOOP = "loop"
     OUTDOOR = "outdoor"
 
 
@@ -156,6 +157,8 @@ class Role(StrEnum):
     VALVE_STATE = "valve_state"
     MANIFOLD_FLOW_TEMPERATURE = "manifold_flow_temperature"
     MANIFOLD_RETURN_TEMPERATURE = "manifold_return_temperature"
+    LOOP_FLOW_TEMPERATURE = "loop_flow_temperature"
+    LOOP_RETURN_TEMPERATURE = "loop_return_temperature"
     FLOW_RATE = "flow_rate"
     PUMP_STATE = "pump_state"
     HEAT_METER = "heat_meter"
@@ -174,6 +177,8 @@ _ROLE_SCOPE: dict[Role, ScopeKind] = {
     Role.VALVE_STATE: ScopeKind.ZONE,
     Role.MANIFOLD_FLOW_TEMPERATURE: ScopeKind.MANIFOLD,
     Role.MANIFOLD_RETURN_TEMPERATURE: ScopeKind.MANIFOLD,
+    Role.LOOP_FLOW_TEMPERATURE: ScopeKind.LOOP,
+    Role.LOOP_RETURN_TEMPERATURE: ScopeKind.LOOP,
 }
 
 _SINGLETON_SCOPES = frozenset({ScopeKind.BOILER, ScopeKind.OUTDOOR})

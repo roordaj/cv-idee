@@ -186,6 +186,7 @@ class InstallationFacts:
     circuits: tuple[CircuitFacts, ...] = ()
     rooms: tuple[str, ...] = ()
     zones: tuple[str, ...] = ()
+    loops: tuple[str, ...] = ()
     version: str = ""
     """Profile version, part of the advice snapshot (FR-41)."""
     known_specs: frozenset[str] = frozenset()
@@ -215,6 +216,8 @@ class InstallationFacts:
             return self.manifolds
         if kind is ScopeKind.CIRCUIT:
             return tuple(sorted(c.key for c in self.circuits))
+        if kind is ScopeKind.LOOP:
+            return tuple(sorted(self.loops))
         return ()
 
 

@@ -1449,6 +1449,11 @@ export interface components {
        */
       loops?: number | null;
       /**
+       * Loops Inventory
+       * @description Stable loop identities; omit in legacy writes to preserve the inventory.
+       */
+      loops_inventory?: components['schemas']['Loop'][] | null;
+      /**
        * Rooms
        * @description Room keys served by this circuit.
        */
@@ -2621,6 +2626,16 @@ export interface components {
       stale: boolean;
     };
     /**
+     * Loop
+     * @description One explicitly identified underfloor-heating loop.
+     */
+    Loop: {
+      /** Key */
+      key: string;
+      /** Label */
+      label: string;
+    };
+    /**
      * MetricAssessment
      * @enum {string}
      */
@@ -3304,6 +3319,8 @@ export interface components {
       | 'valve_state'
       | 'manifold_flow_temperature'
       | 'manifold_return_temperature'
+      | 'loop_flow_temperature'
+      | 'loop_return_temperature'
       | 'flow_rate'
       | 'pump_state'
       | 'heat_meter';
@@ -3507,7 +3524,7 @@ export interface components {
      * @description What a parametrised signal role is scoped to.
      * @enum {string}
      */
-    ScopeKind: 'boiler' | 'room' | 'zone' | 'circuit' | 'manifold' | 'outdoor';
+    ScopeKind: 'boiler' | 'room' | 'zone' | 'circuit' | 'manifold' | 'loop' | 'outdoor';
     /** SettingsHistory */
     SettingsHistory: {
       /** Items */

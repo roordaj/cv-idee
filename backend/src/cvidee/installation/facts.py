@@ -53,6 +53,13 @@ def profile_facts(profile: InstallationProfile | None) -> InstallationFacts:
         circuits=circuits,
         rooms=tuple(sorted(r.key for r in profile.rooms)),
         zones=tuple(sorted(z.key for z in profile.zones)),
+        loops=tuple(
+            sorted(
+                loop["key"]
+                for circuit in profile.details.get("circuits", {}).values()
+                for loop in circuit.get("loops_inventory", [])
+            )
+        ),
         version=str(profile.id) if profile.id is not None else "default",
         known_specs=frozenset(k for k, s in specs.items() if s.status is SpecStatus.KNOWN),
         modulation_kw_per_pct=_kw_per_pct(specs.get(MODULATION_TO_KW)),
