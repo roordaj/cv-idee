@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -99,7 +99,18 @@ describe('ConsumptionScreen', () => {
     renderScreen();
 
     expect(await screen.findByText('Geen vergelijkbare periode beschikbaar')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Gemeten gas' })).toBeInTheDocument();
     expect(screen.getByText('Niet gekoppeld of geen meetpunten')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Bekijk installatieprofiel' })).toHaveAttribute(
+      'href',
+      '/installatie',
+    );
+    expect(
+      screen.getByRole('img', {
+        name: 'Schematische meterreeks met onbekend interval en tellerreset; geen meetreeks',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('table', { name: 'Context bij geselecteerde perioden' })).toBeVisible();
     expect(screen.queryByText(/0,000 m³/)).not.toBeInTheDocument();
   });
 
@@ -157,8 +168,12 @@ describe('ConsumptionScreen', () => {
     expect(
       await screen.findByRole('heading', { name: 'Geselecteerde periodevergelijking' }),
     ).toBeInTheDocument();
-    expect(await screen.findAllByText('5,000 m³')).toHaveLength(2);
+    expect(await screen.findByText('5,000 m³')).toBeInTheDocument();
     expect(screen.getByText('1,000 m³')).toBeInTheDocument();
+    const contextTable = screen.getByRole('table', { name: 'Context bij geselecteerde perioden' });
+    expect(
+      within(contextTable).getByRole('row', { name: /CV-bedrijfsduur 18,0 u 18,0 u/ }),
+    ).toBeVisible();
     expect(screen.getAllByText('Koken, tapwater of ander gebruik onbekend').length).toBeGreaterThan(
       0,
     );
