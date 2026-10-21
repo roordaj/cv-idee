@@ -16,7 +16,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
-from cvidee.analysis.types import TimestampMs
+from cvidee.analysis.types import ScopeKind, TimestampMs
 from cvidee.api.problems import ProblemError, not_found
 from cvidee.api.schemas.data import (
     PeriodExclusions,
@@ -30,6 +30,7 @@ from cvidee.api.schemas.installation import (
     Circuit,
     InstallationProfile,
     InstallationProfileIn,
+    Loop,
     Room,
     RoomComfort,
     Specification,
@@ -52,6 +53,8 @@ from cvidee.store.models import (
     ProfileCircuit,
     ProfileRoom,
     ProfileZone,
+    SignalDefinition,
+    SignalMapping,
 )
 from cvidee.store.models import InstallationProfile as ProfileRow
 from cvidee.store.models import SpecialPeriod as PeriodRow
@@ -119,6 +122,8 @@ class ConfigBackend:
             new = self._build(session, body, current, now)
             if _signature(new) == _signature(current):
                 return self._to_schema(session, current)
+            removed_loop_keys = _loop_keys(current) - _loop_keys(new)
+            self._close_removed_loop_mappings(session, removed_loop_keys, now)
             repo.save_new_version(new)
             result = self._to_schema(session, new)
         self._recompute(now, None, "installation_changed")
@@ -149,7 +154,27 @@ class ConfigBackend:
                     f"Zone '{zone.key}' verwijst naar onbekend circuit '{zone.circuit_key}'."
                 )
         room_circuit: dict[str, str] = {}
+        old_circuits = current.details.get("circuits", {})
+        loop_inventory: dict[str, list[Loop]] = {}
+        loop_keys: set[str] = set()
         for circuit in body.circuits:
+            old_inventory = old_circuits.get(circuit.id, {}).get("loops_inventory", [])
+            loops = (
+                [Loop.model_validate(loop) for loop in old_inventory]
+                if circuit.loops_inventory is None and circuit.kind.value == "mixing_manifold"
+                else circuit.loops_inventory or []
+            )
+            if circuit.kind.value != "mixing_manifold" and loops:
+                raise _invalid(
+                    f"Circuit '{circuit.id}' heeft een lusinventaris maar is geen mengverdeler."
+                )
+            keys = [loop.key for loop in loops]
+            if len(set(keys)) != len(keys):
+                raise _invalid(f"Lussleutels in circuit '{circuit.id}' moeten uniek zijn.")
+            if loop_keys.intersection(keys):
+                raise _invalid("Lussleutels moeten binnen het installatieprofiel uniek zijn.")
+            loop_keys.update(keys)
+            loop_inventory[circuit.id] = loops
             for room_key in circuit.rooms:
                 if room_key not in room_keys:
                     raise _invalid(
@@ -175,13 +200,21 @@ class ConfigBackend:
                 "night_setpoint": room.night_setpoint,
                 "comfort": comfort.model_dump(mode="json"),
             }
+        circuit_details: dict[str, dict[str, Any]] = {}
+        for circuit in body.circuits:
+            detail: dict[str, Any] = {"loops": circuit.loops, "note": circuit.note}
+            if loop_inventory[circuit.id]:
+                detail["loops_inventory"] = [
+                    loop.model_dump() for loop in loop_inventory[circuit.id]
+                ]
+            circuit_details[circuit.id] = detail
         return ProfileRow(
             valid_from_ts=now,
             created_at_ts=now,
             note=None,
             details={
                 "boiler": body.boiler.model_dump(),
-                "circuits": {c.id: {"loops": c.loops, "note": c.note} for c in body.circuits},
+                "circuits": circuit_details,
                 "rooms": room_details,
             },
             circuits=[
@@ -213,6 +246,23 @@ class ConfigBackend:
             ],
             specs=self._specs(session, body.specifications, current),
         )
+
+    @staticmethod
+    def _close_removed_loop_mappings(session: Session, removed_keys: set[str], at_ts: int) -> None:
+        if not removed_keys:
+            return
+        scope_keys = {f"{ScopeKind.LOOP.value}:{key}" for key in removed_keys}
+        mappings = session.scalars(
+            select(SignalMapping)
+            .join(SignalDefinition, SignalDefinition.role == SignalMapping.role)
+            .where(
+                SignalDefinition.scope_type == ScopeKind.LOOP.value,
+                SignalMapping.scope_key.in_(scope_keys),
+                SignalMapping.valid_to_ts.is_(None),
+            )
+        )
+        for mapping in mappings:
+            mapping.valid_to_ts = max(at_ts, mapping.valid_from_ts)
 
     @staticmethod
     def _specs(
@@ -313,6 +363,13 @@ class ConfigBackend:
                 kind=c.kind,
                 emitter=c.emitter,
                 loops=circuit_details.get(c.key, {}).get("loops"),
+                loops_inventory=[
+                    Loop.model_validate(loop)
+                    for loop in sorted(
+                        circuit_details.get(c.key, {}).get("loops_inventory", []),
+                        key=lambda item: item["key"],
+                    )
+                ],
                 rooms=[r.key for r in profile.rooms if r.circuit_key == c.key],
                 note=circuit_details.get(c.key, {}).get("note", ""),
             )
@@ -446,6 +503,14 @@ def _signature(profile: ProfileRow) -> dict[str, Any]:
             (s.key, s.status, s.value_num, s.value_text, s.unit, s.note or "", s.change_id)
             for s in profile.specs
         ),
+    }
+
+
+def _loop_keys(profile: ProfileRow) -> set[str]:
+    return {
+        loop["key"]
+        for circuit in profile.details.get("circuits", {}).values()
+        for loop in circuit.get("loops_inventory", [])
     }
 
 

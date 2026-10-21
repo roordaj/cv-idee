@@ -5002,6 +5002,21 @@
             "title": "Loops",
             "description": "Underfloor groups, if known."
           },
+          "loops_inventory": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Loop"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Loops Inventory",
+            "description": "Stable loop identities; omit in legacy writes to preserve the inventory."
+          },
           "rooms": {
             "items": {
               "type": "string"
@@ -8248,6 +8263,30 @@
         "title": "LiveValue",
         "description": "KPI tile with a current measurement; ``value`` is ``null`` when unknown (§5a rule 5)."
       },
+      "Loop": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Key"
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Label"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "key",
+          "label"
+        ],
+        "title": "Loop",
+        "description": "One explicitly identified underfloor-heating loop."
+      },
       "MetricAssessment": {
         "type": "string",
         "enum": [
@@ -9991,6 +10030,8 @@
           "valve_state",
           "manifold_flow_temperature",
           "manifold_return_temperature",
+          "loop_flow_temperature",
+          "loop_return_temperature",
           "flow_rate",
           "pump_state",
           "heat_meter"
@@ -10582,6 +10623,7 @@
           "zone",
           "circuit",
           "manifold",
+          "loop",
           "outdoor"
         ],
         "title": "ScopeKind",
