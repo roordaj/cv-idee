@@ -26,6 +26,7 @@ from cvidee.ha_export.service import ExportService
 from cvidee.ingest.ha_client import AiohttpHAClient
 from cvidee.ingest.history_import import HistoryImport
 from cvidee.ingest.service import FileAliveStore, IngestService, sql_tracked_entities
+from cvidee.normal_behavior import capture_metric_references
 from cvidee.notify.service import NotificationService
 from cvidee.runner.service import AnalysisRunner, RunnerSettings
 from cvidee.runner.sources import SourceSettings
@@ -111,6 +112,7 @@ def _start_runner(
                 ),
             ),
         ),
+        after_run=(capture_metric_references,),
     )
     stop = asyncio.Event()
     app.state.runner = runner
@@ -134,7 +136,8 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     imports = HistoryImport(
         app.state.session_factory,
         app.state.ha_client,
-        app.state.runner or AnalysisRunner(app.state.session_factory),
+        app.state.runner
+        or AnalysisRunner(app.state.session_factory, after_run=(capture_metric_references,)),
     )
     app.state.history_import = imports
     await imports.recover()

@@ -823,6 +823,80 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/normal-behavior/models': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Models */
+    get: operations['list_models'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/normal-behavior/models/{metric_name}/pause': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Pause Model
+     * @description Pause model updates without deleting its last reference.
+     */
+    post: operations['pause_model'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/normal-behavior/models/{metric_name}/resume': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Resume Model */
+    post: operations['resume_model'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/normal-behavior/models/{metric_name}/versions': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Start Version
+     * @description Start a new empty reference version from a user-selected date.
+     */
+    post: operations['start_version'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/settings': {
     parameters: {
       query?: never;
@@ -2570,6 +2644,30 @@ export interface components {
       assessment: components['schemas']['MetricAssessment'];
     };
     /**
+     * MetricName
+     * @enum {string}
+     */
+    MetricName:
+      | 'starts'
+      | 'starts_per_hour'
+      | 'burn_time'
+      | 'burn_duration_mean'
+      | 'burn_duration_median'
+      | 'short_cycles'
+      | 'short_cycle_share'
+      | 'pause_duration_median'
+      | 'observed_time'
+      | 'heat_demand_time'
+      | 'overshoot'
+      | 'heating_rate'
+      | 'boiler_delta_t_stable'
+      | 'flow_mean_stable'
+      | 'incomplete_cycles'
+      | 'overshoot_at_stop'
+      | 'boiler_delta_t_startup'
+      | 'boiler_delta_t_afterrun'
+      | 'pair_misaligned_time';
+    /**
      * Mode
      * @enum {string}
      */
@@ -2633,6 +2731,95 @@ export interface components {
       finding_id?: string | null;
       action?: components['schemas']['Action'] | null;
     };
+    /**
+     * NormalBehaviorEventKind
+     * @enum {string}
+     */
+    NormalBehaviorEventKind: 'created' | 'paused' | 'resumed' | 'reference_started';
+    /** NormalBehaviorEventOut */
+    NormalBehaviorEventOut: {
+      kind: components['schemas']['NormalBehaviorEventKind'];
+      /**
+       * Occurred At
+       * Format: date-time
+       * @description ISO 8601 timestamp in UTC.
+       * @example 2026-10-04T10:00:00Z
+       */
+      occurred_at: string;
+      /** Reason */
+      reason: string | null;
+      /** Effective From */
+      effective_from: string | null;
+    };
+    /** NormalBehaviorModelList */
+    NormalBehaviorModelList: {
+      /** Items */
+      items: components['schemas']['NormalBehaviorModelOut'][];
+      /** Total */
+      total: number;
+      /** Limit */
+      limit: number;
+      /** Offset */
+      offset: number;
+    };
+    /** NormalBehaviorModelOut */
+    NormalBehaviorModelOut: {
+      /** Metric Name */
+      metric_name: string;
+      /** Version */
+      version: number;
+      status: components['schemas']['NormalBehaviorStatus'];
+      /** Is Current */
+      is_current: boolean;
+      /**
+       * Created At
+       * Format: date-time
+       * @description ISO 8601 timestamp in UTC.
+       * @example 2026-10-04T10:00:00Z
+       */
+      created_at: string;
+      /**
+       * Updated At
+       * Format: date-time
+       * @description ISO 8601 timestamp in UTC.
+       * @example 2026-10-04T10:00:00Z
+       */
+      updated_at: string;
+      /** Effective From */
+      effective_from: string | null;
+      /** Reason */
+      reason: string | null;
+      /** Pause Reason */
+      pause_reason: string | null;
+      /** Paused At */
+      paused_at: string | null;
+      /** Observation Count */
+      observation_count: number;
+      /** Events */
+      events: components['schemas']['NormalBehaviorEventOut'][];
+    };
+    /** NormalBehaviorNewVersion */
+    NormalBehaviorNewVersion: {
+      /** Reason */
+      reason: string;
+      /**
+       * Effective From
+       * Format: date-time
+       * @description ISO 8601 timestamp in UTC.
+       * @example 2026-10-04T10:00:00Z
+       */
+      effective_from: string;
+    };
+    /** NormalBehaviorReason */
+    NormalBehaviorReason: {
+      /** Reason */
+      reason: string;
+    };
+    /**
+     * NormalBehaviorStatus
+     * @enum {string}
+     */
+    NormalBehaviorStatus: 'insufficient_data' | 'learning' | 'active' | 'paused';
     /** Notification */
     Notification: {
       /** Id */
@@ -5970,6 +6157,233 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['HaExport'];
+        };
+      };
+      /** @description Not implemented (start the backend with CVIDEE_STUB_DATA=1 for example data) */
+      501: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+    };
+  };
+  list_models: {
+    parameters: {
+      query?: {
+        /** @description Page size. */
+        limit?: number;
+        /** @description Items to skip. */
+        offset?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['NormalBehaviorModelList'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+      /** @description Not implemented (start the backend with CVIDEE_STUB_DATA=1 for example data) */
+      501: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+    };
+  };
+  pause_model: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        metric_name: components['schemas']['MetricName'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['NormalBehaviorReason'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['NormalBehaviorModelOut'];
+        };
+      };
+      /** @description Not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+      /** @description Validation error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+      /** @description Not implemented (start the backend with CVIDEE_STUB_DATA=1 for example data) */
+      501: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+    };
+  };
+  resume_model: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        metric_name: components['schemas']['MetricName'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['NormalBehaviorModelOut'];
+        };
+      };
+      /** @description Not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+      /** @description Not implemented (start the backend with CVIDEE_STUB_DATA=1 for example data) */
+      501: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+    };
+  };
+  start_version: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        metric_name: components['schemas']['MetricName'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['NormalBehaviorNewVersion'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['NormalBehaviorModelOut'];
+        };
+      };
+      /** @description Not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+      /** @description Validation error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
         };
       };
       /** @description Not implemented (start the backend with CVIDEE_STUB_DATA=1 for example data) */

@@ -21,6 +21,11 @@ from cvidee.store.models.findings import (
     RecommendationNote,
     RecommendationSnapshot,
 )
+from cvidee.store.models.normal_behavior import (
+    NormalBehaviorEvent,
+    NormalBehaviorModel,
+    NormalBehaviorObservation,
+)
 from cvidee.store.models.notifications import Notification, NotificationPolicy, NotificationState
 from cvidee.store.models.observations import ConnectionEvent, Observation
 from cvidee.store.models.profile import (
@@ -52,6 +57,9 @@ __all__ = [
     "InstallationSpec",
     "MetricValue",
     "ModeSegment",
+    "NormalBehaviorEvent",
+    "NormalBehaviorModel",
+    "NormalBehaviorObservation",
     "Notification",
     "NotificationPolicy",
     "NotificationState",

@@ -46,6 +46,8 @@ __all__ = [
     "MetricWindowKind",
     "Mode",
     "ModeCertainty",
+    "NormalBehaviorEventKind",
+    "NormalBehaviorStatus",
     "NotificationChannel",
     "NotificationKind",
     "ObservationKind",
@@ -110,6 +112,20 @@ class RunStatus(StrEnum):
     SUCCEEDED = "succeeded"
     FAILED = "failed"
     SUPERSEDED = "superseded"
+
+
+class NormalBehaviorStatus(StrEnum):
+    INSUFFICIENT_DATA = "insufficient_data"
+    LEARNING = "learning"
+    ACTIVE = "active"
+    PAUSED = "paused"
+
+
+class NormalBehaviorEventKind(StrEnum):
+    CREATED = "created"
+    PAUSED = "paused"
+    RESUMED = "resumed"
+    REFERENCE_STARTED = "reference_started"
 
 
 class ImportStatus(StrEnum):
