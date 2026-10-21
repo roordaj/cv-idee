@@ -1,6 +1,6 @@
 # Ontwerpaanvullingen op v3 — instellingen, onboarding, dialogen, staten en markers
 
-Versie 1.0 · 4 oktober 2026 · Refinement [#6](https://github.com/roordaj/cv-idee/issues/6)
+Versie 1.1 · 21 oktober 2026 · Refinement [#6](https://github.com/roordaj/cv-idee/issues/6)
 
 Ontwerp v3 ([`CV-analyse-v3.dc.html`](CV-analyse-v3.dc.html)) dekt de hoofdschermen. Dit document beschrijft wat ontbreekt, precies genoeg om zonder vragen te bouwen. **v3 blijft leidend**: alles hieronder hergebruikt de visuele taal, componenten en toon van v3 (niet het "Modernist"-design system). Waar dit document afwijkt van v3 staat dat er expliciet bij, met reden.
 
@@ -15,6 +15,8 @@ Inhoud:
 - [6. Wijzigingsmarkers in grafieken](#6-wijzigingsmarkers-in-grafieken) (FR-29)
 - [7. Openstaande ontwerpvragen](#7-openstaande-ontwerpvragen)
 - [8. Verbruiksscherm (FR-31)](#8-verbruiksscherm-fr-31)
+- [9. Hydraulische circuitvergelijking (FR-19)](#9-hydraulische-circuitvergelijking-fr-19)
+- [10. Normaalgedrag en referenties (FR-20, FR-35)](#10-normaalgedrag-en-referenties-fr-20-fr-35)
 
 ---
 
@@ -794,7 +796,7 @@ Beslissing van de eigenaar nodig. Tot die tijd geldt het **voorstel**; UI-agents
 9. **Per-advies terugdraaicriterium.** Mag een individueel advies een eigen comfortgrens hebben die afwijkt van de algemene "Toegestaan comfortverlies"? Voorstel: ja, bij het advies getoond; de algemene waarde is alleen de standaard.
 10. **Instellingen wijzigen zonder login (standalone).** Iedereen met toegang tot de UI kan drempels wijzigen. In de add-on regelt HA de toegang; standalone alleen met optionele `CVIDEE_API_TOKEN`. Acceptabel, of alleen-lezen-modus voor instellingen zonder token?
 11. **Tijdvak selecteren in de tijdlijn (§6.5)** is handig maar niet vereist. Meenemen in MVP (#14/#44) of later?
-12. **Navigatie op telefoon.** v3 houdt onder 640 px de rail van 72 px aan. Met de extra nav-items Analyse-instellingen en Hydraulisch worden het 11 iconen. Voldoende, of een onderbalk/hamburger voor < 480 px?
+12. **Navigatie op telefoon.** v3 houdt onder 640 px de rail van 72 px aan. De mock bevat nu 13 hoofd- en configuratie-items; Analyse-instellingen uit §1 is daarin nog niet opgenomen. Met dat item zijn het er 14. Is de rail onder 640 px voldoende, of is een onderbalk/hamburger voor < 480 px nodig?
 
 ## 8. Verbruiksscherm (FR-31)
 
@@ -835,3 +837,18 @@ Het scherm **Hydraulisch** is als afzonderlijk item onder *Instellingen* opgenom
 - CV-bedrijf, tapwater, opstart/naloop, veroudering, tijdsuitlijning en uitgesloten bijzondere perioden volgen de bestaande kwaliteitsregels; de UI introduceert geen nieuwe grenswaarden.
 
 De desktopweergave gebruikt een horizontaal scrollbare semantische tabel binnen de bestaande kaartbreedte. Onder 640 px blijft de tabel leesbaar via horizontaal scrollen; omliggende uitleg en lege toestanden vallen onder elkaar. De nav-link, installatieprofiel-link en B-012-link hebben zichtbare toetsenbordfocus en beschrijvende Nederlandse labels.
+
+## 10. Normaalgedrag en referenties (FR-20, FR-35)
+
+**Normaalgedrag** staat als hoofdscherm direct na *Cycli*. Het vergelijkt per metric uitsluitend passende eerdere vensters met recente waarnemingen. De voorbeeldwaarden op de mock zijn herkenbaar als voorbeeldgegevens; de applicatie vult onbekende waarden niet aan.
+
+- Een semantische tabel noemt per metric de contextgroep, modelstatus, referentiewaarde met periode, observatiewaarde met periode en dekking/meetbasis. Contextverschillen staan er direct naast, bijvoorbeeld weer, setpointprofiel, zonegebruik, modus, circuit en profiel- of mappingversie.
+- Een venster met andere metricdefinitie, eenheid, modus, circuit, resolutie of niet-vergelijkbare context krijgt een concrete reden en wordt niet in dezelfde referentie opgenomen. Onbekende context blijft **Onbekend**.
+- De vier modelstatussen zijn zichtbaar als **Onvoldoende data**, **Lerend**, **Actief** en **Gepauzeerd**. Bij onvoldoende data of leren benoemt de UI welke geschikte context/waarnemingen ontbreken volgens de bestaande minimumcriteria; er verschijnt geen voorspelde waarde of afwijkingsbevinding. De UI introduceert geen eigen aantallen of inleerduur.
+- Alleen voor een actieve, vergelijkbare metric toont het scherm een gemeten referentie/observatieverschil. Zonder een bestaande gevalideerde detectieregel blijft dit beschrijvend. Er is geen generieke rood/groen-score, oorzaakclaim, besparingsclaim of ketelinstellingsadvies.
+- Pauzeren vereist een reden en legt reden/tijdstip vast. Gepauzeerd stopt alleen het toevoegen van nieuwe referentievensters; de laatst opgebouwde referentie blijft zichtbaar met een melding dat die niet wordt bijgewerkt. Hervatten is expliciet en gebruikt daarna uitsluitend nieuwe geschikte vensters.
+- Een nieuwe referentie vraagt een gekozen ingangsdatum en reden. De nieuwe versie start leeg en gaat naar **Lerend** volgens de bestaande criteria; oudere versies, pauzes, referentiewissels en uitgesloten bijzondere perioden blijven zichtbaar in de geschiedenis. Een profielwijziging of logboekitem start dit niet automatisch.
+- De historische lijst toont `exclude_from_baseline` als uitgesloten van modelopbouw terwijl de periode in tijdlijn/historie zichtbaar blijft. Datagaten, stale signalen, onbekende modus en misuitlijning leveren geen herstel of normaal gedrag op.
+- De knoppen wijzigen uitsluitend eigen modelmetadata; het scherm communiceert expliciet dat geen HA-bedieningsservice wordt aangeroepen.
+
+Desktop toont de metric-tabel en lifecycle-kaarten naast elkaar waar de ruimte dit toelaat. Onder 700 px stapelen kaarten; de tabel kan horizontaal scrollen op smalle schermen. Pauze-, hervat- en resetacties gebruiken gelabelde native datum-/redenvelden, zichtbare focus en een chronologische, toetsenbordleesbare geschiedenis.
