@@ -2,8 +2,9 @@
 
 from fastapi import APIRouter
 
-from cvidee.api.routes.deps import From, Limit, Monitoring, Offset, Timeline, To
+from cvidee.api.routes.deps import Consumption, From, Limit, Monitoring, Offset, Timeline, To
 from cvidee.api.schemas.common import problem_responses
+from cvidee.api.schemas.consumption import ConsumptionResponse
 from cvidee.api.schemas.data import (
     CycleList,
     QualityResponse,
@@ -11,6 +12,14 @@ from cvidee.api.schemas.data import (
 )
 
 router = APIRouter(responses=problem_responses(501, 422))
+
+
+@router.get("/consumption", tags=["consumption"])
+async def get_consumption(
+    store: Consumption, from_: From = None, to: To = None
+) -> ConsumptionResponse:
+    """Measured cumulative gas use, meter scope, quality and effective price basis."""
+    return store.consumption(from_, to)
 
 
 @router.get("/quality", tags=["quality"])

@@ -28,12 +28,20 @@ export function SpecDialog({ profile, spec, onClose }: SpecDialogProps) {
   const [error, setError] = useState<string | null>(null);
   const update = useUpdateInstallation();
   const dirty = status !== spec.status || value !== valueToField(spec.value) || note !== spec.note;
+  const isMeterScope = spec.key === 'gas_meter_scope';
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    const parsed = status === 'known' ? parseSpecValue(value) : null;
-    if (status === 'known' && parsed === null) {
-      setError('Vul een waarde in, of kies "Onbekend".');
+    const parsed = status === 'known' ? (isMeterScope ? value : parseSpecValue(value)) : null;
+    if (
+      status === 'known' &&
+      (parsed === null || (isMeterScope && parsed !== 'boiler_only' && parsed !== 'whole_house'))
+    ) {
+      setError(
+        isMeterScope
+          ? 'Kies waar de gasmeter voor meet.'
+          : 'Vul een waarde in, of kies "Onbekend".',
+      );
       return;
     }
     setError(null);
@@ -95,15 +103,36 @@ export function SpecDialog({ profile, spec, onClose }: SpecDialogProps) {
         </label>
         {status === 'known' ? (
           <label className={styles.field}>
-            {spec.unit ? `Waarde (${spec.unit})` : 'Waarde'}
-            <input
-              className={styles.input}
-              value={value}
-              onChange={(e) => {
-                setValue(e.target.value);
-              }}
-              aria-invalid={error ? 'true' : undefined}
-            />
+            {isMeterScope
+              ? 'Waar meet de gasmeter?'
+              : spec.unit
+                ? `Waarde (${spec.unit})`
+                : 'Waarde'}
+            {isMeterScope ? (
+              <select
+                className={styles.input}
+                value={value}
+                onChange={(e) => {
+                  setValue(e.target.value);
+                }}
+                aria-invalid={error ? 'true' : undefined}
+              >
+                <option value="">Kies de meterscope</option>
+                <option value="boiler_only">Alleen de ketel (tapwater kan meetellen)</option>
+                <option value="whole_house">
+                  Hele woning (koken en tapwater kunnen meetellen)
+                </option>
+              </select>
+            ) : (
+              <input
+                className={styles.input}
+                value={value}
+                onChange={(e) => {
+                  setValue(e.target.value);
+                }}
+                aria-invalid={error ? 'true' : undefined}
+              />
+            )}
           </label>
         ) : null}
         {error ? (

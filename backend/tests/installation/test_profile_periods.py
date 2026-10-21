@@ -441,6 +441,50 @@ async def test_installation_rejects_values_for_unknown_specs(api: httpx.AsyncCli
     }
     assert (await api.put("/api/installation", json=kw)).status_code == 422
 
+    valid_scope = {
+        **first,
+        "specifications": [
+            {**s, "status": "known", "value": "whole_house"} if s["key"] == "gas_meter_scope" else s
+            for s in first["specifications"]
+        ],
+    }
+    saved = await api.put("/api/installation", json=valid_scope)
+    assert saved.status_code == 200
+    assert (
+        next(spec for spec in saved.json()["specifications"] if spec["key"] == "gas_meter_scope")[
+            "value"
+        ]
+        == "whole_house"
+    )
+
+    latest = saved.json()
+    latest.pop("summary", None)
+    latest.pop("updated_at", None)
+    latest["specifications"] = [
+        spec for spec in latest["specifications"] if spec["key"] != "gas_meter_scope"
+    ]
+    preserved = await api.put("/api/installation", json=latest)
+    assert preserved.status_code == 200
+    assert (
+        next(
+            spec for spec in preserved.json()["specifications"] if spec["key"] == "gas_meter_scope"
+        )["value"]
+        == "whole_house"
+    )
+    latest = preserved.json()
+    latest.pop("summary", None)
+    latest.pop("updated_at", None)
+    invalid_scope = {
+        **latest,
+        "specifications": [
+            {**s, "status": "known", "value": "all_of_the_house"}
+            if s["key"] == "gas_meter_scope"
+            else s
+            for s in latest["specifications"]
+        ],
+    }
+    assert (await api.put("/api/installation", json=invalid_scope)).status_code == 422
+
 
 async def test_periods_crud_and_recompute(
     api: httpx.AsyncClient, factory: sessionmaker[Session]

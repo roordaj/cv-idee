@@ -18,6 +18,7 @@ MIN_POWER = "min_power"
 PUMP_SETTING = "pump_setting"
 MODULATION_TO_KW = "modulation_to_kw"
 GAS_PRICE = "gas_price"
+GAS_METER_SCOPE = "gas_meter_scope"
 
 SPEC_CATALOGUE: tuple[SpecInfo, ...] = (
     SpecInfo(MAX_FLOW, "Maximale CV-aanvoer", "°C"),
@@ -26,5 +27,6 @@ SPEC_CATALOGUE: tuple[SpecInfo, ...] = (
     SpecInfo(PUMP_SETTING, "Pompstand", None),
     SpecInfo(MODULATION_TO_KW, "Modulatie → kW", None),
     SpecInfo(GAS_PRICE, "Gasprijs", "€/m³"),
+    SpecInfo(GAS_METER_SCOPE, "Meterscope gas", None),
 )
 SPEC_BY_KEY = {s.key: s for s in SPEC_CATALOGUE}

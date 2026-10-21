@@ -625,6 +625,7 @@ def installation() -> InstallationProfile:
             Specification(key="pump_setting", label="Pompstand", status=SpecStatus.KNOWN, value="Stand 2", unit=None, note="sinds 12 sep (W-06)", since=local(2026, 9, 12, 10, 0), change_id="W-06"),
             Specification(key="modulation_to_kw", label="Modulatie → kW", status=SpecStatus.UNKNOWN, value=None, unit=None, note="geen gecontroleerde omrekening"),
             Specification(key="gas_price", label="Gasprijs", status=SpecStatus.UNKNOWN, value=None, unit="€/m³", note="besparing in euro niet beschikbaar"),
+            Specification(key="gas_meter_scope", label="Meterscope gas", status=SpecStatus.UNKNOWN, value=None, unit=None, note="Bevestig waar de gasmeter voor meet."),
         ],
     )  # fmt: skip
 

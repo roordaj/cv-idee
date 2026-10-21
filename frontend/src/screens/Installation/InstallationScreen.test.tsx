@@ -79,6 +79,14 @@ const PROFILE = {
       note: 'geen gecontroleerde omrekening',
     },
     { key: 'gas_price', label: 'Gasprijs', status: 'unknown', value: null, unit: '€/m³', note: '' },
+    {
+      key: 'gas_meter_scope',
+      label: 'Meterscope gas',
+      status: 'unknown',
+      value: null,
+      unit: null,
+      note: 'Bevestig waar de gasmeter voor meet.',
+    },
   ],
   revision: 3,
   summary: 'Radiatoren beneden, vloerverwarming boven',
@@ -237,6 +245,31 @@ describe('InstallationScreen', () => {
     expect(body.specifications.find((s) => s.key === 'max_ch_power')).toMatchObject({
       status: 'known',
       value: 24.5,
+    });
+  });
+
+  it('requires an explicit gas meter scope and saves the selected value', async () => {
+    const puts: unknown[] = [];
+    stubApi(puts);
+    const user = userEvent.setup();
+    renderScreen();
+    await user.click(await screen.findByRole('button', { name: 'Meterscope gas bewerken' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Meterscope gas' });
+    await user.selectOptions(within(dialog).getByLabelText('Status'), 'known');
+    await user.selectOptions(
+      within(dialog).getByLabelText('Waar meet de gasmeter?'),
+      'whole_house',
+    );
+    await user.click(within(dialog).getByRole('button', { name: 'Opslaan' }));
+    await waitFor(() => {
+      expect(puts).toHaveLength(1);
+    });
+    const body = puts[0] as {
+      specifications: { key: string; value: unknown; status: string }[];
+    };
+    expect(body.specifications.find((s) => s.key === 'gas_meter_scope')).toMatchObject({
+      status: 'known',
+      value: 'whole_house',
     });
   });
 });

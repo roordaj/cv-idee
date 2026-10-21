@@ -48,6 +48,15 @@ async def test_finding_texts_use_sim_numbers(client: httpx.AsyncClient) -> None:
     assert finding["period"] == {"start": "2026-10-04T04:00:00Z", "end": "2026-10-04T08:10:00Z"}
 
 
+async def test_consumption_stub_reports_missing_gas_meter(client: httpx.AsyncClient) -> None:
+    response = await client.get("/api/consumption")
+    assert response.status_code == 200
+    assert response.json()["availability"] == "unavailable"
+    assert response.json()["reasons"] == ["no_meter"]
+    assert response.json()["meter_scope"] == "unknown"
+    assert response.json()["consumption_m3"] is None
+
+
 async def test_postpone_finding_updates_status_and_counts(client: httpx.AsyncClient) -> None:
     assert (await client.get("/api/status")).json()["counts"]["open_findings"] == 5
     response = await client.post("/api/findings/B-014/status", json={"status": "postponed"})
