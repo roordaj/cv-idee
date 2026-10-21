@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Flame, Info, Scale, ShieldAlert } from 'lucide-react';
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import type { components } from '../../api/schema';
 import { api, unwrap, type RequestBody } from '../../api/client.ts';
 import { Button } from '../../components/Button.tsx';
@@ -153,75 +154,70 @@ export function ConsumptionScreen() {
     <div className={styles.screen}>
       <PageHeader
         title="Gasverbruik"
-        subtitle="Ruwe meterstanden en geselecteerde perioden · zonder weerscorrectie"
+        subtitle="Ruwe meterstanden en een beschrijvende vergelijking · zonder weerscorrectie"
         icon={<Flame size={ICON_SIZE} aria-hidden="true" />}
         tone="orange"
+        actions={
+          candidates.data ? (
+            <Pill
+              tone={
+                candidates.data.observation_data.consumption_availability === 'available'
+                  ? 'teal'
+                  : candidates.data.observation_data.consumption_availability === 'limited'
+                    ? 'amber'
+                    : 'slate'
+              }
+              size="sm"
+            >
+              Verbruik {statusLabel(candidates.data.observation_data.consumption_availability)}
+            </Pill>
+          ) : null
+        }
       />
 
       <div className={styles.grid}>
         <Card padding="md" className={styles.card}>
-          <h2 className={styles.heading}>Observatieperiode</h2>
-          <div className={styles.dateGrid}>
-            <label className={styles.field}>
-              Van
-              <input
-                aria-label="Start observatieperiode"
-                type="date"
-                value={fromDate}
-                max={throughDate}
-                onChange={(event) => {
-                  setFromDate(event.target.value);
-                  setSelected('');
-                  comparison.reset();
-                }}
-              />
-            </label>
-            <label className={styles.field}>
-              Tot en met
-              <input
-                aria-label="Einde observatieperiode"
-                type="date"
-                value={throughDate}
-                max={addDays(today, -1)}
-                min={fromDate}
-                onChange={(event) => {
-                  setThroughDate(event.target.value);
-                  setSelected('');
-                  comparison.reset();
-                }}
-              />
-            </label>
-          </div>
-          {!validRange ? (
-            <p className={styles.muted}>
-              Kies een volledige, verstreken periode van maximaal 31 dagen.
-            </p>
-          ) : null}
+          <h2 className={styles.heading}>Gemeten gas</h2>
           {candidates.isError ? (
             <ErrorCallout subject="de meetperioden" onRetry={() => void candidates.refetch()} />
           ) : candidates.data ? (
-            <dl className={styles.details}>
-              <dt>Beschikbaarheid meting</dt>
-              <dd>{statusLabel(candidates.data.observation_data.consumption_availability)}</dd>
-              <dt>Meterbron</dt>
-              <dd>
-                {candidates.data.observation_data.meter_entity_id ??
-                  'Niet gekoppeld of geen meetpunten'}
-              </dd>
-              <dt>Meterscope</dt>
-              <dd>{meterScope(candidates.data.observation_data.meter_scope)}</dd>
-              <dt>Eenheid</dt>
-              <dd>{candidates.data.observation_data.unit ?? DASH}</dd>
-              <dt>Gemeten verbruik</dt>
-              <dd>{formatNumber(candidates.data.observation_data.consumption_m3, 3)} m³</dd>
-              <dt>Meterstand</dt>
-              <dd>
-                {formatNumber(candidates.data.observation_data.counter_start, 3)} →{' '}
-                {formatNumber(candidates.data.observation_data.counter_end, 3)} m³
-              </dd>
-              <dt>Dekking</dt>
-              <dd>{formatPercent(candidates.data.observation_data.coverage_pct, 1)}</dd>
-            </dl>
+            <>
+              <div className={styles.metric}>
+                {formatNumber(candidates.data.observation_data.consumption_m3, 3)} <span>m³</span>
+              </div>
+              <dl className={styles.details}>
+                <dt>Beschikbaarheid meting</dt>
+                <dd>{statusLabel(candidates.data.observation_data.consumption_availability)}</dd>
+                <dt>Meterbron</dt>
+                <dd>
+                  {candidates.data.observation_data.meter_entity_id ??
+                    'Niet gekoppeld of geen meetpunten'}
+                </dd>
+                <dt>Meterscope</dt>
+                <dd>{meterScope(candidates.data.observation_data.meter_scope)}</dd>
+                <dt>Eenheid</dt>
+                <dd>{candidates.data.observation_data.unit ?? DASH}</dd>
+                <dt>Meterstand</dt>
+                <dd>
+                  {formatNumber(candidates.data.observation_data.counter_start, 3)} →{' '}
+                  {formatNumber(candidates.data.observation_data.counter_end, 3)} m³
+                </dd>
+                <dt>Dekking</dt>
+                <dd>{formatPercent(candidates.data.observation_data.coverage_pct, 1)}</dd>
+              </dl>
+              <Link to="/installatie" className={styles.linkButton}>
+                Bekijk installatieprofiel
+              </Link>
+              <p className={styles.muted}>
+                {candidates.data.observation_data.meter_entity_id
+                  ? candidates.data.observation_data.meter_scope === 'whole_house'
+                    ? 'Deze woningmeter kan ook koken en tapwater omvatten; totaal gasverbruik wordt niet aan ruimteverwarming toegeschreven.'
+                    : candidates.data.observation_data.meter_scope === 'boiler_only'
+                      ? 'Een ketelmeter kan ook tapwater omvatten; totaal gasverbruik wordt niet als ruimteverwarming gepresenteerd.'
+                      : 'Leg in het installatieprofiel vast wat deze meter meet voordat perioden worden vergeleken.'
+                  : 'Koppel een cumulatieve gasmeter en leg vast of deze alleen de ketel of de hele woning meet.'}
+              </p>
+            </>
           ) : (
             <p className={styles.muted}>Meetbasis wordt opgehaald…</p>
           )}
@@ -229,7 +225,7 @@ export function ConsumptionScreen() {
 
         <Card padding="md" className={styles.card}>
           <div className={styles.cardHead}>
-            <h2 className={styles.heading}>Kies een referentieperiode</h2>
+            <h2 className={styles.heading}>Vergelijk perioden</h2>
             {candidates.data ? (
               <Pill tone={candidates.data.status === 'unavailable' ? 'slate' : 'amber'} size="sm">
                 {statusLabel(candidates.data.status)}
@@ -301,7 +297,119 @@ export function ConsumptionScreen() {
             </details>
           ) : null}
         </Card>
+
+        <Card padding="md" className={styles.card}>
+          <h2 className={styles.heading}>Rendement en kosten</h2>
+          <StatusLine
+            label="Rendement"
+            value={statusLabel(candidates.data?.efficiency_availability ?? 'unavailable')}
+          />
+          <p className={styles.muted}>
+            Zonder gevalideerde meting van geleverde warmte en systeemgrens is rendement niet
+            beschikbaar.
+          </p>
+          <StatusLine
+            label="Gaskosten"
+            value={statusLabel(candidates.data?.cost_availability ?? 'unavailable')}
+          />
+          <p className={styles.muted}>
+            Kosten zijn alleen beschikbaar met een toepasselijke ingestelde gasprijs. Zonder die
+            basis wordt geen eurobedrag getoond.
+          </p>
+        </Card>
       </div>
+
+      <Card padding="md" className={styles.card}>
+        <div>
+          <h2 className={styles.heading}>Meterdekking en datakwaliteit</h2>
+          <p className={styles.muted}>
+            Schematische uitleg van herkenbare toestanden · geen meetreeks
+          </p>
+        </div>
+        <div
+          className={styles.coverageTrack}
+          role="img"
+          aria-label="Schematische meterreeks met onbekend interval en tellerreset; geen meetreeks"
+        >
+          <span className={styles.coverageSegment} />
+          <span className={styles.gapSegment} />
+          <span className={styles.coverageSegment} />
+          <span className={styles.resetMarker} />
+          <span className={styles.coverageSegment} />
+        </div>
+        <div className={styles.legend}>
+          <span>
+            <i className={styles.coverageDot} />
+            Dekking beschikbaar
+          </span>
+          <span>
+            <i className={styles.gapDot} />
+            Gearceerd: onbekend interval
+          </span>
+          <span>
+            <i className={styles.resetDot} />
+            Rode markering: tellerreset
+          </span>
+          <span>
+            <i className={styles.staleDot} />
+            Verouderd: apart gemeld
+          </span>
+        </div>
+        <p className={styles.muted}>
+          Een reset start een nieuw tel-segment; het verschil over de reset wordt niet berekend.
+          Verouderde standen verlengen de dekking niet. Onbekende intervallen blijven onbekend.
+        </p>
+      </Card>
+
+      <Card padding="md" className={styles.card}>
+        <div>
+          <h2 className={styles.heading}>Periode en omstandigheden</h2>
+          <p className={styles.muted}>
+            Kies een observatieperiode; context helpt verschillen te duiden, maar corrigeert het
+            gemeten verbruik niet.
+          </p>
+        </div>
+        <div className={styles.dateGrid}>
+          <label className={styles.field}>
+            Van
+            <input
+              aria-label="Start observatieperiode"
+              type="date"
+              value={fromDate}
+              max={throughDate}
+              onChange={(event) => {
+                setFromDate(event.target.value);
+                setSelected('');
+                comparison.reset();
+              }}
+            />
+          </label>
+          <label className={styles.field}>
+            Tot en met
+            <input
+              aria-label="Einde observatieperiode"
+              type="date"
+              value={throughDate}
+              max={addDays(today, -1)}
+              min={fromDate}
+              onChange={(event) => {
+                setThroughDate(event.target.value);
+                setSelected('');
+                comparison.reset();
+              }}
+            />
+          </label>
+        </div>
+        {!validRange ? (
+          <p className={styles.muted}>
+            Kies een volledige, verstreken periode van maximaal 31 dagen.
+          </p>
+        ) : null}
+        <ContextTable
+          reference={result?.reference ?? selectedCandidate}
+          observation={result?.observation ?? candidates.data?.observation_data}
+        />
+      </Card>
 
       {comparison.isError ? (
         <ErrorCallout subject="de periodevergelijking" onRetry={runComparison} />
@@ -419,7 +527,7 @@ function RawPeriod({ title, period }: { title: string; period: Candidate }) {
         <dd>
           {period.context.special_periods.length
             ? period.context.special_periods.join(' · ')
-            : 'Geen'}
+            : 'Niet geregistreerd'}
         </dd>
       </dl>
       {period.reasons.length ? (
@@ -427,6 +535,109 @@ function RawPeriod({ title, period }: { title: string; period: Candidate }) {
           {period.reasons.map((reason) => REASON_TEXT[reason]).join(' · ')}
         </p>
       ) : null}
+    </div>
+  );
+}
+
+function ContextTable({
+  reference,
+  observation,
+}: {
+  reference: Candidate | undefined;
+  observation: Candidate | undefined;
+}) {
+  const setpoints = (period: Candidate | undefined) => {
+    if (!period || Object.keys(period.context.room_setpoints_c).length === 0) return 'Onbekend';
+    return Object.entries(period.context.room_setpoints_c)
+      .map(([room, value]) => `${room}: ${formatTemperature(value)}`)
+      .join(' · ');
+  };
+  const specialPeriods = (period: Candidate | undefined) =>
+    period?.context.special_periods.length
+      ? period.context.special_periods.join(' · ')
+      : 'Niet geregistreerd';
+  const rows = [
+    {
+      label: 'Buitentemperatuur',
+      reference: reference
+        ? formatTemperature(reference.context.outdoor_temperature_c)
+        : 'Onbekend',
+      observation: observation
+        ? formatTemperature(observation.context.outdoor_temperature_c)
+        : 'Onbekend',
+    },
+    {
+      label: 'Binnen-setpoint',
+      reference: setpoints(reference),
+      observation: setpoints(observation),
+    },
+    {
+      label: 'CV-bedrijfsduur',
+      reference: reference
+        ? `${formatNumber(reference.context.heating_runtime_hours, 1)} u`
+        : 'Onbekend',
+      observation: observation
+        ? `${formatNumber(observation.context.heating_runtime_hours, 1)} u`
+        : 'Onbekend',
+    },
+    {
+      label: 'Warmtevraag',
+      reference: reference
+        ? `${formatNumber(reference.context.heat_demand_hours, 1)} u`
+        : 'Onbekend',
+      observation: observation
+        ? `${formatNumber(observation.context.heat_demand_hours, 1)} u`
+        : 'Onbekend',
+    },
+    {
+      label: 'Tapwatermodus',
+      reference: reference
+        ? `${formatNumber(reference.context.dhw_runtime_hours, 1)} u`
+        : 'Onbekend',
+      observation: observation
+        ? `${formatNumber(observation.context.dhw_runtime_hours, 1)} u`
+        : 'Onbekend',
+    },
+    {
+      label: 'Zonegebruik',
+      reference: reference
+        ? reference.context.zone_use === 'unknown'
+          ? 'Onbekend'
+          : 'Gedeeltelijk beschikbaar'
+        : 'Onbekend',
+      observation: observation
+        ? observation.context.zone_use === 'unknown'
+          ? 'Onbekend'
+          : 'Gedeeltelijk beschikbaar'
+        : 'Onbekend',
+    },
+    {
+      label: 'Bijzondere perioden',
+      reference: specialPeriods(reference),
+      observation: specialPeriods(observation),
+    },
+  ];
+
+  return (
+    <div className={styles.tableWrap}>
+      <table className={styles.contextTable} aria-label="Context bij geselecteerde perioden">
+        <thead>
+          <tr>
+            <th scope="col">Context</th>
+            <th scope="col">Referentie</th>
+            <th scope="col">Observatie</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.label}>
+              <th scope="row">{row.label}</th>
+              <td>{row.reference}</td>
+              <td>{row.observation}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

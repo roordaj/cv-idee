@@ -70,6 +70,26 @@
   outline-offset: 2px;
 }
 
+.linkButton {
+  align-self: flex-start;
+  padding: 8px 11px;
+  border: 1px solid #dfe2e8;
+  border-radius: 9px;
+  color: #2659a8;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.linkButton:hover {
+  background: #f8f9fb;
+}
+
+.linkButton:focus-visible {
+  outline: 2px solid #ea6a2f;
+  outline-offset: 2px;
+}
+
 .details {
   display: grid;
   grid-template-columns: minmax(100px, auto) minmax(0, 1fr);
@@ -190,6 +210,106 @@
   margin-top: 2px;
 }
 
+.coverageTrack {
+  display: flex;
+  align-items: center;
+  min-height: 42px;
+  gap: 0;
+}
+
+.coverageSegment,
+.gapSegment {
+  height: 8px;
+  flex: 1;
+  background: #1a9e8f;
+}
+
+.coverageSegment:first-child {
+  border-radius: 6px 0 0 6px;
+}
+
+.coverageSegment:last-child {
+  border-radius: 0 6px 6px 0;
+}
+
+.gapSegment {
+  flex: 0.7;
+  background: repeating-linear-gradient(45deg, #c3c8d2 0 2px, #f4f5f8 2px 5px);
+}
+
+.resetMarker {
+  width: 2px;
+  height: 22px;
+  margin: 0 5px;
+  background: #e0475b;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: #5b6475;
+  font-size: 12px;
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend i {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+}
+
+.coverageDot {
+  background: #1a9e8f;
+}
+
+.gapDot {
+  background: repeating-linear-gradient(45deg, #c3c8d2 0 2px, #f4f5f8 2px 5px);
+}
+
+.resetDot {
+  background: #e0475b;
+}
+
+.staleDot {
+  background: #e3b548;
+}
+
+.tableWrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.contextTable {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+}
+
+.contextTable th,
+.contextTable td {
+  padding: 8px;
+  border-bottom: 1px solid #eef0f3;
+  vertical-align: top;
+}
+
+.contextTable thead th {
+  color: #5b6475;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.contextTable tbody th {
+  font-weight: 500;
+}
+
 @media (max-width: 520px) {
   .details {
     grid-template-columns: minmax(88px, auto) minmax(0, 1fr);
@@ -199,5 +319,9 @@
 
   .rawGrid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .contextTable {
+    min-width: 560px;
   }
 }
