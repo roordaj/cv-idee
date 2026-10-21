@@ -106,6 +106,19 @@ async def test_api_token_required_when_configured(protected_client: httpx.AsyncC
     assert ok.status_code == 404  # authenticated, route simply does not exist
 
 
+async def test_normal_behavior_mutations_use_api_auth(
+    protected_client: httpx.AsyncClient,
+) -> None:
+    path = "/api/normal-behavior/models/starts/pause"
+    assert (await protected_client.post(path, json={"reason": "Onderhoud"})).status_code == 401
+    response = await protected_client.post(
+        path,
+        json={"reason": "Onderhoud"},
+        headers={"Authorization": "Bearer s3cret"},
+    )
+    assert response.status_code == 501  # authenticated, but the test app has no database
+
+
 async def test_health_is_public_with_api_token(protected_client: httpx.AsyncClient) -> None:
     assert (await protected_client.get("/api/health")).status_code == 200
 

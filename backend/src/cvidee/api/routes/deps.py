@@ -10,6 +10,7 @@ from typing import Annotated, Protocol
 from fastapi import Depends, Query, Request
 from sqlalchemy.orm import Session, sessionmaker
 
+from cvidee.analysis.types import MetricName
 from cvidee.api.config_backend import ConfigBackend
 from cvidee.api.findings_read import FindingsReadModel
 from cvidee.api.problems import ProblemError
@@ -42,6 +43,12 @@ from cvidee.api.schemas.findings import (
     HistoryEntry,
 )
 from cvidee.api.schemas.installation import InstallationProfile, InstallationProfileIn
+from cvidee.api.schemas.normal_behavior import (
+    NormalBehaviorModelList,
+    NormalBehaviorModelOut,
+    NormalBehaviorNewVersion,
+    NormalBehaviorReason,
+)
 from cvidee.api.schemas.notifications import Notification, NotificationPolicy, NotificationPolicyIn
 from cvidee.api.schemas.system import OverviewResponse, StatusResponse
 from cvidee.api.stubs.store import StubStore
@@ -225,6 +232,35 @@ def get_experiments(request: Request) -> Iterator[ExperimentsBackend]:
 
 Experiments = Annotated[ExperimentsBackend, Depends(get_experiments)]
 Timeline = Annotated[TimelineBackend, Depends(get_timeline)]
+
+
+class NormalBehaviorBackendProtocol(Protocol):
+    def list(self, limit: int, offset: int) -> NormalBehaviorModelList: ...
+
+    def pause(
+        self, metric_name: MetricName, body: NormalBehaviorReason
+    ) -> NormalBehaviorModelOut: ...
+
+    def resume(self, metric_name: MetricName) -> NormalBehaviorModelOut: ...
+
+    def start_version(
+        self, metric_name: MetricName, body: NormalBehaviorNewVersion
+    ) -> NormalBehaviorModelOut: ...
+
+
+def get_normal_behavior(request: Request) -> Iterator[NormalBehaviorBackendProtocol]:
+    from cvidee.normal_behavior.backend import NormalBehaviorBackend
+
+    if getattr(request.app.state, "stub_store", None) is not None:
+        raise get_stub_store_problem()
+    factory: sessionmaker[Session] | None = getattr(request.app.state, "session_factory", None)
+    if factory is None:
+        raise get_stub_store_problem()
+    with factory.begin() as session:
+        yield NormalBehaviorBackend(session, lambda: int(time.time() * 1000))
+
+
+NormalBehavior = Annotated[NormalBehaviorBackendProtocol, Depends(get_normal_behavior)]
 
 
 class ImportsBackend(Protocol):

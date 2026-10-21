@@ -13,6 +13,7 @@ from cvidee.api.routes import (
     history,
     import_,
     installation,
+    normal_behavior,
     notifications,
     periods,
     reports,
@@ -39,6 +40,7 @@ for module in (
     changes,
     experiments,
     notifications,
+    normal_behavior,
     settings,
     zone_analysis,
 ):
