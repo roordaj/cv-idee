@@ -2,7 +2,7 @@
 
 Versie 1.0 · 4 oktober 2026 · Refinement [#6](https://github.com/roordaj/cv-idee/issues/6)
 
-Ontwerp v3 ([`CV-analyse-v3.dc.html`](CV-analyse-v3.dc.html)) dekt de negen hoofdschermen. Dit document beschrijft wat ontbreekt, precies genoeg om zonder vragen te bouwen. **v3 blijft leidend**: alles hieronder hergebruikt de visuele taal, componenten en toon van v3 (niet het "Modernist"-design system). Waar dit document afwijkt van v3 staat dat er expliciet bij, met reden.
+Ontwerp v3 ([`CV-analyse-v3.dc.html`](CV-analyse-v3.dc.html)) dekt de hoofdschermen. Dit document beschrijft wat ontbreekt, precies genoeg om zonder vragen te bouwen. **v3 blijft leidend**: alles hieronder hergebruikt de visuele taal, componenten en toon van v3 (niet het "Modernist"-design system). Waar dit document afwijkt van v3 staat dat er expliciet bij, met reden.
 
 Inhoud:
 
@@ -14,6 +14,7 @@ Inhoud:
 - [5. Laadstaten, lege staten en foutstaten](#5-laadstaten-lege-staten-en-foutstaten) — per scherm, incl. Overzicht bij onvoldoende gegevens (FR-36)
 - [6. Wijzigingsmarkers in grafieken](#6-wijzigingsmarkers-in-grafieken) (FR-29)
 - [7. Openstaande ontwerpvragen](#7-openstaande-ontwerpvragen)
+- [8. Verbruiksscherm (FR-31)](#8-verbruiksscherm-fr-31)
 
 ---
 
@@ -794,3 +795,30 @@ Beslissing van de eigenaar nodig. Tot die tijd geldt het **voorstel**; UI-agents
 10. **Instellingen wijzigen zonder login (standalone).** Iedereen met toegang tot de UI kan drempels wijzigen. In de add-on regelt HA de toegang; standalone alleen met optionele `CVIDEE_API_TOKEN`. Acceptabel, of alleen-lezen-modus voor instellingen zonder token?
 11. **Tijdvak selecteren in de tijdlijn (§6.5)** is handig maar niet vereist. Meenemen in MVP (#14/#44) of later?
 12. **Navigatie op telefoon.** v3 houdt onder 640 px de rail van 72 px aan. Met een extra nav-item (Analyse-instellingen) worden het 10 iconen. Voldoende, of een onderbalk/hamburger voor < 480 px?
+
+## 8. Verbruiksscherm (FR-31)
+
+Het scherm **Verbruik** staat in de hoofdnavigatie en gebruikt de bestaande v3-kaarten, kleuren, typografie en responsieve kolommen. Het ontwerp is uitgewerkt in [`CV-analyse-v3.dc.html`](CV-analyse-v3.dc.html). De voorbeeldstaat bevat geen synthetische meterstanden of bedragen.
+
+### 8.1 Bovenaan en ruwe meterdata
+
+- Titel **Gasverbruik**, met subtitel dat het ruwe meterstanden en een beschrijvende vergelijking betreft, zonder weerscorrectie.
+- De hoofdkaart toont beschikbaarheid, bron, expliciete meter-scope en cumulatieve meterstand met eenheid. Ontbrekende waarden zijn `—`; onbekende scope staat letterlijk als **Onbekend**.
+- De gebruiker kan doorklikken naar het installatieprofiel om de cumulatieve gasmeter te koppelen en de scope vast te leggen. Een entiteitsnaam leidt niet automatisch de scope af.
+- Toon alleen gasvolume in m³ wanneer bron en eenheid dit ondersteunen. Geen omzetting naar kWh, warmteafgifte of rendement zonder gevalideerde conversie en systeemgrens.
+
+### 8.2 Periodevergelijking en context
+
+- De gebruiker kiest zelf een referentieperiode en observatieperiode; er wordt geen “beste match” automatisch geselecteerd.
+- Vergelijking is alleen beschikbaar bij dezelfde meter, eenheid en bevestigde scope, met gelijke periodeduur en bruikbare tellerdekking. Toon ruwe periodetotalen en het absolute verschil in m³; presenteer dit niet als besparing.
+- Een toekomstige weersanalyse blijft een afzonderlijke, optionele uitkomst met eigen beschikbaarheid en methode-uitleg. Dit scherm claimt geen weerscorrectie.
+- Toon per periode de beschikbare context: buitentemperatuur, binnen-setpoint en gebruik, CV-bedrijfsduur, tapwateractiviteit en bijzondere perioden. Onbekend blijft **Onbekend** en wordt niet ingevuld als gelijk of nul.
+
+### 8.3 Datagaten, resets en afgeleide uitkomsten
+
+- Tellerreset, teruglopende stand, verouderde waarde en datagat krijgen afzonderlijke waarschuwing/status. Een lijn wordt onderbroken op een reset of onbekend interval; geen gladgestreken lijn en geen nulverbruik voor ontbrekende tijd.
+- Beschikbaarheid wordt apart getoond voor ruwe gasmeting, vergelijking, rendement en kosten.
+- Rendement blijft niet beschikbaar zonder gevalideerde geleverde warmte en passende systeemgrens. Kosten blijven niet beschikbaar zonder ingestelde toepasselijke gasprijs. Geen fictieve euro’s of besparingsbadge.
+- Benoem dat woninggas mogelijk koken en tapwater omvat en dat ketelgas tapwater kan omvatten. Wijs het totaal niet toe aan ruimteverwarming.
+
+Alle bediening gebruikt gelabelde native formuliervelden, zichtbare focus en semantische tabelkoppen; op smalle schermen mogen kaarten onder elkaar vallen en tabellen horizontaal scrollen.

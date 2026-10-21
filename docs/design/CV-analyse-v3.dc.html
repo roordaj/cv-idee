@@ -20,7 +20,7 @@
       <sc-if value="{{ lay.full }}" hint-placeholder-val="{{ true }}"><span style="display:flex;flex-direction:column;line-height:1.2"><span style="font-weight:800;font-size:16px">CV-analyse</span><span style="font-size:12px;color:#5b6475">Thuis · Calenta Ace</span></span></sc-if>
     </div>
     <sc-if value="{{ lay.full }}" hint-placeholder-val="{{ true }}"><div style="font-size:11px;font-weight:600;color:#8a92a3;padding:4px 12px 6px">Analyse</div></sc-if>
-    <sc-for list="{{ navMain }}" as="n" hint-placeholder-count="5">
+    <sc-for list="{{ navMain }}" as="n" hint-placeholder-count="6">
       <button onClick="{{ n.go }}" title="{{ n.label }}" style="position:relative;display:flex;align-items:center;justify-content:{{ lay.navJc }};gap:10px;width:100%;text-align:left;padding:9px 12px;border-radius:10px;border:0;cursor:pointer;font-size:14px;background:{{ n.bg }};color:{{ n.fg }};font-weight:{{ n.fw }}">
        {{ n.icon }}<sc-if value="{{ lay.full }}" hint-placeholder-val="{{ true }}"><span style="flex:1">{{ n.label }}</span></sc-if>
         <sc-if value="{{ n.hasCount }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;font-weight:700;padding:1px 8px;border-radius:999px;background:#fce8eb;color:#a92536;position:{{ lay.badgePos }};top:2px;right:2px">{{ n.count }}</span></sc-if>
@@ -563,6 +563,57 @@
         </div>
       </sc-if>
 
+      <!-- VERBRUIK -->
+      <sc-if value="{{ is.verbruik }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:16px;max-width:1200px">
+          <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+            <span style="width:44px;height:44px;border-radius:14px;background:#fdeee6;color:#ea6a2f;display:grid;place-items:center">{{ I.flame }}</span>
+            <div style="flex:1;min-width:220px"><h1 style="font-size:24px;font-weight:800">Gasverbruik</h1><p style="color:#5b6475">Ruwe meterstanden en een beschrijvende vergelijking · zonder weerscorrectie</p></div>
+            <span style="padding:4px 10px;border-radius:999px;background:#eef0f3;color:#3d4452;font-size:12px;font-weight:700">Verbruik onbekend</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:14px">
+            <article style="background:#fff;border:1px solid #e7e9ee;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><h2 style="font-size:16px;font-weight:800">Gemeten gas</h2><span style="padding:3px 9px;border-radius:999px;background:#eef0f3;color:#3d4452;font-size:11px;font-weight:700">Niet beschikbaar</span></div>
+              <div style="font-size:30px;font-weight:800">— <span style="font-size:15px;font-weight:600;color:#5b6475">m³</span></div>
+              <dl style="display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:13px;margin:0"><dt style="color:#5b6475">Bron</dt><dd style="margin:0">Geen meter gekoppeld</dd><dt style="color:#5b6475">Meter-scope</dt><dd style="margin:0">Onbekend</dd><dt style="color:#5b6475">Meterstand</dt><dd style="margin:0">— m³</dd></dl>
+              <p style="font-size:12px;color:#5b6475">Koppel een cumulatieve gasmeter en leg vast of deze alleen de ketel of de hele woning meet.</p>
+              <button type="button" style="align-self:flex-start;padding:8px 11px;border:1px solid #dfe2e8;border-radius:9px;background:#fff;color:#2659a8;font-weight:700;cursor:pointer">Bekijk installatieprofiel</button>
+            </article>
+            <article style="background:#fff;border:1px solid #e7e9ee;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:10px">
+              <h2 style="font-size:16px;font-weight:800">Vergelijk perioden</h2>
+              <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:#5b6475">Referentieperiode<select aria-label="Referentieperiode" disabled style="padding:9px 12px;border:1px solid #dfe2e8;border-radius:10px;background:#f8f9fb;color:#5b6475"><option>Selecteer een referentieperiode</option></select></label>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div style="background:#f8f9fb;border-radius:12px;padding:12px"><div style="font-size:12px;color:#5b6475">Referentie</div><strong>— m³</strong></div><div style="background:#f8f9fb;border-radius:12px;padding:12px"><div style="font-size:12px;color:#5b6475">Observatie</div><strong>— m³</strong></div></div>
+              <div style="padding:10px 12px;border-radius:10px;background:#eef0f3;font-weight:700">Vergelijking niet beschikbaar</div>
+              <p style="font-size:12px;color:#5b6475">Vergelijken kan pas met dezelfde meter, eenheid, bevestigde scope en perioden van gelijke duur. De app kiest geen referentieperiode automatisch.</p>
+            </article>
+            <article style="background:#fff;border:1px solid #e7e9ee;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:10px">
+              <h2 style="font-size:16px;font-weight:800">Rendement en kosten</h2>
+              <div style="display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #eef0f3"><span>Rendement</span><strong style="color:#5b6475">Niet beschikbaar</strong></div>
+              <p style="font-size:12px;color:#5b6475">Geen gevalideerde meting van geleverde warmte en systeemgrens.</p>
+              <div style="display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #eef0f3"><span>Gaskosten</span><strong style="color:#5b6475">Niet beschikbaar</strong></div>
+              <p style="font-size:12px;color:#5b6475">Er is geen toepasselijk ingestelde gasprijs. Er wordt geen eurobedrag geschat.</p>
+            </article>
+          </div>
+          <article style="background:#fff;border:1px solid #e7e9ee;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:12px">
+            <div><h2 style="font-size:16px;font-weight:800">Meterdekking en datakwaliteit</h2><p style="font-size:12px;color:#5b6475;margin-top:4px">Schematische uitleg van herkenbare toestanden · geen meetreeks</p></div>
+            <div aria-label="Schematische meterreeks met onbekend interval en reset" style="display:flex;align-items:center;gap:0;min-height:42px">
+              <span style="height:8px;flex:1;background:#1a9e8f;border-radius:6px 0 0 6px"></span><span style="height:8px;flex:.7;background:repeating-linear-gradient(45deg,#c3c8d2 0 2px,#f4f5f8 2px 5px)"></span><span style="height:8px;flex:.9;background:#1a9e8f"></span><span style="height:22px;width:2px;background:#e0475b;margin:0 5px"></span><span style="height:8px;flex:1;background:#1a9e8f;border-radius:0 6px 6px 0"></span>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;font-size:12px"><span style="padding:3px 8px;border-radius:999px;background:#e1f4f1;color:#0f6b61">Dekking beschikbaar</span><span style="padding:3px 8px;border-radius:999px;background:#eef0f3;color:#3d4452">Gearceerd: onbekend interval</span><span style="padding:3px 8px;border-radius:999px;background:#fce8eb;color:#a92536">Rode markering: tellerreset</span><span style="padding:3px 8px;border-radius:999px;background:#fcf3dc;color:#8a6206">Verouderd: apart gemeld</span></div>
+            <p style="font-size:12px;color:#5b6475">Een reset start een nieuw tel-segment; het verschil over de reset wordt niet berekend. Verouderde standen verlengen de dekking niet. Onbekende intervallen blijven onbekend.</p>
+          </article>
+          <article style="background:#fff;border:1px solid #e7e9ee;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:12px">
+            <div><h2 style="font-size:16px;font-weight:800">Periode en omstandigheden</h2><p style="font-size:12px;color:#5b6475;margin-top:4px">Kies een observatieperiode; context helpt verschillen te duiden, maar corrigeert het gemeten verbruik niet.</p></div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:10px">
+              <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:#5b6475">Van<input type="date" aria-label="Start observatieperiode" style="padding:9px 10px;border:1px solid #dfe2e8;border-radius:10px;background:#fff;color:#5b6475"></label>
+              <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:#5b6475">Tot en met<input type="date" aria-label="Einde observatieperiode" style="padding:9px 10px;border:1px solid #dfe2e8;border-radius:10px;background:#fff;color:#5b6475"></label>
+            </div>
+            <div style="overflow-x:auto"><table aria-label="Context bij geselecteerde perioden" style="width:100%;border-collapse:collapse;text-align:left;font-size:13px"><thead><tr style="color:#5b6475;font-size:12px"><th scope="col" style="padding:8px;border-bottom:1px solid #e7e9ee">Context</th><th scope="col" style="padding:8px;border-bottom:1px solid #e7e9ee">Referentie</th><th scope="col" style="padding:8px;border-bottom:1px solid #e7e9ee">Observatie</th></tr></thead><tbody><tr><th scope="row" style="padding:8px;border-bottom:1px solid #eef0f3">Buitentemperatuur</th><td style="padding:8px;border-bottom:1px solid #eef0f3">Onbekend</td><td style="padding:8px;border-bottom:1px solid #eef0f3">Onbekend</td></tr><tr><th scope="row" style="padding:8px;border-bottom:1px solid #eef0f3">Binnen-setpoint en gebruik</th><td style="padding:8px;border-bottom:1px solid #eef0f3">Onbekend</td><td style="padding:8px;border-bottom:1px solid #eef0f3">Onbekend</td></tr><tr><th scope="row" style="padding:8px;border-bottom:1px solid #eef0f3">CV-bedrijfsduur en tapwater</th><td style="padding:8px;border-bottom:1px solid #eef0f3">Onbekend</td><td style="padding:8px;border-bottom:1px solid #eef0f3">Onbekend</td></tr><tr><th scope="row" style="padding:8px">Bijzondere perioden</th><td style="padding:8px">Geen gegevens</td><td style="padding:8px">Geen gegevens</td></tr></tbody></table></div>
+          </article>
+          <div style="background:#fcf3dc;color:#6b4c05;border-radius:14px;padding:13px 15px;font-size:13px;line-height:1.55">Een meter voor de hele woning kan ook koken en tapwater omvatten. Een meter alleen voor de ketel kan tapwater omvatten. Totaal gasverbruik wordt daarom niet als ruimteverwarming of besparing gepresenteerd. Meterresets en datagaten blijven zichtbaar; ontbrekende intervallen tellen nooit als nul.</div>
+        </div>
+      </sc-if>
+
       <!-- ZONEANALYSE -->
       <sc-if value="{{ is.zones }}" hint-placeholder-val="{{ false }}">
         <div style="display:flex;flex-direction:column;gap:16px">
@@ -803,7 +854,7 @@
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;startScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;overzicht&quot;,&quot;bevindingen&quot;,&quot;cycli&quot;,&quot;wijzigingen&quot;,&quot;historie&quot;,&quot;signalen&quot;,&quot;installatie&quot;,&quot;zones&quot;,&quot;kwaliteit&quot;,&quot;meldingen&quot;],&quot;default&quot;:&quot;overzicht&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;showExplain&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;showRequirementIds&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;showRoomScheduleError&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;startScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;overzicht&quot;,&quot;bevindingen&quot;,&quot;cycli&quot;,&quot;wijzigingen&quot;,&quot;historie&quot;,&quot;signalen&quot;,&quot;installatie&quot;,&quot;verbruik&quot;,&quot;zones&quot;,&quot;kwaliteit&quot;,&quot;meldingen&quot;],&quot;default&quot;:&quot;overzicht&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;showExplain&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;showRequirementIds&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;showRoomScheduleError&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
 
 const H = m => { const t = 360 + Math.round(m); return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); };
 const D = d => Math.floor(d) + ':' + String(Math.round((d % 1) * 60)).padStart(2, '0');
@@ -1223,7 +1274,7 @@ class Component extends DCLogic {
       mainRef: this.mainRef,
       bv: (() => { const side = S.mw >= 1060, two = S.mw >= 700; return { sideList: side, chips: !side, grid: side ? '272px minmax(0,1fr)' : 'minmax(0,1fr)', cols: two ? 'minmax(0,1.2fr) minmax(280px,1fr)' : 'minmax(0,1fr)', sticky: two ? 'sticky' : 'static', h2: S.mw < 560 ? '19px' : '22px' }; })(),
       I, is: { [S.screen]: true }, showFR: this.props.showRequirementIds ?? false, showExplain: this.props.showExplain ?? true, showRoomScheduleError: this.props.showRoomScheduleError ?? false,
-      navMain: [navItem('overzicht', 'Overzicht', 'dashboard'), navItem('bevindingen', 'Bevindingen', 'bulb', openCount), navItem('cycli', 'Cycli', 'activity'), navItem('wijzigingen', 'Wijzigingen', 'sliders'), navItem('historie', 'Advieshistorie', 'history')],
+      navMain: [navItem('overzicht', 'Overzicht', 'dashboard'), navItem('bevindingen', 'Bevindingen', 'bulb', openCount), navItem('cycli', 'Cycli', 'activity'), navItem('verbruik', 'Verbruik', 'flame'), navItem('wijzigingen', 'Wijzigingen', 'sliders'), navItem('historie', 'Advieshistorie', 'history')],
       navConfig: [navItem('signalen', 'Signalen', 'plug', '9/15'), navItem('installatie', 'Installatie', 'home'), navItem('zones', 'Zoneanalyse', 'layers'), navItem('kwaliteit', 'Gegevenskwaliteit', 'shield'), navItem('meldingen', 'Meldingen', 'bell')],
       kpis: withExplain([kp('Aanvoer', nl(last.T) + ' °C', 'gemeten · 4 s', 'flame', 'orange'), kp('Retour', nl(last.R) + ' °C', 'gemeten · 4 s', 'droplet', 'blue'), kp('Modulatie', '0 %', 'niet omgerekend naar kW', 'gauge', 'violet'),
         kp('Woonkamer', '20,4 °C', 'doel 20,5 °C', 'home', 'teal'), kp('Slaapkamer', '17,6 °C', 'doel 18,0 · 14 min oud', 'bed', 'amber'), kp('Buiten', '9,8 °C', 'gemeten · 5 min', 'sun', 'amber')]),
