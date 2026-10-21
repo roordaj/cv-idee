@@ -57,6 +57,38 @@ async def test_consumption_stub_reports_missing_gas_meter(client: httpx.AsyncCli
     assert response.json()["consumption_m3"] is None
 
 
+async def test_consumption_comparison_stub_reports_no_historical_candidates(
+    client: httpx.AsyncClient,
+) -> None:
+    candidates = await client.get(
+        "/api/consumption/comparison/candidates",
+        params={"from": "2026-10-03T00:00:00Z", "to": "2026-10-04T00:00:00Z"},
+    )
+    assert candidates.status_code == 200
+    assert candidates.json()["status"] == "unavailable"
+    assert candidates.json()["candidates"] == []
+    assert "no_meter" in candidates.json()["reasons"]
+    assert candidates.json()["consumption_availability"] == "unavailable"
+
+    comparison = await client.post(
+        "/api/consumption/comparison",
+        json={
+            "reference": {
+                "start": "2026-10-02T00:00:00Z",
+                "end": "2026-10-03T00:00:00Z",
+            },
+            "observation": {
+                "start": "2026-10-03T00:00:00Z",
+                "end": "2026-10-04T00:00:00Z",
+            },
+        },
+    )
+    assert comparison.status_code == 200
+    assert comparison.json()["status"] == "unavailable"
+    assert comparison.json()["difference_m3"] is None
+    assert "no_meter" in comparison.json()["reasons"]
+
+
 async def test_postpone_finding_updates_status_and_counts(client: httpx.AsyncClient) -> None:
     assert (await client.get("/api/status")).json()["counts"]["open_findings"] == 5
     response = await client.post("/api/findings/B-014/status", json={"status": "postponed"})

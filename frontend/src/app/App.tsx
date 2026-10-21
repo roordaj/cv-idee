@@ -17,6 +17,7 @@ import { SignalsScreen } from '../screens/Signals/index.ts';
 import { QualityScreen } from '../screens/Quality/index.ts';
 import { ZoneAnalysisScreen } from '../screens/Zones/ZoneAnalysisScreen.tsx';
 import { ReportsScreen } from '../screens/Reports/ReportsScreen.tsx';
+import { ConsumptionScreen } from '../screens/Consumption/ConsumptionScreen.tsx';
 import { PlaceholderScreen } from '../screens/PlaceholderScreen.tsx';
 import { AppShell } from './AppShell.tsx';
 import { SCREENS } from './navigation.ts';
@@ -53,6 +54,8 @@ function screenElement(screen: (typeof SCREENS)[number]) {
       return <ChangesScreen />;
     case 'cycli':
       return <CyclesScreen />;
+    case 'verbruik':
+      return <ConsumptionScreen />;
     case 'kwaliteit':
       return <QualityScreen />;
     case 'zones':

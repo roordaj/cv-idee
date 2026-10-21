@@ -396,6 +396,46 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/consumption/comparison/candidates': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Consumption Candidates
+     * @description Eligible and excluded same-duration historical gas periods with comparison context.
+     */
+    get: operations['get_consumption_candidates'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/consumption/comparison': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Compare Consumption
+     * @description Compare user-selected historical and observation periods using raw meter readings.
+     */
+    post: operations['compare_consumption'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/quality': {
     parameters: {
       query?: never;
@@ -1370,6 +1410,83 @@ export interface components {
      * @enum {string}
      */
     ConsumptionAvailability: 'available' | 'limited' | 'unavailable';
+    /** ConsumptionCandidatesResponse */
+    ConsumptionCandidatesResponse: {
+      observation: components['schemas']['TimeRange'];
+      observation_data: components['schemas']['ConsumptionPeriodCandidate'];
+      status: components['schemas']['ConsumptionComparisonStatus'];
+      /** Reasons */
+      reasons: components['schemas']['ConsumptionComparisonReason'][];
+      /** Candidates */
+      candidates: components['schemas']['ConsumptionPeriodCandidate'][];
+      consumption_availability: components['schemas']['ConsumptionAvailability'];
+      efficiency_availability: components['schemas']['ConsumptionAvailability'];
+      cost_availability: components['schemas']['ConsumptionAvailability'];
+    };
+    /**
+     * ConsumptionComparisonReason
+     * @enum {string}
+     */
+    ConsumptionComparisonReason:
+      | 'no_valid_period'
+      | 'no_meter'
+      | 'unknown_meter_scope'
+      | 'meter_mismatch'
+      | 'mapping_changed'
+      | 'scope_changed'
+      | 'unit_mismatch'
+      | 'duration_mismatch'
+      | 'low_coverage'
+      | 'counter_reset'
+      | 'data_gap'
+      | 'excluded_period'
+      | 'weather_out_of_range'
+      | 'weather_limited'
+      | 'setpoint_mismatch'
+      | 'setpoint_unknown'
+      | 'use_context_unknown';
+    /** ConsumptionComparisonRequest */
+    ConsumptionComparisonRequest: {
+      observation: components['schemas']['ConsumptionComparisonWindow'];
+      reference: components['schemas']['ConsumptionComparisonWindow'];
+    };
+    /** ConsumptionComparisonResponse */
+    ConsumptionComparisonResponse: {
+      reference: components['schemas']['ConsumptionPeriodCandidate'];
+      observation: components['schemas']['ConsumptionPeriodCandidate'];
+      status: components['schemas']['ConsumptionComparisonStatus'];
+      /** Reasons */
+      reasons: components['schemas']['ConsumptionComparisonReason'][];
+      /** Difference M3 */
+      difference_m3: number | null;
+      /** Basis */
+      basis: string;
+      consumption_availability: components['schemas']['ConsumptionAvailability'];
+      efficiency_availability: components['schemas']['ConsumptionAvailability'];
+      cost_availability: components['schemas']['ConsumptionAvailability'];
+    };
+    /**
+     * ConsumptionComparisonStatus
+     * @enum {string}
+     */
+    ConsumptionComparisonStatus: 'available' | 'limited' | 'unavailable';
+    /** ConsumptionComparisonWindow */
+    ConsumptionComparisonWindow: {
+      /**
+       * Start
+       * Format: date-time
+       * @description ISO 8601 timestamp in UTC.
+       * @example 2026-10-04T10:00:00Z
+       */
+      start: string;
+      /**
+       * End
+       * Format: date-time
+       * @description ISO 8601 timestamp in UTC.
+       * @example 2026-10-04T10:00:00Z
+       */
+      end: string;
+    };
     /** ConsumptionEvent */
     ConsumptionEvent: {
       kind: components['schemas']['ConsumptionEventKind'];
@@ -1398,6 +1515,52 @@ export interface components {
      * @enum {string}
      */
     ConsumptionEventKind: 'counter_reset' | 'data_gap' | 'mapping_changed';
+    /** ConsumptionPeriodCandidate */
+    ConsumptionPeriodCandidate: {
+      range: components['schemas']['TimeRange'];
+      status: components['schemas']['ConsumptionComparisonStatus'];
+      /** Reasons */
+      reasons: components['schemas']['ConsumptionComparisonReason'][];
+      /** Counter Start */
+      counter_start?: number | null;
+      /** Counter End */
+      counter_end?: number | null;
+      /** Consumption M3 */
+      consumption_m3?: number | null;
+      meter_scope: components['schemas']['GasMeterScope'];
+      /** Meter Entity Id */
+      meter_entity_id: string | null;
+      /** Unit */
+      unit: string | null;
+      /** Mapping Revision */
+      mapping_revision: number | null;
+      /** Coverage Pct */
+      coverage_pct?: number | null;
+      consumption_availability: components['schemas']['ConsumptionAvailability'];
+      cost_availability: components['schemas']['ConsumptionAvailability'];
+      context: components['schemas']['ConsumptionPeriodContext'];
+    };
+    /** ConsumptionPeriodContext */
+    ConsumptionPeriodContext: {
+      /** Outdoor Temperature C */
+      outdoor_temperature_c: number | null;
+      /** Outdoor Coverage Pct */
+      outdoor_coverage_pct: number | null;
+      /** Room Setpoints C */
+      room_setpoints_c: {
+        [key: string]: number | null;
+      };
+      /** Heating Runtime Hours */
+      heating_runtime_hours: number | null;
+      /** Heat Demand Hours */
+      heat_demand_hours: number | null;
+      /** Dhw Runtime Hours */
+      dhw_runtime_hours: number | null;
+      /** Zone Use */
+      zone_use: string;
+      /** Special Periods */
+      special_periods: string[];
+    };
     /**
      * ConsumptionReason
      * @enum {string}
@@ -4603,6 +4766,99 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ConsumptionResponse'];
+        };
+      };
+      /** @description Validation error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+      /** @description Not implemented (start the backend with CVIDEE_STUB_DATA=1 for example data) */
+      501: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+    };
+  };
+  get_consumption_candidates: {
+    parameters: {
+      query: {
+        /** @description Observation start. */
+        from: string;
+        /** @description Observation end. */
+        to: string;
+        /** @description Maximum historical periods. */
+        limit?: number;
+        /** @description Historical periods to skip. */
+        offset?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ConsumptionCandidatesResponse'];
+        };
+      };
+      /** @description Validation error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+      /** @description Not implemented (start the backend with CVIDEE_STUB_DATA=1 for example data) */
+      501: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+    };
+  };
+  compare_consumption: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ConsumptionComparisonRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ConsumptionComparisonResponse'];
         };
       };
       /** @description Validation error */

@@ -15,7 +15,12 @@ from cvidee.api.findings_read import FindingsReadModel
 from cvidee.api.problems import ProblemError
 from cvidee.api.schemas.changes import Change, ChangeCreate, ChangeEvaluation, ChangeList
 from cvidee.api.schemas.common import Page, UtcDateTime
-from cvidee.api.schemas.consumption import ConsumptionResponse
+from cvidee.api.schemas.consumption import (
+    ConsumptionCandidatesResponse,
+    ConsumptionComparisonRequest,
+    ConsumptionComparisonResponse,
+    ConsumptionResponse,
+)
 from cvidee.api.schemas.data import (
     CycleList,
     ImportJob,
@@ -124,6 +129,10 @@ From = Annotated[
 To = Annotated[UtcDateTime | None, Query(alias="to", description="End (ISO 8601); default: now.")]
 Limit = Annotated[int, Query(ge=1, le=500, description="Page size.")]
 Offset = Annotated[int, Query(ge=0, description="Items to skip.")]
+CandidateFrom = Annotated[UtcDateTime, Query(alias="from", description="Observation start.")]
+CandidateTo = Annotated[UtcDateTime, Query(alias="to", description="Observation end.")]
+CandidateLimit = Annotated[int, Query(ge=1, le=100, description="Maximum historical periods.")]
+CandidateOffset = Annotated[int, Query(ge=0, description="Historical periods to skip.")]
 
 
 class HistoryBackend(Protocol):
@@ -298,6 +307,29 @@ def get_consumption(request: Request) -> ConsumptionBackend:
     if factory is None:
         raise get_stub_store_problem()
     return ConsumptionReadModel(factory)
+
+
+class ConsumptionComparisonBackend(Protocol):
+    def candidates(
+        self, start: datetime, end: datetime, limit: int = 30, offset: int = 0
+    ) -> ConsumptionCandidatesResponse: ...
+
+    def compare(self, request: ConsumptionComparisonRequest) -> ConsumptionComparisonResponse: ...
+
+
+def get_consumption_comparison(request: Request) -> ConsumptionComparisonBackend:
+    from cvidee.api.consumption_comparison import ConsumptionComparisonReadModel
+
+    stub: StubStore | None = getattr(request.app.state, "stub_store", None)
+    if stub is not None:
+        return stub
+    factory: sessionmaker[Session] | None = getattr(request.app.state, "session_factory", None)
+    if factory is None:
+        raise get_stub_store_problem()
+    return ConsumptionComparisonReadModel(factory, lambda: int(time.time() * 1000))
+
+
+ConsumptionComparison = Annotated[ConsumptionComparisonBackend, Depends(get_consumption_comparison)]
 
 
 def get_monitoring(request: Request) -> MonitoringBackend:

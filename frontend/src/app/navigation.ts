@@ -1,6 +1,7 @@
 import {
   Activity,
   Bell,
+  Flame,
   History,
   House,
   LayoutDashboard,
@@ -18,6 +19,7 @@ export type ScreenKey =
   | 'overzicht'
   | 'bevindingen'
   | 'cycli'
+  | 'verbruik'
   | 'wijzigingen'
   | 'historie'
   | 'signalen'
@@ -69,6 +71,16 @@ export const SCREENS: readonly ScreenDef[] = [
     label: 'Cycli',
     title: 'Cycli',
     icon: Activity,
+    tone: 'orange',
+    section: 'analyse',
+  },
+  {
+    key: 'verbruik',
+    path: 'verbruik',
+    label: 'Verbruik',
+    title: 'Gasverbruik',
+    subtitle: 'Ruwe meterstanden en geselecteerde perioden · zonder weerscorrectie',
+    icon: Flame,
     tone: 'orange',
     section: 'analyse',
   },
