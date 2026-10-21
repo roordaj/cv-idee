@@ -794,7 +794,7 @@ Beslissing van de eigenaar nodig. Tot die tijd geldt het **voorstel**; UI-agents
 9. **Per-advies terugdraaicriterium.** Mag een individueel advies een eigen comfortgrens hebben die afwijkt van de algemene "Toegestaan comfortverlies"? Voorstel: ja, bij het advies getoond; de algemene waarde is alleen de standaard.
 10. **Instellingen wijzigen zonder login (standalone).** Iedereen met toegang tot de UI kan drempels wijzigen. In de add-on regelt HA de toegang; standalone alleen met optionele `CVIDEE_API_TOKEN`. Acceptabel, of alleen-lezen-modus voor instellingen zonder token?
 11. **Tijdvak selecteren in de tijdlijn (§6.5)** is handig maar niet vereist. Meenemen in MVP (#14/#44) of later?
-12. **Navigatie op telefoon.** v3 houdt onder 640 px de rail van 72 px aan. Met een extra nav-item (Analyse-instellingen) worden het 10 iconen. Voldoende, of een onderbalk/hamburger voor < 480 px?
+12. **Navigatie op telefoon.** v3 houdt onder 640 px de rail van 72 px aan. Met de extra nav-items Analyse-instellingen en Hydraulisch worden het 11 iconen. Voldoende, of een onderbalk/hamburger voor < 480 px?
 
 ## 8. Verbruiksscherm (FR-31)
 
@@ -822,3 +822,16 @@ Het scherm **Verbruik** staat in de hoofdnavigatie en gebruikt de bestaande v3-k
 - Benoem dat woninggas mogelijk koken en tapwater omvat en dat ketelgas tapwater kan omvatten. Wijs het totaal niet toe aan ruimteverwarming.
 
 Alle bediening gebruikt gelabelde native formuliervelden, zichtbare focus en semantische tabelkoppen; op smalle schermen mogen kaarten onder elkaar vallen en tabellen horizontaal scrollen.
+
+## 9. Hydraulische circuitvergelijking (FR-19)
+
+Het scherm **Hydraulisch** is als afzonderlijk item onder *Instellingen* opgenomen en is bereikbaar vanuit het installatieprofiel en bevinding B-012. Het toont voorbeeldgegevens om de meetbasis en lege/beperkte toestanden te demonstreren; het zijn geen ketelmetingen voor een echte installatie.
+
+- De circuit-tabel houdt ketel, iedere mengverdeler en iedere expliciet geïdentificeerde lus in eigen rijen. Per rij staan aanvoer, retour, ΔT, sampleaantal, dekking en status naast elkaar.
+- ΔT wordt uitsluitend als `aanvoer − retour` binnen hetzelfde circuit en tijdvak getoond, in K. Een ontbrekend, ongeldig of niet-uitgelijnd paar levert `—` op. Een gemeten ketelpaar vult nooit een verdeler- of luspaar aan.
+- Een lusrij noemt een stabiele sleutel plus het gebruikerslabel. Als het profiel alleen een groepsaantal heeft, toont de lege toestand dat lusidentiteit ontbreekt; een sensorpaar op de mengverdeler is geen lusmeting.
+- Voorbeelden van beperkte of niet-beschikbare data benoemen de ontbrekende sensor, dekking of kwaliteitsreden. De richting `aanvoer < retour` blijft een beperking; het scherm toont geen absolute ΔT als normale waarde.
+- De begeleidende uitleg zegt dat ΔT beschrijvend is: geen universeel doel, diagnose, oorzaak, totaalscore, ranglijst of advies over retour, pomp, mengklep of lusdebiet. Debiet kan alleen als aparte context worden getoond.
+- CV-bedrijf, tapwater, opstart/naloop, veroudering, tijdsuitlijning en uitgesloten bijzondere perioden volgen de bestaande kwaliteitsregels; de UI introduceert geen nieuwe grenswaarden.
+
+De desktopweergave gebruikt een horizontaal scrollbare semantische tabel binnen de bestaande kaartbreedte. Onder 640 px blijft de tabel leesbaar via horizontaal scrollen; omliggende uitleg en lege toestanden vallen onder elkaar. De nav-link, installatieprofiel-link en B-012-link hebben zichtbare toetsenbordfocus en beschrijvende Nederlandse labels.
