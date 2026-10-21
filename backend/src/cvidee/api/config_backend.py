@@ -36,7 +36,13 @@ from cvidee.api.schemas.installation import (
     Zone,
 )
 from cvidee.installation import SqlInstallationProfileRepository
-from cvidee.installation.specs import MODULATION_TO_KW, PUMP_SETTING, SPEC_BY_KEY
+from cvidee.installation.specs import (
+    GAS_METER_SCOPE,
+    MODULATION_TO_KW,
+    PUMP_SETTING,
+    SPEC_BY_KEY,
+    SPEC_CATALOGUE,
+)
 from cvidee.periods import SqlSpecialPeriodRepository
 from cvidee.runner.service import AnalysisRunner
 from cvidee.store.enums import EmitterType, SpecStatus
@@ -205,11 +211,15 @@ class ConfigBackend:
                 )
                 for r in body.rooms
             ],
-            specs=self._specs(session, body.specifications),
+            specs=self._specs(session, body.specifications, current),
         )
 
     @staticmethod
-    def _specs(session: Session, specs: list[Specification]) -> list[InstallationSpec]:
+    def _specs(
+        session: Session,
+        specs: list[Specification],
+        current: ProfileRow,
+    ) -> list[InstallationSpec]:
         if len({s.key for s in specs}) != len(specs):
             raise _invalid("Specificatiesleutels moeten uniek zijn.")
         rows: list[InstallationSpec] = []
@@ -222,8 +232,16 @@ class ConfigBackend:
             if spec.status is SpecStatus.KNOWN:
                 if spec.value is None:
                     raise _invalid(f"'{spec.key}' is bekend maar heeft geen waarde.")
-                if spec.key != PUMP_SETTING and isinstance(spec.value, str):
+                if spec.key not in (PUMP_SETTING, GAS_METER_SCOPE) and isinstance(spec.value, str):
                     raise _invalid(f"'{spec.key}' vraagt een numerieke waarde.")
+                if spec.key == GAS_METER_SCOPE and spec.value not in (
+                    "boiler_only",
+                    "whole_house",
+                ):
+                    raise _invalid(
+                        "Meterscope gas moet 'boiler_only' of 'whole_house' zijn; "
+                        "laat de waarde leeg als de scope onbekend is."
+                    )
                 if spec.key == MODULATION_TO_KW and (
                     isinstance(spec.value, str) or spec.value <= 0
                 ):
@@ -250,6 +268,24 @@ class ConfigBackend:
                     unit=spec.unit if spec.unit is not None else info.unit,
                     note=spec.note or None,
                     change_id=change_pk,
+                )
+            )
+        provided = {spec.key for spec in specs}
+        existing = {spec.key: spec for spec in current.specs}
+        for info in SPEC_CATALOGUE:
+            if info.key in provided:
+                continue
+            old = existing.get(info.key)
+            rows.append(
+                InstallationSpec(
+                    scope_key="",
+                    key=info.key,
+                    status=SpecStatus.UNKNOWN if old is None else old.status,
+                    value_num=None if old is None else old.value_num,
+                    value_text=None if old is None else old.value_text,
+                    unit=info.unit if old is None else old.unit,
+                    note="nog niet ingevuld" if old is None else old.note,
+                    change_id=None if old is None else old.change_id,
                 )
             )
         return rows
@@ -304,6 +340,7 @@ class ConfigBackend:
             for r in profile.rooms
         ]
         specs: list[Specification] = []
+        present_spec_keys = {spec.key for spec in profile.specs}
         for s in profile.specs:
             human = (
                 session.scalar(select(Change.human_id).where(Change.id == s.change_id))
@@ -323,6 +360,18 @@ class ConfigBackend:
                     change_id=human,
                 )
             )
+        for info in SPEC_CATALOGUE:
+            if info.key not in present_spec_keys:
+                specs.append(
+                    Specification(
+                        key=info.key,
+                        label=info.label,
+                        status=SpecStatus.UNKNOWN,
+                        value=None,
+                        unit=info.unit,
+                        note="nog niet ingevuld",
+                    )
+                )
         order = {key: i for i, key in enumerate(SPEC_BY_KEY)}
         specs.sort(key=lambda s: order.get(s.key, len(order)))
         summary = ", ".join(f"{_EMITTER_TEXT[c.emitter]} {c.name.lower()}" for c in circuits)

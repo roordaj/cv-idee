@@ -14,6 +14,12 @@ from cvidee.api.problems import ProblemError, not_found
 from cvidee.api.schemas.changes import Change, ChangeCreate, ChangeEvaluation, ChangeList
 from cvidee.api.schemas.comfort import RoomComfortAnalysisResponse, RoomComfortResult
 from cvidee.api.schemas.common import Page, TimeRange
+from cvidee.api.schemas.consumption import (
+    ConsumptionAvailability,
+    ConsumptionReason,
+    ConsumptionResponse,
+    GasMeterScope,
+)
 from cvidee.api.schemas.data import (
     ChangeMarker,
     ChangeRef,
@@ -181,6 +187,28 @@ class StubStore:
             ),
             mqtt=MqttStatus(broker_found=True, connected=True, export_mode="mqtt"),
             active_import_id=None if job is None else job.id,
+        )
+
+    def consumption(
+        self, start: datetime | None = None, end: datetime | None = None
+    ) -> ConsumptionResponse:
+        """The design fixture has no gas-meter readings, so return explicit unavailability."""
+        end = end or self.now
+        start = start or end - timedelta(days=7)
+        return ConsumptionResponse(
+            range=TimeRange(start=start, end=end),
+            availability=ConsumptionAvailability.UNAVAILABLE,
+            reasons=[ConsumptionReason.NO_METER],
+            meter_scope=GasMeterScope.UNKNOWN,
+            meter_entity_id=None,
+            unit=None,
+            coverage_pct=None,
+            counter_start=None,
+            counter_end=None,
+            consumption_m3=None,
+            cost_eur=None,
+            segments=[],
+            events=[],
         )
 
     def overview(self) -> OverviewResponse:

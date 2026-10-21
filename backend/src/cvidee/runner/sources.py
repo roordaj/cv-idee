@@ -88,6 +88,7 @@ class MappedSignal:
     value_map: Mapping[str, ObservedValue | None] | None
     mapping_id: int | None = None
     meaning: str | None = None
+    unit: str | None = None
 
     def valid_at(self, ts: TimestampMs) -> bool:
         return self.valid_from <= ts and (self.valid_to is None or ts < self.valid_to)
@@ -123,6 +124,7 @@ def load_mapped_signals(session: Session) -> list[MappedSignal]:
                 value_map=mapping.value_map,
                 mapping_id=mapping.id,
                 meaning=mapping.meaning,
+                unit=mapping.unit,
             )
         )
     out.sort(key=lambda m: (m.signal, m.valid_from, m.entity_id))

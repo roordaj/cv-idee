@@ -1324,6 +1324,106 @@
         }
       }
     },
+    "/api/consumption": {
+      "get": {
+        "tags": [
+          "consumption"
+        ],
+        "summary": "Get Consumption",
+        "description": "Measured cumulative gas use, meter scope, quality and effective price basis.",
+        "operationId": "get_consumption",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time",
+                  "description": "ISO 8601 timestamp in UTC.",
+                  "examples": [
+                    "2026-10-04T10:00:00Z"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Start (ISO 8601); default: latest.",
+              "title": "From"
+            },
+            "description": "Start (ISO 8601); default: latest."
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time",
+                  "description": "ISO 8601 timestamp in UTC.",
+                  "examples": [
+                    "2026-10-04T10:00:00Z"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "End (ISO 8601); default: now.",
+              "title": "To"
+            },
+            "description": "End (ISO 8601); default: now."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsumptionResponse"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not implemented (start the backend with CVIDEE_STUB_DATA=1 for example data)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/quality": {
       "get": {
         "tags": [
@@ -4456,6 +4556,304 @@
         ],
         "title": "ConditionRow"
       },
+      "ConsumptionAvailability": {
+        "type": "string",
+        "enum": [
+          "available",
+          "limited",
+          "unavailable"
+        ],
+        "title": "ConsumptionAvailability"
+      },
+      "ConsumptionEvent": {
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/ConsumptionEventKind"
+          },
+          "start": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Start",
+            "description": "ISO 8601 timestamp in UTC.",
+            "examples": [
+              "2026-10-04T10:00:00Z"
+            ]
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time",
+            "title": "End",
+            "description": "ISO 8601 timestamp in UTC.",
+            "examples": [
+              "2026-10-04T10:00:00Z"
+            ]
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "start",
+          "end"
+        ],
+        "title": "ConsumptionEvent"
+      },
+      "ConsumptionEventKind": {
+        "type": "string",
+        "enum": [
+          "counter_reset",
+          "data_gap",
+          "mapping_changed"
+        ],
+        "title": "ConsumptionEventKind"
+      },
+      "ConsumptionReason": {
+        "type": "string",
+        "enum": [
+          "no_meter",
+          "no_valid_intervals",
+          "unknown_meter_scope",
+          "mapping_changed",
+          "profile_scope_changed",
+          "unsupported_unit",
+          "data_gap",
+          "counter_reset"
+        ],
+        "title": "ConsumptionReason"
+      },
+      "ConsumptionResponse": {
+        "properties": {
+          "range": {
+            "$ref": "#/components/schemas/TimeRange"
+          },
+          "availability": {
+            "$ref": "#/components/schemas/ConsumptionAvailability"
+          },
+          "reasons": {
+            "items": {
+              "$ref": "#/components/schemas/ConsumptionReason"
+            },
+            "type": "array",
+            "title": "Reasons"
+          },
+          "meter_scope": {
+            "$ref": "#/components/schemas/GasMeterScope"
+          },
+          "meter_entity_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meter Entity Id"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          },
+          "coverage_pct": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coverage Pct"
+          },
+          "counter_start": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Counter Start"
+          },
+          "counter_end": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Counter End"
+          },
+          "consumption_m3": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consumption M3"
+          },
+          "cost_eur": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Eur"
+          },
+          "segments": {
+            "items": {
+              "$ref": "#/components/schemas/ConsumptionSegment"
+            },
+            "type": "array",
+            "title": "Segments"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/ConsumptionEvent"
+            },
+            "type": "array",
+            "title": "Events"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "range",
+          "availability",
+          "reasons",
+          "meter_scope",
+          "meter_entity_id",
+          "unit",
+          "coverage_pct",
+          "counter_start",
+          "counter_end",
+          "consumption_m3",
+          "cost_eur",
+          "segments",
+          "events"
+        ],
+        "title": "ConsumptionResponse"
+      },
+      "ConsumptionSegment": {
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Start",
+            "description": "ISO 8601 timestamp in UTC.",
+            "examples": [
+              "2026-10-04T10:00:00Z"
+            ]
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time",
+            "title": "End",
+            "description": "ISO 8601 timestamp in UTC.",
+            "examples": [
+              "2026-10-04T10:00:00Z"
+            ]
+          },
+          "start_reading": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Start Reading"
+          },
+          "end_reading": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "End Reading"
+          },
+          "consumption_m3": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Consumption M3"
+          },
+          "meter_entity_id": {
+            "type": "string",
+            "title": "Meter Entity Id"
+          },
+          "mapping_revision": {
+            "type": "integer",
+            "title": "Mapping Revision"
+          },
+          "settings_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Settings Revision"
+          },
+          "gas_price_eur_per_m3": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gas Price Eur Per M3"
+          },
+          "cost_eur": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Eur"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "start",
+          "end",
+          "start_reading",
+          "end_reading",
+          "consumption_m3",
+          "meter_entity_id",
+          "mapping_revision"
+        ],
+        "title": "ConsumptionSegment",
+        "description": "A non-negative counter delta between two valid readings from one meter mapping."
+      },
       "CoverageSegment": {
         "properties": {
           "start": {
@@ -5781,6 +6179,15 @@
           "items"
         ],
         "title": "FindingsOverview"
+      },
+      "GasMeterScope": {
+        "type": "string",
+        "enum": [
+          "unknown",
+          "boiler_only",
+          "whole_house"
+        ],
+        "title": "GasMeterScope"
       },
       "GlossaryTerm": {
         "properties": {

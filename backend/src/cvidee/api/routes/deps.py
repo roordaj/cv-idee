@@ -15,6 +15,7 @@ from cvidee.api.findings_read import FindingsReadModel
 from cvidee.api.problems import ProblemError
 from cvidee.api.schemas.changes import Change, ChangeCreate, ChangeEvaluation, ChangeList
 from cvidee.api.schemas.common import Page, UtcDateTime
+from cvidee.api.schemas.consumption import ConsumptionResponse
 from cvidee.api.schemas.data import (
     CycleList,
     ImportJob,
@@ -281,6 +282,24 @@ class MonitoringBackend(Protocol):
     ) -> CycleList: ...
 
 
+class ConsumptionBackend(Protocol):
+    def consumption(
+        self, start: datetime | None = None, end: datetime | None = None
+    ) -> ConsumptionResponse: ...
+
+
+def get_consumption(request: Request) -> ConsumptionBackend:
+    from cvidee.api.consumption_read import ConsumptionReadModel
+
+    stub: StubStore | None = getattr(request.app.state, "stub_store", None)
+    if stub is not None:
+        return stub
+    factory: sessionmaker[Session] | None = getattr(request.app.state, "session_factory", None)
+    if factory is None:
+        raise get_stub_store_problem()
+    return ConsumptionReadModel(factory)
+
+
 def get_monitoring(request: Request) -> MonitoringBackend:
     from cvidee.api.live_read import LiveReadModel
 
@@ -322,3 +341,4 @@ class StubMonitoring:
 
 
 Monitoring = Annotated[MonitoringBackend, Depends(get_monitoring)]
+Consumption = Annotated[ConsumptionBackend, Depends(get_consumption)]

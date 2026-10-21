@@ -376,6 +376,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/consumption': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Consumption
+     * @description Measured cumulative gas use, meter scope, quality and effective price basis.
+     */
+    get: operations['get_consumption'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/quality': {
     parameters: {
       query?: never;
@@ -1345,6 +1365,114 @@ export interface components {
       after: string;
       comparable: components['schemas']['Comparability'];
     };
+    /**
+     * ConsumptionAvailability
+     * @enum {string}
+     */
+    ConsumptionAvailability: 'available' | 'limited' | 'unavailable';
+    /** ConsumptionEvent */
+    ConsumptionEvent: {
+      kind: components['schemas']['ConsumptionEventKind'];
+      /**
+       * Start
+       * Format: date-time
+       * @description ISO 8601 timestamp in UTC.
+       * @example 2026-10-04T10:00:00Z
+       */
+      start: string;
+      /**
+       * End
+       * Format: date-time
+       * @description ISO 8601 timestamp in UTC.
+       * @example 2026-10-04T10:00:00Z
+       */
+      end: string;
+      /**
+       * Detail
+       * @default
+       */
+      detail: string;
+    };
+    /**
+     * ConsumptionEventKind
+     * @enum {string}
+     */
+    ConsumptionEventKind: 'counter_reset' | 'data_gap' | 'mapping_changed';
+    /**
+     * ConsumptionReason
+     * @enum {string}
+     */
+    ConsumptionReason:
+      | 'no_meter'
+      | 'no_valid_intervals'
+      | 'unknown_meter_scope'
+      | 'mapping_changed'
+      | 'profile_scope_changed'
+      | 'unsupported_unit'
+      | 'data_gap'
+      | 'counter_reset';
+    /** ConsumptionResponse */
+    ConsumptionResponse: {
+      range: components['schemas']['TimeRange'];
+      availability: components['schemas']['ConsumptionAvailability'];
+      /** Reasons */
+      reasons: components['schemas']['ConsumptionReason'][];
+      meter_scope: components['schemas']['GasMeterScope'];
+      /** Meter Entity Id */
+      meter_entity_id: string | null;
+      /** Unit */
+      unit: string | null;
+      /** Coverage Pct */
+      coverage_pct: number | null;
+      /** Counter Start */
+      counter_start: number | null;
+      /** Counter End */
+      counter_end: number | null;
+      /** Consumption M3 */
+      consumption_m3: number | null;
+      /** Cost Eur */
+      cost_eur: number | null;
+      /** Segments */
+      segments: components['schemas']['ConsumptionSegment'][];
+      /** Events */
+      events: components['schemas']['ConsumptionEvent'][];
+    };
+    /**
+     * ConsumptionSegment
+     * @description A non-negative counter delta between two valid readings from one meter mapping.
+     */
+    ConsumptionSegment: {
+      /**
+       * Start
+       * Format: date-time
+       * @description ISO 8601 timestamp in UTC.
+       * @example 2026-10-04T10:00:00Z
+       */
+      start: string;
+      /**
+       * End
+       * Format: date-time
+       * @description ISO 8601 timestamp in UTC.
+       * @example 2026-10-04T10:00:00Z
+       */
+      end: string;
+      /** Start Reading */
+      start_reading: number;
+      /** End Reading */
+      end_reading: number;
+      /** Consumption M3 */
+      consumption_m3: number;
+      /** Meter Entity Id */
+      meter_entity_id: string;
+      /** Mapping Revision */
+      mapping_revision: number;
+      /** Settings Revision */
+      settings_revision?: number | null;
+      /** Gas Price Eur Per M3 */
+      gas_price_eur_per_m3?: number | null;
+      /** Cost Eur */
+      cost_eur?: number | null;
+    };
     /** CoverageSegment */
     CoverageSegment: {
       /**
@@ -1838,6 +1966,11 @@ export interface components {
       /** Items */
       items: components['schemas']['FindingSummary'][];
     };
+    /**
+     * GasMeterScope
+     * @enum {string}
+     */
+    GasMeterScope: 'unknown' | 'boiler_only' | 'whole_house';
     /** GlossaryTerm */
     GlossaryTerm: {
       /** Term */
@@ -4425,6 +4558,51 @@ export interface operations {
         };
         content: {
           'application/pdf': string;
+        };
+      };
+      /** @description Validation error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+      /** @description Not implemented (start the backend with CVIDEE_STUB_DATA=1 for example data) */
+      501: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['Problem'];
+          'application/json': components['schemas']['Problem'];
+        };
+      };
+    };
+  };
+  get_consumption: {
+    parameters: {
+      query?: {
+        /** @description Start (ISO 8601); default: latest. */
+        from?: string | null;
+        /** @description End (ISO 8601); default: now. */
+        to?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ConsumptionResponse'];
         };
       };
       /** @description Validation error */
