@@ -2,9 +2,27 @@
 
 from fastapi import APIRouter
 
-from cvidee.api.routes.deps import Consumption, From, Limit, Monitoring, Offset, Timeline, To
+from cvidee.api.routes.deps import (
+    CandidateFrom,
+    CandidateLimit,
+    CandidateOffset,
+    CandidateTo,
+    Consumption,
+    ConsumptionComparison,
+    From,
+    Limit,
+    Monitoring,
+    Offset,
+    Timeline,
+    To,
+)
 from cvidee.api.schemas.common import problem_responses
-from cvidee.api.schemas.consumption import ConsumptionResponse
+from cvidee.api.schemas.consumption import (
+    ConsumptionCandidatesResponse,
+    ConsumptionComparisonRequest,
+    ConsumptionComparisonResponse,
+    ConsumptionResponse,
+)
 from cvidee.api.schemas.data import (
     CycleList,
     QualityResponse,
@@ -20,6 +38,27 @@ async def get_consumption(
 ) -> ConsumptionResponse:
     """Measured cumulative gas use, meter scope, quality and effective price basis."""
     return store.consumption(from_, to)
+
+
+@router.get("/consumption/comparison/candidates", tags=["consumption"])
+async def get_consumption_candidates(
+    store: ConsumptionComparison,
+    from_: CandidateFrom,
+    to: CandidateTo,
+    limit: CandidateLimit = 30,
+    offset: CandidateOffset = 0,
+) -> ConsumptionCandidatesResponse:
+    """Eligible and excluded same-duration historical gas periods with comparison context."""
+    return store.candidates(from_, to, limit, offset)
+
+
+@router.post("/consumption/comparison", tags=["consumption"])
+async def compare_consumption(
+    body: ConsumptionComparisonRequest,
+    store: ConsumptionComparison,
+) -> ConsumptionComparisonResponse:
+    """Compare user-selected historical and observation periods using raw meter readings."""
+    return store.compare(body)
 
 
 @router.get("/quality", tags=["quality"])

@@ -16,6 +16,14 @@ from cvidee.api.schemas.comfort import RoomComfortAnalysisResponse, RoomComfortR
 from cvidee.api.schemas.common import Page, TimeRange
 from cvidee.api.schemas.consumption import (
     ConsumptionAvailability,
+    ConsumptionCandidatesResponse,
+    ConsumptionComparisonReason,
+    ConsumptionComparisonRequest,
+    ConsumptionComparisonResponse,
+    ConsumptionComparisonStatus,
+    ConsumptionComparisonWindow,
+    ConsumptionPeriodCandidate,
+    ConsumptionPeriodContext,
     ConsumptionReason,
     ConsumptionResponse,
     GasMeterScope,
@@ -209,6 +217,93 @@ class StubStore:
             cost_eur=None,
             segments=[],
             events=[],
+        )
+
+    def candidates(
+        self, start: datetime, end: datetime, limit: int = 30, offset: int = 0
+    ) -> ConsumptionCandidatesResponse:
+        del limit, offset
+        observation_data = ConsumptionPeriodCandidate(
+            range=TimeRange(start=start, end=end),
+            status=ConsumptionComparisonStatus.UNAVAILABLE,
+            reasons=[
+                ConsumptionComparisonReason.NO_METER,
+                ConsumptionComparisonReason.NO_VALID_PERIOD,
+            ],
+            meter_scope=GasMeterScope.UNKNOWN,
+            meter_entity_id=None,
+            unit=None,
+            mapping_revision=None,
+            coverage_pct=None,
+            consumption_availability=ConsumptionAvailability.UNAVAILABLE,
+            cost_availability=ConsumptionAvailability.UNAVAILABLE,
+            context=ConsumptionPeriodContext(
+                outdoor_temperature_c=None,
+                outdoor_coverage_pct=None,
+                room_setpoints_c={},
+                heating_runtime_hours=None,
+                heat_demand_hours=None,
+                dhw_runtime_hours=None,
+                zone_use="unknown",
+                special_periods=[],
+            ),
+        )
+        return ConsumptionCandidatesResponse(
+            observation=TimeRange(start=start, end=end),
+            observation_data=observation_data,
+            status=ConsumptionComparisonStatus.UNAVAILABLE,
+            reasons=[
+                ConsumptionComparisonReason.NO_METER,
+                ConsumptionComparisonReason.NO_VALID_PERIOD,
+            ],
+            candidates=[],
+            consumption_availability=ConsumptionAvailability.UNAVAILABLE,
+            efficiency_availability=ConsumptionAvailability.UNAVAILABLE,
+            cost_availability=ConsumptionAvailability.UNAVAILABLE,
+        )
+
+    def compare(self, request: ConsumptionComparisonRequest) -> ConsumptionComparisonResponse:
+        def candidate(window: ConsumptionComparisonWindow) -> ConsumptionPeriodCandidate:
+            return ConsumptionPeriodCandidate(
+                range=TimeRange(start=window.start, end=window.end),
+                status=ConsumptionComparisonStatus.UNAVAILABLE,
+                reasons=[
+                    ConsumptionComparisonReason.NO_METER,
+                    ConsumptionComparisonReason.NO_VALID_PERIOD,
+                ],
+                consumption_m3=None,
+                meter_scope=GasMeterScope.UNKNOWN,
+                meter_entity_id=None,
+                unit=None,
+                mapping_revision=None,
+                coverage_pct=None,
+                consumption_availability=ConsumptionAvailability.UNAVAILABLE,
+                cost_availability=ConsumptionAvailability.UNAVAILABLE,
+                context=ConsumptionPeriodContext(
+                    outdoor_temperature_c=None,
+                    outdoor_coverage_pct=None,
+                    room_setpoints_c={},
+                    heating_runtime_hours=None,
+                    heat_demand_hours=None,
+                    dhw_runtime_hours=None,
+                    zone_use="unknown",
+                    special_periods=[],
+                ),
+            )
+
+        return ConsumptionComparisonResponse(
+            reference=candidate(request.reference),
+            observation=candidate(request.observation),
+            status=ConsumptionComparisonStatus.UNAVAILABLE,
+            reasons=[
+                ConsumptionComparisonReason.NO_METER,
+                ConsumptionComparisonReason.NO_VALID_PERIOD,
+            ],
+            difference_m3=None,
+            basis="Geen metergegevens beschikbaar.",
+            consumption_availability=ConsumptionAvailability.UNAVAILABLE,
+            efficiency_availability=ConsumptionAvailability.UNAVAILABLE,
+            cost_availability=ConsumptionAvailability.UNAVAILABLE,
         )
 
     def overview(self) -> OverviewResponse:

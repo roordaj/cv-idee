@@ -1424,6 +1424,173 @@
         }
       }
     },
+    "/api/consumption/comparison/candidates": {
+      "get": {
+        "tags": [
+          "consumption"
+        ],
+        "summary": "Get Consumption Candidates",
+        "description": "Eligible and excluded same-duration historical gas periods with comparison context.",
+        "operationId": "get_consumption_candidates",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Observation start.",
+              "title": "From"
+            },
+            "description": "Observation start."
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Observation end.",
+              "title": "To"
+            },
+            "description": "Observation end."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Maximum historical periods.",
+              "default": 30,
+              "title": "Limit"
+            },
+            "description": "Maximum historical periods."
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Historical periods to skip.",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Historical periods to skip."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsumptionCandidatesResponse"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not implemented (start the backend with CVIDEE_STUB_DATA=1 for example data)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/consumption/comparison": {
+      "post": {
+        "tags": [
+          "consumption"
+        ],
+        "summary": "Compare Consumption",
+        "description": "Compare user-selected historical and observation periods using raw meter readings.",
+        "operationId": "compare_consumption",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsumptionComparisonRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsumptionComparisonResponse"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not implemented (start the backend with CVIDEE_STUB_DATA=1 for example data)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/quality": {
       "get": {
         "tags": [
@@ -4565,6 +4732,191 @@
         ],
         "title": "ConsumptionAvailability"
       },
+      "ConsumptionCandidatesResponse": {
+        "properties": {
+          "observation": {
+            "$ref": "#/components/schemas/TimeRange"
+          },
+          "observation_data": {
+            "$ref": "#/components/schemas/ConsumptionPeriodCandidate"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ConsumptionComparisonStatus"
+          },
+          "reasons": {
+            "items": {
+              "$ref": "#/components/schemas/ConsumptionComparisonReason"
+            },
+            "type": "array",
+            "title": "Reasons"
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/ConsumptionPeriodCandidate"
+            },
+            "type": "array",
+            "title": "Candidates"
+          },
+          "consumption_availability": {
+            "$ref": "#/components/schemas/ConsumptionAvailability"
+          },
+          "efficiency_availability": {
+            "$ref": "#/components/schemas/ConsumptionAvailability"
+          },
+          "cost_availability": {
+            "$ref": "#/components/schemas/ConsumptionAvailability"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "observation",
+          "observation_data",
+          "status",
+          "reasons",
+          "candidates",
+          "consumption_availability",
+          "efficiency_availability",
+          "cost_availability"
+        ],
+        "title": "ConsumptionCandidatesResponse"
+      },
+      "ConsumptionComparisonReason": {
+        "type": "string",
+        "enum": [
+          "no_valid_period",
+          "no_meter",
+          "unknown_meter_scope",
+          "meter_mismatch",
+          "mapping_changed",
+          "scope_changed",
+          "unit_mismatch",
+          "duration_mismatch",
+          "low_coverage",
+          "counter_reset",
+          "data_gap",
+          "excluded_period",
+          "weather_out_of_range",
+          "weather_limited",
+          "setpoint_mismatch",
+          "setpoint_unknown",
+          "use_context_unknown"
+        ],
+        "title": "ConsumptionComparisonReason"
+      },
+      "ConsumptionComparisonRequest": {
+        "properties": {
+          "observation": {
+            "$ref": "#/components/schemas/ConsumptionComparisonWindow"
+          },
+          "reference": {
+            "$ref": "#/components/schemas/ConsumptionComparisonWindow"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "observation",
+          "reference"
+        ],
+        "title": "ConsumptionComparisonRequest"
+      },
+      "ConsumptionComparisonResponse": {
+        "properties": {
+          "reference": {
+            "$ref": "#/components/schemas/ConsumptionPeriodCandidate"
+          },
+          "observation": {
+            "$ref": "#/components/schemas/ConsumptionPeriodCandidate"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ConsumptionComparisonStatus"
+          },
+          "reasons": {
+            "items": {
+              "$ref": "#/components/schemas/ConsumptionComparisonReason"
+            },
+            "type": "array",
+            "title": "Reasons"
+          },
+          "difference_m3": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Difference M3"
+          },
+          "basis": {
+            "type": "string",
+            "title": "Basis"
+          },
+          "consumption_availability": {
+            "$ref": "#/components/schemas/ConsumptionAvailability"
+          },
+          "efficiency_availability": {
+            "$ref": "#/components/schemas/ConsumptionAvailability"
+          },
+          "cost_availability": {
+            "$ref": "#/components/schemas/ConsumptionAvailability"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "reference",
+          "observation",
+          "status",
+          "reasons",
+          "difference_m3",
+          "basis",
+          "consumption_availability",
+          "efficiency_availability",
+          "cost_availability"
+        ],
+        "title": "ConsumptionComparisonResponse"
+      },
+      "ConsumptionComparisonStatus": {
+        "type": "string",
+        "enum": [
+          "available",
+          "limited",
+          "unavailable"
+        ],
+        "title": "ConsumptionComparisonStatus"
+      },
+      "ConsumptionComparisonWindow": {
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Start",
+            "description": "ISO 8601 timestamp in UTC.",
+            "examples": [
+              "2026-10-04T10:00:00Z"
+            ]
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time",
+            "title": "End",
+            "description": "ISO 8601 timestamp in UTC.",
+            "examples": [
+              "2026-10-04T10:00:00Z"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "start",
+          "end"
+        ],
+        "title": "ConsumptionComparisonWindow"
+      },
       "ConsumptionEvent": {
         "properties": {
           "kind": {
@@ -4611,6 +4963,234 @@
           "mapping_changed"
         ],
         "title": "ConsumptionEventKind"
+      },
+      "ConsumptionPeriodCandidate": {
+        "properties": {
+          "range": {
+            "$ref": "#/components/schemas/TimeRange"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ConsumptionComparisonStatus"
+          },
+          "reasons": {
+            "items": {
+              "$ref": "#/components/schemas/ConsumptionComparisonReason"
+            },
+            "type": "array",
+            "title": "Reasons"
+          },
+          "counter_start": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Counter Start"
+          },
+          "counter_end": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Counter End"
+          },
+          "consumption_m3": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consumption M3"
+          },
+          "meter_scope": {
+            "$ref": "#/components/schemas/GasMeterScope"
+          },
+          "meter_entity_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meter Entity Id"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          },
+          "mapping_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mapping Revision"
+          },
+          "coverage_pct": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coverage Pct"
+          },
+          "consumption_availability": {
+            "$ref": "#/components/schemas/ConsumptionAvailability"
+          },
+          "cost_availability": {
+            "$ref": "#/components/schemas/ConsumptionAvailability"
+          },
+          "context": {
+            "$ref": "#/components/schemas/ConsumptionPeriodContext"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "range",
+          "status",
+          "reasons",
+          "meter_scope",
+          "meter_entity_id",
+          "unit",
+          "mapping_revision",
+          "consumption_availability",
+          "cost_availability",
+          "context"
+        ],
+        "title": "ConsumptionPeriodCandidate"
+      },
+      "ConsumptionPeriodContext": {
+        "properties": {
+          "outdoor_temperature_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outdoor Temperature C"
+          },
+          "outdoor_coverage_pct": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outdoor Coverage Pct"
+          },
+          "room_setpoints_c": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Room Setpoints C"
+          },
+          "heating_runtime_hours": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Heating Runtime Hours"
+          },
+          "heat_demand_hours": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Heat Demand Hours"
+          },
+          "dhw_runtime_hours": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dhw Runtime Hours"
+          },
+          "zone_use": {
+            "type": "string",
+            "title": "Zone Use"
+          },
+          "special_periods": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Special Periods"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "outdoor_temperature_c",
+          "outdoor_coverage_pct",
+          "room_setpoints_c",
+          "heating_runtime_hours",
+          "heat_demand_hours",
+          "dhw_runtime_hours",
+          "zone_use",
+          "special_periods"
+        ],
+        "title": "ConsumptionPeriodContext"
       },
       "ConsumptionReason": {
         "type": "string",

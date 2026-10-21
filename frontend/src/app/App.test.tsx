@@ -20,6 +20,7 @@ const NAV_LABELS = [
   'Overzicht',
   'Bevindingen',
   'Cycli',
+  'Verbruik',
   'Wijzigingen',
   'Advieshistorie',
   'Signalen',
@@ -79,6 +80,7 @@ describe('App shell', () => {
   it.each([
     ['/bevindingen', 'Bevindingen'],
     ['/cycli', 'Cycli'],
+    ['/verbruik', 'Gasverbruik'],
     ['/wijzigingen', 'Wijzigingen'],
     ['/historie', 'Advieshistorie'],
     ['/installatie', 'Installatieprofiel'],

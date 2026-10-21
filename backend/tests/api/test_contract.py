@@ -43,6 +43,10 @@ BODIES: dict[tuple[str, str], dict[str, Any]] = {
     ("POST", "/api/periods"): {"kind": "test", "start": "2026-10-03T08:00:00Z"},
     ("PUT", "/api/periods/{period_id}"): {"kind": "vacation", "start": "2026-08-14T00:00:00Z"},
     ("POST", "/api/import"): {"from": "2026-10-01T00:00:00Z", "to": NOW},
+    ("POST", "/api/consumption/comparison"): {
+        "reference": {"start": "2026-10-02T00:00:00Z", "end": "2026-10-03T00:00:00Z"},
+        "observation": {"start": "2026-10-03T00:00:00Z", "end": NOW},
+    },
     ("POST", "/api/findings/{finding_id}/status"): {"status": "accepted"},
     ("POST", "/api/findings/{finding_id}/notes"): {"text": "Groepen boven gecontroleerd."},
     ("POST", "/api/changes"): {
@@ -121,6 +125,8 @@ async def test_stub_response_matches_schema(
 ) -> None:
     body = await _body_for(client, method, route.path)
     url = _url(route)
+    if route.path == "/api/consumption/comparison/candidates":
+        url = f"{url}?from=2026-10-03T00:00:00Z&to={NOW}"
     if route.path == "/api/import/{import_id}/cancel":  # needs a running import
         started = await client.post("/api/import", json=BODIES["POST", "/api/import"])
         url = route.path.replace("{import_id}", started.json()["id"])
